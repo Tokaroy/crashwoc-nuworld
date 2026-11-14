@@ -346,6 +346,24 @@ static void test_order(void)
     CHECK(nw_rndr_packet()->ncmds == 0);
 }
 
+
+static void test_mtl_stream_head(void)
+{
+    struct numtl_s *own = NuMtlCreate(1);
+    struct numtl_s *other = NuMtlCreate(1);
+    NuRndrSwapStreamBuffers();
+    mark(&own->rs, 1);
+    NuRndrStreamAddMtl(&own->rs, other);
+    mark(&own->rs, 2);
+    NuRndrEndScene();
+    mark(&own->rs, 3);
+    NuRndrEndScene();
+    const NwPacket *p = nw_rndr_packet();
+    CHECK(packet_is((const uintptr_t[]){ 1, 2, 3 }, 3));
+    CHECK(p->cmds[0].material == own && p->cmds[1].material == other && p->cmds[2].material == own);
+    NuRndrSwapStreamBuffers();
+}
+
 /* A record keeps the view and local matrix it was made under; the packet holds each view once. */
 static void test_state_capture(void)
 {
@@ -1447,6 +1465,7 @@ int main(void)
     test_bitmap();
     test_state();
     test_order();
+    test_mtl_stream_head();
     test_state_capture();
     test_raw();
     test_animate();
