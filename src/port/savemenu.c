@@ -11,12 +11,10 @@
 #include "nu3d/nugscn.h"
 #include "nu_types.h"
 #include "nups2/ps2ctl.h"
+#include "port/disc.h"
 #include "port/menu.h"
 #include "port/names.h"
 #include "port/saves.h"
-#include "shim/shim.h"
-#include "vfs/manifest.h"
-#include "vfs/vfs.h"
 
 #define NW_SAVEMENU_ARROW_X 0.85f /* the page arrows, beside the grid */
 #define NW_SAVEMENU_DX 0.7f       /* retail's SLOTPANELDX, SLOTPANELDY, SLOTPANELSX and SLOTPANELSZ */
@@ -66,12 +64,6 @@ static void nw_savemenu_when(const struct game_s *g, NwSaveTime *t)
     }
 }
 
-static bool nw_savemenu_ntsc(void)
-{
-    const NwVfs *vfs = nw_shim_file_vfs();
-    return vfs && vfs->manifest && vfs->manifest->vmode && SDL_strcmp(vfs->manifest->vmode, "NTSC") == 0;
-}
-
 static void nw_savemenu_stat(const char *fmt, int value, int letter, f32 x, f32 y)
 {
     SDL_snprintf(tbuf, sizeof(tbuf), fmt, value, letter);
@@ -96,7 +88,7 @@ void DrawGameSlot(struct game_s *game, f32 x, f32 y, s32 colour)
         NwSaveTime t;
         nw_savemenu_when(game, &t);
         if (t.year) {
-            bool ntsc = nw_savemenu_ntsc();
+            bool ntsc = nw_disc_ntsc();
             SDL_snprintf(tbuf, sizeof(tbuf), "%02d:%02d %02d.%02d.%02d", t.hour, t.minute, ntsc ? t.month : t.day,
                          ntsc ? t.day : t.month, t.year % 100);
             Text3D(tbuf, x, y - 0.3f, 1.0f, 0.5f, 0.5f, 0.5f, 0, 0);
