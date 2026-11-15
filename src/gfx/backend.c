@@ -438,7 +438,7 @@ static void nw_be_target(const NwCmd *c)
     if (s) {
         bool shared =
             c->target.zback && back && back != s && back->tw == s->tw && back->th == s->th && back->n == s->n;
-        bool ms = shared && back->ms && s->addr != NW_SURF_FRONT;
+        bool ms = s == back ? nw_be.samples > 1 : shared && back->ms && s->addr != NW_SURF_FRONT;
         if (!ms) {
             nw_be_resolve(s);
             if (!nw_be.samples) {
@@ -451,7 +451,7 @@ static void nw_be_target(const NwCmd *c)
             glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D,
                                    shared ? back->depth : s->depth, 0);
         } else {
-            nw_be_ms(s, back);
+            nw_be_ms(s, shared ? back : NULL);
         }
         s->ms = ms;
         nw_be_bind(s, c->target.width, c->target.height);
