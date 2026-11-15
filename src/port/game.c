@@ -75,8 +75,8 @@ _Noreturn static void nw_game_park(NwGameState state)
 void nw_game_host_enter(void)
 {
 #if defined(__x86_64__) || defined(_M_X64)
-    /* The EE FPU has no denormals: flush them to zero (FTZ) and read them as zero (DAZ). */
-    _mm_setcsr(_mm_getcsr() | 0x8040);
+    /* The EE FPU rounds toward zero and has no denormals (FTZ, DAZ); doubles: tools/softdouble.py. */
+    _mm_setcsr(_mm_getcsr() | 0xE040);
 #endif
     nw_fp_traps_enter();
 }

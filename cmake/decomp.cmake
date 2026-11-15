@@ -188,6 +188,10 @@ nw_embed(nuworld_game nw_title_logo_ghg ${nw_title_logo})
 add_dependencies(nuworld_game nuworld_gen nuworld_types)
 target_include_directories(nuworld_game PRIVATE ${nw_decomp_includes} ${nw_gen})
 target_compile_options(nuworld_game PRIVATE ${nw_decomp_flags} -Wall -Wextra)
+# The EE's double rounding.
+set_target_properties(nuworld_decomp nuworld_game PROPERTIES
+  C_COMPILER_LAUNCHER "${Python3_EXECUTABLE};${nw_tools}/softdouble.py")
+set_property(SOURCE ${nw_sources} ${nw_game_sources} APPEND PROPERTY OBJECT_DEPENDS ${nw_tools}/softdouble.py)
 # LINK_ONLY: nuworld_data's decomp flags must not reach the executable's own (C++) sources.
 target_link_libraries(nuworld_game PUBLIC $<LINK_ONLY:nuworld_data> nuworld_audio nuworld_gfx nuworld_port nuworld_save
   nuworld_vfs)

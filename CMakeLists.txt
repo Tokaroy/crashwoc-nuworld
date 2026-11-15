@@ -131,9 +131,10 @@ add_custom_target(nuworld_buildid
   BYPRODUCTS ${nw_buildid}
   VERBATIM)
 
-# Runtime for the generated stubs and function map, the vblank clock the game thread runs on, the build ID and the
-# check for a newer release.
+# Runtime for the generated stubs and function map, the vblank clock the game thread runs on, the build ID, the
+# check for a newer release and the game's doubles.
 add_library(nuworld_port STATIC
+  src/hle/eedouble.c
   src/platform/clock.c
   src/platform/http.c
   src/platform/update.c
