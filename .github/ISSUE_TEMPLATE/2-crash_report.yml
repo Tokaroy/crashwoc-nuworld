@@ -1,7 +1,7 @@
 name: Crash / freeze / won't start
 description: The port crashes, freezes, hangs or does not start.
-title: "[Crash]: "
-labels: ["bug", "crash"]
+type: Bug
+labels: ["crash", "needs-triage"]
 body:
   - type: markdown
     attributes:
