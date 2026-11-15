@@ -110,7 +110,8 @@ typedef struct NwMechMovement {
     VAL(torpedo_rate, "Torpedo rate % (2/s)", 135, 100, 400, "how often it fires, percent of the PS2's 2 a second") \
     VAL(torpedo_speed, "Torpedo speed %", 120, 100, 300, "percent of the PS2's; it flies as long, so farther") \
     VAL(bomb_rate, "Bomb rate % (1/s)", 250, 100, 400, "how often it drops one, percent of the PS2's 1 a second") \
-    VAL(bomb_speed, "Bomb speed %", 100, 100, 300, "how fast it sinks, percent of the PS2's")
+    VAL(bomb_speed, "Bomb speed %", 100, 100, 300, "how fast it sinks, percent of the PS2's") \
+    SW(pass_fruit, "Shots pass fruit", true, "torpedoes and bombs fly through wumpa fruit instead of bursting on it")
 
 typedef struct NwSubMovement {
     NW_SUB_MOVEMENT(NW_CRASH_BOOL, NW_CRASH_BOOL, NW_CRASH_INT)

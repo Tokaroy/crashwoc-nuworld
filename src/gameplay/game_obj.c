@@ -63,7 +63,9 @@ void ObjectRotation(struct obj_s *obj, s32 mode, s32 blend)
 void UpdateProjectiles(void)
 {
     nw_sub_shrink();
+    nw_sub_shots(true);
     UpdateProjectiles__retail();
+    nw_sub_shots(false);
     nw_sub_restore();
 }
 
