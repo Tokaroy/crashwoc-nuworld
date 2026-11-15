@@ -1,0 +1,18 @@
+--- a/src/game/game.c
++++ b/src/game/game.c
+@@ -4057,6 +4057,15 @@ void ResetDeath(void) {
+                                                 death_rail.pINPLAT->ptsize));
+         Death = 2;
+         death_begun = 1;
++#ifdef NW_HOST
++        {
++            extern struct nugspline_s *death_pCAM;
++            extern struct nugspline_s *death_pPLAT;
++
++            death_pCAM = death_rail.pINCAM;
++            death_pPLAT = death_rail.pINPLAT;
++        }
++#endif
+     }
+ }
+ 

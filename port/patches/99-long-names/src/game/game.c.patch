@@ -1,6 +1,6 @@
 --- a/src/game/game.c
 +++ b/src/game/game.c
-@@ -5121,7 +5121,7 @@ inline void MakeLevelTimeString(struct time_s *time, char *txt) {
+@@ -5130,7 +5130,7 @@ inline void MakeLevelTimeString(struct time_s *time, char *txt) {
      } else {
          fmt = "%s %s";
      }
