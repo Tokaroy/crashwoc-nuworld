@@ -15,7 +15,7 @@
     VAL(jump_height, "Jump height %", 113, 100, 130, "percent of the PS2's jump height") \
     SW(jump_distance, "Predictable jump distance", false, "in a jump any stick tilt is a full run") \
     VAL(air_accel, "Air acceleration %", 200, 100, 400, "percent of the PS2's") \
-    SW(air_momentum, "Air momentum", true, "mid-air with the stick let go he keeps some momentum") \
+    SW(air_momentum, "Air momentum", false, "mid-air with the stick let go he keeps some momentum") \
     VAL(air_drift, "Momentum kept %", 75, 0, 100, "how much of the PS2's slow-down he skips") \
     SW(dash_jump, "Crash Dash jump momentum", true, "a jump out of a Crash Dash keeps its speed") \
     VAL(dash_kept, "Dash speed kept %", 100, 0, 100, "share of the dash's extra speed kept to the ground") \
@@ -25,7 +25,7 @@
     SW(grip, "Grip", true, "less slippery stops and turns; ice stays slippery") \
     VAL(grip_turn, "Turn grip %", 250, 100, 500, "percent of the PS2's") \
     VAL(grip_brake, "Braking %", 120, 100, 400, "percent of the PS2's") \
-    SW(long_spin, "Longer spin", true, "the spin attack lasts longer") \
+    SW(long_spin, "Longer spin", false, "the spin attack lasts longer") \
     VAL(spin_ms, "Spin length ms", 400, 320, 600, "the PS2's is 320") \
     SW(slide, "Crash 2 slide", true, "a faster slide he comes out of running") \
     VAL(slide_speed, "Slide speed %", 140, 100, 150, "percent of the PS2's") \
