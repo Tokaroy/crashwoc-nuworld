@@ -92,3 +92,8 @@ double nw_host_atof(const char *s)
 {
     NW_NEAREST(double, atof(s));
 }
+
+double nw_host_strtod(const char *s, char **end)
+{
+    NW_NEAREST(double, strtod(s, end));
+}
