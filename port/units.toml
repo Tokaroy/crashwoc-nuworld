@@ -150,8 +150,8 @@ schema = 1
     "MovePlayer"] }
 "game/inst" = { treatment = "compile" }
 "game/camera" = { treatment = "compile", wrap = ["MoveGameCamera"] }
-"game/game" = { treatment = "compile", wrap = ["CheckFinish", "DefaultTimeTrialNames", "DrawMenu", "GetMenuInfo", "InitObjectTable", "NewGame", "NewLevelTime",
-    "ProcMenu", "SeekRot"], expose = ["dme_sx"] }
+"game/game" = { treatment = "compile", wrap = ["CheckFinish", "DefaultTimeTrialNames", "DrawMenu", "GetMenuInfo", "HitWumpa", "InitObjectTable", "NewGame",
+    "NewLevelTime", "ProcMenu", "SeekRot"], expose = ["dme_sx"] }
 "game/crate" = { treatment = "compile", override = ["AddQuad3DrotXYZ"] }
 "game/game_obj" = { treatment = "compile", wrap = ["MoveLoopXZ", "PlayerCreatureCollisions", "ObjectRotation",
     "UpdateProjectiles", "AddProjectile"] }

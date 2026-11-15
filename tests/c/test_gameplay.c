@@ -69,6 +69,10 @@ extern struct ldata_s LData[44];
 extern struct cursor_s Cursor;
 extern char *LevelName[44][6], *HubName[6][6], *tWARPROOM[6];
 extern s32 Hub;
+extern s32 TimeTrial;
+extern struct wumpa_s Wumpa[320];
+extern struct gdeb_s GDeb[];
+s32 HitWumpa(struct obj_s *obj, s32 destroy);
 void MoveLoopXZ(struct obj_s *obj, u16 *hdg);
 u16 SeekRot(u16 a, u16 b, s32 shift);
 u16 SeekRot__retail(u16 a, u16 b, s32 shift);
@@ -1670,6 +1674,32 @@ static void sub_weapons(void)
     CHECK(plr->fire == 0x19);
 }
 
+/* A torpedo on a resting fruit; no level loaded, so retail's burst (GDeb[130] -1) only clears the fruit. */
+static void sub_fruit(void)
+{
+    NwProfile on = SUB_ONLY(pass_fruit), retail = { .movement = NW_MOVEMENT_RETAIL };
+    struct obj_s shot = { .pos = { 1.0f, 2.0f, 3.0f }, .RADIUS = 0.1f, .SCALE = 0.6f, .bot = -0.1f, .top = 0.1f };
+    struct wumpa_s fruit = Wumpa[0];
+
+    CHECK(GDeb[130].i == -1);
+    TimeTrial = 0;
+    Wumpa[0].pos = shot.pos;
+    /* It flies through only inside UpdateProjectiles: elsewhere (a fired fruit in UpdateWumpa) retail's. */
+    sub_at(50, &on);
+    Wumpa[0].active = 2;
+    nw_sub_shots(true);
+    CHECK(HitWumpa(&shot, 1) == 0 && Wumpa[0].active == 2);
+    nw_sub_shots(false);
+    CHECK(HitWumpa(&shot, 1) == 1 && Wumpa[0].active == 0);
+    /* The switch off: retail's. */
+    sub_at(50, &retail);
+    Wumpa[0].active = 2;
+    nw_sub_shots(true);
+    CHECK(HitWumpa(&shot, 1) == 1 && Wumpa[0].active == 0);
+    nw_sub_shots(false);
+    Wumpa[0] = fruit;
+}
+
 static RailPosition jeep_rail;
 
 /* Retail's off-roader data at hz, then p; Crash driving it on a rail at 0x4000. */
@@ -2813,6 +2843,7 @@ int main(void)
     sub_speed();
     sub_hitbox();
     sub_weapons();
+    sub_fruit();
     jeep_steer();
     jeep_speed();
     jeep_grip();
