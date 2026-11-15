@@ -5,7 +5,7 @@
 
 /* The US disc */
 bool nw_disc_ntsc(void);
-/* A level files sound number in PALs numbering. */
-int nw_disc_level_sfx(int sfx);
+/* A sound number of a disc file in PAL's numbering, by the level's tables; -1 for a sound PAL has no row of. */
+int nw_disc_sfx(int sfx);
 
 #endif
