@@ -374,6 +374,27 @@ def data_between(ref: Image, tgt: Image, voted: list[tuple]) -> list[tuple]:
     return sorted(out)
 
 
+class Addresses:
+    def __init__(self, key: str, path: Path | None = None):
+        self.names: dict[str, int] = {}
+        pairs = []
+        for line in (path or OUT / f"{key}.txt").read_text(encoding="utf-8").splitlines():
+            p = line.split()
+            if len(p) >= 4 and p[0] in ("func", "data"):
+                a, b = int(p[1], 16), int(p[2], 16)
+                self.names.setdefault(p[-1], b)
+                if p[0] == "data":
+                    pairs.append((a, b))
+        self.pairs = sorted(pairs)
+
+    def translate(self, pal: int) -> int:
+        i = bisect.bisect_right(self.pairs, (pal, 1 << 32)) - 1
+        if i < 0:
+            raise KeyError(f"{pal:#x}: no mapped data before it")
+        a, b = self.pairs[i]
+        return pal - a + b
+
+
 def lines(m: Mapping) -> list[str]:
     out = [f"func {p.func.addr:08x} {p.addr:08x} {p.size:x} {p.func.name}" for p in m.placed]
     out += [f"data {a:08x} {b:08x} {name}" for a, b, name, _, _ in m.data]

@@ -106,10 +106,14 @@ def load_symbols(path: Path) -> dict[str, int]:
     return out
 
 
-def address(symbols: dict[str, int], name: str) -> int:
+def address(symbols: dict[str, int], name: str, late=None) -> int:
     m = re.fullmatch(r"D_([0-9A-Fa-f]{8})", name)
     if m:
-        return int(m.group(1), 16)
+        return late.translate(int(m.group(1), 16)) if late else int(m.group(1), 16)
+    if late:
+        if name not in late.names:
+            raise SystemExit(f"{name}: not in port/revmap")
+        return late.names[name]
     if name not in symbols:
         raise SystemExit(f"{name}: not in {SYMBOLS}")
     return symbols[name]
@@ -192,10 +196,15 @@ def main() -> int:
     parser.add_argument("--vblanks", type=int, default=2500, help="vblanks to trace after the sync")
     parser.add_argument("--wait", type=float, default=600, help="seconds to wait for the cut (default 600)")
     parser.add_argument("--symbols", type=Path, default=SYMBOLS)
+    parser.add_argument("--disc", choices=("pal103", "pal201", "usa101"), default="pal103")
     args = parser.parse_args()
 
     symbols = load_symbols(args.symbols)
-    ops = [(op, address(symbols, name)) for _, name, op in FIELDS]
+    late = None
+    if args.disc != "pal103":
+        import revmap
+        late = revmap.Addresses(args.disc)
+    ops = [(op, address(symbols, name, late)) for _, name, op in FIELDS]
     pine = Pine.connect(args.slot)
     tracer = Tracer(args.vblanks)
     tex = TexWatch(pine)

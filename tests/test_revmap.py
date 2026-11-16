@@ -79,5 +79,19 @@ class AlignTest(unittest.TestCase):
                                               "data 00601020 00601220 Z"])
 
 
+class AddressesTest(unittest.TestCase):
+    def test_names_and_translation(self):
+        import tempfile
+        with tempfile.TemporaryDirectory() as d:
+            path = Path(d) / "x.txt"
+            path.write_text("func 00100000 00100010 20 A\ndata 00600000 00600100 X\ndata 00600040 00600150 Y\n")
+            a = tool.Addresses("x", path)
+            self.assertEqual(a.names, {"A": 0x100010, "X": 0x600100, "Y": 0x600150})
+            self.assertEqual(a.translate(0x600008), 0x600108)
+            self.assertEqual(a.translate(0x600044), 0x600154)
+            with self.assertRaises(KeyError):
+                a.translate(0x500000)
+
+
 if __name__ == "__main__":
     unittest.main()
