@@ -211,14 +211,6 @@ extern int nw_hz;
 #define NW_HZ(pal, ntsc) (pal)
 #endif
 
-/* Whether the title may start an attract demo (a .ppd recording, one pad state per 50 Hz tick); always on the PS2. */
-#ifdef NW_HOST
-int nw_demos(void);
-#define NW_DEMOS() nw_demos()
-#else
-#define NW_DEMOS() 1
-#endif
-
 /* A game's and a time trial record's name as shown: NuWorld's longer one when it stands (src/port/names.h), and a
    scale that keeps a longer name inside the width of fit letters; the game's own on the PS2. */
 #ifdef NW_HOST

@@ -1,7 +1,7 @@
 """Levels entered headless (local only): each must run, park the game thread and hit no stub or floating-point trap.
 
 Stepped clock, instant loads; near-match hits are listed, not failed. A route ("intro,farm,hub") needs every leg, and a
-repeated level the same scene GPU object count. --pad-script auto: the retail recording (still 50 Hz under --hz 60),
+repeated level the same scene GPU object count. --pad-script auto: the retail recording of the run's rate,
 else the sweep script; none: an idle pad. NUWORLD_FP_TRAPS defaults to all (an ASan build needs 0).
 
     run_local.py python tests/level_check.py <crashwoc-nuworld> {root} [--vblanks N] [--pad-script S] [-j N]

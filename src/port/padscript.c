@@ -191,17 +191,19 @@ bool nw_pad_script_recording(const uint8_t *data, size_t size)
     return true;
 }
 
-static bool nw_pad_script_ppd(const char *name)
+int nw_pad_script_hz(const char *spec)
 {
-    size_t len = SDL_strlen(name);
-    return len >= 4 && SDL_strcasecmp(name + len - 4, ".ppd") == 0;
+    size_t len = SDL_strlen(spec);
+    return len < 4 ? 0 : SDL_strcasecmp(spec + len - 4, ".ppd") == 0 ? 50
+                       : SDL_strcasecmp(spec + len - 4, ".pad") == 0 ? 60
+                                                                     : 0;
 }
 
-/* The level's recording (LEVELS\<path>.PPD), NULL when the disc has none. */
-static uint8_t *nw_pad_script_level(const NwVfs *vfs, int level, size_t *size)
+/* The level's recording (LEVELS\<path>.PPD or .PAD), NULL when the disc has none. */
+static uint8_t *nw_pad_script_level(const NwVfs *vfs, int level, int hz, size_t *size)
 {
     char path[NW_VFS_PATH_MAX];
-    SDL_snprintf(path, sizeof(path), "cdrom0:\\LEVELS\\%s.PPD;1", LData[level].path);
+    SDL_snprintf(path, sizeof(path), "cdrom0:\\LEVELS\\%s.%s;1", LData[level].path, hz == 60 ? "PAD" : "PPD");
     NwVfsFile *f = nw_vfs_open(vfs, path, NW_VFS_READ);
     int64_t n = f ? nw_vfs_size(f) : -1;
     uint8_t *data = n > 0 ? SDL_malloc((size_t)n) : NULL;
@@ -214,12 +216,7 @@ static uint8_t *nw_pad_script_level(const NwVfs *vfs, int level, size_t *size)
     return data;
 }
 
-bool nw_pad_script_is_recording(const char *spec)
-{
-    return SDL_strcmp(spec, "auto") == 0 || nw_pad_script_ppd(spec);
-}
-
-bool nw_pad_script_start(const NwVfs *vfs, const char *spec, int level)
+bool nw_pad_script_start(const NwVfs *vfs, const char *spec, int level, int hz)
 {
     size_t size = 0;
     if (SDL_strcmp(spec, "sweep") == 0) {
@@ -229,7 +226,7 @@ bool nw_pad_script_start(const NwVfs *vfs, const char *spec, int level)
         if (level < 0) {
             return SDL_SetError("--pad-script auto needs --level");
         }
-        uint8_t *rec = nw_pad_script_level(vfs, level, &size);
+        uint8_t *rec = nw_pad_script_level(vfs, level, hz, &size);
         bool ok = rec ? nw_pad_script_recording(rec, size) : nw_pad_script_parse(nw_pad_sweep);
         SDL_free(rec);
         return ok;
@@ -238,7 +235,7 @@ bool nw_pad_script_start(const NwVfs *vfs, const char *spec, int level)
     if (!data) {
         return false;
     }
-    bool ok = nw_pad_script_ppd(spec) ? nw_pad_script_recording((const uint8_t *)data, size)
+    bool ok = nw_pad_script_hz(spec) ? nw_pad_script_recording((const uint8_t *)data, size)
                                       : nw_pad_script_parse(data);
     SDL_free(data);
     return ok;

@@ -296,7 +296,7 @@ if(NUWORLD_TESTS)
       fire_r castle_a castle_c fire_fly western droid earth_b fire_b water_b weath_b space_b space_a cast_bug west_b
       cold_b weather ballsof s_balls space_r seashell airship hub)
   set_tests_properties(levels-retail PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 900)
-  # Local only: the same levels at NTSC's 60 Hz, the sweep script on the pad (the recordings are 50 Hz ticks).
+  # Local only: the same levels at NTSC's 60 Hz, the sweep script on the pad.
   add_test(NAME levels-60hz-retail
     COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/run_local.py ${Python3_EXECUTABLE}
       ${CMAKE_CURRENT_SOURCE_DIR}/tests/level_check.py $<TARGET_FILE:crashwoc-nuworld> {root} -j 8 --hz 60

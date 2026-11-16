@@ -571,12 +571,12 @@ static int nw_boot_prepare(const char *data_dir, NwClockMode mode, bool hardware
     if (vfs.manifest->flags & NW_DISC_ENGLISH) {
         LANGUAGEOPTION = 0;
     }
-    bool recording = nw_pad_script && nw_pad_script_is_recording(nw_pad_script);
-    if (nw_run_hz == 60 && recording) {
-        nw_log_info(NW_LOG_APP, "--pad-script %s replays 50 Hz ticks: 50 Hz", nw_pad_script);
+    int script_hz = nw_pad_script ? nw_pad_script_hz(nw_pad_script) : 0;
+    if (script_hz && nw_run_hz && nw_run_hz != script_hz) {
+        nw_log_info(NW_LOG_APP, "--pad-script %s replays %d Hz ticks: %d Hz", nw_pad_script, script_hz, script_hz);
     }
     int disc_hz = nw_disc_region() == NW_REGION_PAL ? 50 : 60;
-    int hz = nw_hz_set(recording ? 50 : nw_run_hz ? nw_run_hz : nw_game_hz ? nw_game_hz : disc_hz);
+    int hz = nw_hz_set(script_hz ? script_hz : nw_run_hz ? nw_run_hz : nw_game_hz ? nw_game_hz : disc_hz);
     nw_log_info(NW_LOG_LOAD, "disc: %s at %d Hz", vfs.manifest->name, hz);
     int kept = hz == 60 ? nw_hz_patch() : 0;
     if (kept) {
@@ -593,7 +593,7 @@ static int nw_boot_prepare(const char *data_dir, NwClockMode mode, bool hardware
         nw_log_error(NW_LOG_APP, "--level %s: no such level on the disc", nw_run_level);
         return 2;
     }
-    if (nw_pad_script && !nw_pad_script_start(&vfs, nw_pad_script, nw_level_final())) {
+    if (nw_pad_script && !nw_pad_script_start(&vfs, nw_pad_script, nw_level_final(), hz)) {
         nw_log_error(NW_LOG_APP, "--pad-script %s: %s", nw_pad_script, SDL_GetError());
         return 2;
     }

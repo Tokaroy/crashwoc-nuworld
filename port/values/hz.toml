@@ -228,6 +228,7 @@ sites = [
 path = "src/game/cut.c"
 sites = [
   { fn = "LoadCutComponents", pal = "0.6f", nth = 0, of = 1, ntsc = "0.5f" },
+  { fn = "LoadCutMovie", pal = '"ats\\levels\\pal\\title.ats"', nth = 0, of = 1, ntsc = '"ats\\levels\\title.ats"' },
   { fn = "SetCutMovieRate", pal = "1.2f", nth = 0, of = 1, ntsc = "1.0f" },
   { fn = "PlayCutMovie", pal = "10", nth = 0, of = 1, ntsc = "8" },
   { fn = "PlayCutMovie", pal = "0.02f", nth = 0, of = 1, ntsc = "0.016666668f" },
@@ -713,6 +714,8 @@ sites = [
   { fn = "BGLoad", pal = "1.08f", nth = 0, of = 1, ntsc = "0.9f" },
   { fn = "BGLoadSfx", pal = "10", nth = 0, of = 2, ntsc = "8" },
   { fn = "BGLoadSfx", pal = "10", nth = 1, of = 2, ntsc = "8" },
+  { fn = "InitWorld", pal = '".ppd"', nth = 0, of = 1, ntsc = '".pad"' },
+  { fn = "main", pal = "Level == 12", nth = 0, of = 1, ntsc = "0" },
 ]
 
 [[file]]
