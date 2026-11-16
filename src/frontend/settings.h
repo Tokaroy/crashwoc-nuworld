@@ -44,6 +44,9 @@ typedef struct NwSettings {
     NwTexFilter filter;
     bool gems; /* gems, crystals and relics as cut stone and polished metal */
     int draw_distance; /* percent of the PS2's */
+    int fog;
+    bool blur; 
+    bool haze; 
     char gpu[NW_GPU_NAME];
     NwControls controls; /* [input], [pad], [keyboard] */
 } NwSettings;

@@ -257,6 +257,11 @@ int main(int argc, char *argv[])
     CHECK(read_text("[video]\ndraw_distance = 50\n", &s) && s.draw_distance == 100);
     CHECK(read_text("[video]\ndraw_distance = 900\n", &s) && s.draw_distance == NW_DRAW_DISTANCE_MAX);
     nw_settings_defaults(&s);
+    CHECK(s.fog == 100 && s.blur && s.haze); /* the PS2's unless asked */
+    CHECK(read_text("[video]\nfog = 40\nblur = false\nhaze = false\n", &s) && s.fog == 40 && !s.blur && !s.haze);
+    CHECK(read_text("[video]\nfog = -5\n", &s) && s.fog == 0);
+    CHECK(read_text("[video]\nfog = 250\n", &s) && s.fog == 100);
+    nw_settings_defaults(&s);
     CHECK(s.movement.monkey_bar_speed == ((NwMovement)NW_MOVEMENT_NHANCED).monkey_bar_speed);
     CHECK(read_text("[game.movement]\nmonkey_bar_speed = 150\n", &s) && s.movement.monkey_bar_speed == 150);
     CHECK(read_text("[game.movement]\nmonkey_bar_speed = 900\n", &s) && s.movement.monkey_bar_speed == 500);
