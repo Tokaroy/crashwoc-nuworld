@@ -281,7 +281,7 @@ if(NUWORLD_TESTS)
       "${nw_crash_segv}${nw_crash_state}${nw_crash_dump}${nw_crash_last}")
     add_test(NAME crash-abort COMMAND crashwoc-nuworld --crash-test abort)
     set_tests_properties(crash-abort PROPERTIES PASS_REGULAR_EXPRESSION
-      "CRASH: abort on thread main.*stack:.*nw_crash_test\\+.*${nw_crash_state}${nw_crash_last}")
+      "CRASH: abort[^\n]* on thread main.*stack:.*nw_crash_test\\+.*${nw_crash_state}${nw_crash_last}")
     set(nw_crash_fatal "FATAL: crash test on thread main.*stack:.*nw_crash_fatal\\+.*nw_crash_test\\+.*")
     add_test(NAME crash-fatal COMMAND crashwoc-nuworld --crash-test fatal)
     set_tests_properties(crash-fatal PROPERTIES PASS_REGULAR_EXPRESSION
