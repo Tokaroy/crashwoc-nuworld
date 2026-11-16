@@ -567,7 +567,6 @@ static const char *nw_run_level;  /* --level */
 static const char *nw_pad_script; /* --pad-script */
 static int nw_run_hz;             /* --hz, else the disc's rate */
 static int nw_game_hz;
-static bool nw_run_rev;
 static const char *nw_overlays[NW_VFS_OVERLAYS]; /* --overlay, in the order given: the later wins */
 static int nw_overlay_count;
 
@@ -619,8 +618,9 @@ static int nw_boot_prepare(const char *data_dir, NwClockMode mode, bool hardware
     if (vfs.manifest->flags & NW_DISC_ENGLISH) {
         LANGUAGEOPTION = 0;
     }
-    if (!nw_run_rev && (vfs.manifest->flags & NW_DISC_LATE)) {
-        nw_rev_set("late");
+    if (!nw_rev && vfs.manifest != &nw_disc_manifest) {
+        nw_log_error(NW_LOG_APP, "--revision 1.03 runs only the PAL v1.03 disc, not %s", vfs.manifest->name);
+        return 2;
     }
     vfs.canon = nw_rev ? &nw_canon_table : NULL;
     unsigned canon_files = 0;
@@ -635,7 +635,11 @@ static int nw_boot_prepare(const char *data_dir, NwClockMode mode, bool hardware
         nw_log_info(NW_LOG_APP, "--pad-script %s replays %d Hz ticks: %d Hz", nw_pad_script, script_hz, script_hz);
     }
     int disc_hz = nw_disc_region() == NW_REGION_PAL ? 50 : 60;
-    int hz = nw_hz_set(script_hz ? script_hz : nw_run_hz ? nw_run_hz : nw_game_hz ? nw_game_hz : disc_hz);
+    int hz = nw_hz_set(script_hz ? script_hz
+                       : nw_run_hz ? nw_run_hz
+                       : !nw_rev   ? 50
+                       : nw_game_hz ? nw_game_hz
+                                    : disc_hz);
     nw_log_info(NW_LOG_LOAD, "disc: %s at %d Hz, revision %s", vfs.manifest->name, hz, nw_rev_name());
     int kept = hz == 60 ? nw_hz_patch() : 0;
     int rev_kept = nw_rev ? nw_rev_patch(hz) : 0;
@@ -1784,7 +1788,6 @@ int main(int argc, char *argv[])
             }
             nw_run_hz = atoi(value);
         } else if (strcmp(argv[i], "--revision") == 0) {
-            nw_run_rev = true;
             if (!nw_rev_set(argv[++i])) {
                 fprintf(stderr, NW_APP_NAME ": --revision takes 1.03 or late\n");
                 return 2;

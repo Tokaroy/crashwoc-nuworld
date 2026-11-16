@@ -25,7 +25,8 @@ def cut(lines: list[str]) -> list[str]:
 
 def run(exe: str, root: str, instant: bool) -> list[str]:
     speed = ["--hardware-speed", "off"] if instant else []
-    out = subprocess.run([exe, "--data-dir", root, "--stepped", "--boot-check", str(VBLANKS), "--trace-sound", *speed],
+    out = subprocess.run([exe, "--data-dir", root, "--revision", "1.03", "--stepped", "--boot-check", str(VBLANKS),
+                          "--trace-sound", *speed],
                          capture_output=True, text=True)
     if out.returncode != 0:
         sys.exit(f"boot-check failed ({out.returncode}):\n{out.stderr[-2000:]}")

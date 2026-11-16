@@ -26,11 +26,11 @@ const NwManifest nw_disc_manifest_usa100 = { nw_disc_entries_usa100, SDL_arraysi
                                              "NTSC", NW_REGION_US, NW_DISC_ENGLISH };
 
 const NwManifest nw_disc_manifest_pal201 = { nw_disc_entries_pal201, SDL_arraysize(nw_disc_entries_pal201),
-                                             "PAL v2.01", "SLES_503.86", "2.01", "PAL", NW_REGION_PAL, NW_DISC_LATE };
+                                             "PAL v2.01", "SLES_503.86", "2.01", "PAL", NW_REGION_PAL, 0 };
 
 const NwManifest nw_disc_manifest_usa101 = { nw_disc_entries_usa101, SDL_arraysize(nw_disc_entries_usa101),
                                              "USA v1.01", "SLUS_202.38", "1.01",
-                                             "NTSC", NW_REGION_US, NW_DISC_ENGLISH | NW_DISC_LATE };
+                                             "NTSC", NW_REGION_US, NW_DISC_ENGLISH };
 
 const NwManifest *const nw_disc_manifests[] = { &nw_disc_manifest, &nw_disc_manifest_usa100, &nw_disc_manifest_pal201,
                                                 &nw_disc_manifest_usa101, NULL };

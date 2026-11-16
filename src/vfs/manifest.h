@@ -9,7 +9,6 @@
 
 #define NW_DISC_DATA_ELF 1u /* the data image is made from its ELF */
 #define NW_DISC_ENGLISH 2u  /* English voices only */
-#define NW_DISC_LATE 4u
 
 typedef struct NwManifestEntry {
     const char *path;   /* uppercase, '/'-separated, no ";1" */

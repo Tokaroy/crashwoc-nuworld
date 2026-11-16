@@ -6,7 +6,7 @@
 
 #include "data/image.h"
 
-int nw_rev;
+int nw_rev = 1;
 
 extern char *LevelName[44][6];
 

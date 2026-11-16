@@ -12,6 +12,7 @@
 #include "gfx/rndr.h"
 #include "game/font3d.h"
 #include "game/gametypes.h"
+#include "port/rev.h"
 #include "nu3d/nucamera.h"
 #include "nu3d/nugscn.h"
 #include "nu3d/numtl.h"
@@ -321,6 +322,7 @@ static int test_retail(void)
 
 int main(int argc, char *argv[])
 {
+    nw_rev = 0;
     if (argc > 1 && strcmp(argv[1], "retail") == 0) {
         return test_retail();
     }
