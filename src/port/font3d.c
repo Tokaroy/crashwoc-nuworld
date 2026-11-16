@@ -16,6 +16,7 @@
 #include "nu3d/nustream.h"
 #include "nu3d/nutex.h"
 #include "numath/numtx.h"
+#include "platform/log.h"
 
 extern struct font3dobj_s Font3DObjTab[];
 extern struct font3dtab_s Font3DTab[];
@@ -130,7 +131,7 @@ static struct numtl_s *nw_font3d_icon(const char *name)
     SDL_Surface *abgr = png ? SDL_ConvertSurface(png, SDL_PIXELFORMAT_ABGR32) : NULL;
     SDL_DestroySurface(png);
     if (!abgr || abgr->pitch != abgr->w * 4) {
-        SDL_Log("prompts: icon %s: %s", name, file ? SDL_GetError() : "not in assets/prompts");
+        nw_log_warn(NW_LOG_LOAD, "prompts: icon %s: %s", name, file ? SDL_GetError() : "not in assets/prompts");
         SDL_DestroySurface(abgr);
         return NULL;
     }

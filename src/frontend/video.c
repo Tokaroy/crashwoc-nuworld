@@ -5,6 +5,7 @@
 #include "app.h"
 #include "frontend/debug.h"
 #include "gfx/interp.h"
+#include "platform/log.h"
 #include "port/wide.h"
 
 #define NW_VIDEO_SIZES 32  /* resolutions the panel lists */
@@ -79,7 +80,7 @@ static void nw_video_set(const NwSettings *s)
         nw_video.asked = s->resolution;
     }
     if (!nw_display_set_mode(nw_video.platform->window, s->window, s->resolution)) {
-        fprintf(stderr, NW_APP_NAME ": window mode: %s\n", SDL_GetError());
+        nw_log_warn(NW_LOG_APP, "window mode: %s", SDL_GetError());
     }
 }
 
@@ -94,7 +95,7 @@ static void nw_video_vsync(NwVsync vsync)
     static const char *const names[NW_VSYNC_MODES] = { "off", "on", "adaptive" };
     nw_video.vsync = nw_display_set_vsync(vsync);
     if (nw_video.vsync != vsync) {
-        fprintf(stderr, NW_APP_NAME ": vsync %s is not supported, it is %s\n", names[vsync], names[nw_video.vsync]);
+        nw_log_warn(NW_LOG_APP, "vsync %s is not supported, it is %s", names[vsync], names[nw_video.vsync]);
     }
 }
 

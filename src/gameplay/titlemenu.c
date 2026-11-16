@@ -21,6 +21,7 @@
 #include "game/cut.retail.h"
 #include "gameplay/gameplay.h"
 #include "gameplay/titlemenu.h"
+#include "platform/log.h"
 #include "port/nuhgobj.h"
 
 extern struct csccache_s ghg_insts[];
@@ -780,7 +781,7 @@ void nw_title_menu_fixup(struct NUGCUTSCENE_s *def)
         anim = mark_anim(obj, t, flight);
     }
     if (!anim) {
-        SDL_Log("title_menu: the NuWorld mark did not load");
+        nw_log_warn(NW_LOG_GAME, "title_menu: the NuWorld mark did not load");
         return;
     }
     struct NUGCUTCHAR_s *chars = mark_chars[flight];

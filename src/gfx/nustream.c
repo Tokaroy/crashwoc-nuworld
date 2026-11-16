@@ -18,6 +18,7 @@
 #include "numath/numtx.h"
 #include "numath/nuvec.h"
 #include "nu_port.h"
+#include "platform/log.h"
 #include "port/capture.h"
 #include "port/game.h"
 
@@ -279,8 +280,8 @@ static void nw_rndr_raw(const struct rndrstream_s *stream)
     if (nw_nraw < SDL_arraysize(nw_raw)) {
         nw_raw[nw_nraw++] = stream;
     }
-    fprintf(stderr, NW_APP_NAME ": stream %p (drawpri 0x%08x) holds packets the port does not draw\n",
-            (const void *)stream, stream->drawpri);
+    nw_log_warn(NW_LOG_GFX, "stream %p (drawpri 0x%08x) holds packets the port does not draw",
+                (const void *)stream, stream->drawpri);
 }
 
 void nw_rndr_splice(struct rndrstream_s *dst, struct rndrstream_s *src)

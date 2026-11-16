@@ -1,6 +1,7 @@
 #include "platform/update.h"
 
 #include "platform/http.h"
+#include "platform/log.h"
 
 #define NW_UPDATE_REPO "denzi-gh/crashwoc-nuworld"
 #define NW_UPDATE_TIMEOUT_MS 10000
@@ -85,15 +86,15 @@ static int SDLCALL nw_update_run(void *unused)
     int status = 0, order = 0, state = NW_UPDATE_NONE;
     if (!nw_http_get("https://api.github.com/repos/" NW_UPDATE_REPO "/releases/latest", agent, NW_UPDATE_TIMEOUT_MS,
                      &body, &status)) {
-        SDL_Log("update: %s", SDL_GetError());
+        nw_log_info(NW_LOG_NET, "update: %s", SDL_GetError());
     } else if (status != 200) {
-        SDL_Log("update: GitHub answered %d", status);
+        nw_log_info(NW_LOG_NET, "update: GitHub answered %d", status);
     } else if (!nw_update_tag(body, nw_update_found, sizeof(nw_update_found))) {
-        SDL_Log("update: no version tag in GitHub's answer");
+        nw_log_info(NW_LOG_NET, "update: no version tag in GitHub's answer");
     } else if (!nw_update_compare(nw_update_found, nw_update_build, &order)) {
-        SDL_Log("update: build version %s is not x.y.z", nw_update_build);
+        nw_log_info(NW_LOG_NET, "update: build version %s is not x.y.z", nw_update_build);
     } else if (order > 0) {
-        SDL_Log("update: %s is out", nw_update_found);
+        nw_log_info(NW_LOG_NET, "update: %s is out", nw_update_found);
         state = NW_UPDATE_NEWER;
     }
     SDL_free(body);
@@ -110,7 +111,7 @@ void nw_update_enable(bool on, const char *version)
     SDL_strlcpy(nw_update_build, version, sizeof(nw_update_build));
     SDL_Thread *thread = SDL_CreateThread(nw_update_run, "update", NULL);
     if (!thread) {
-        SDL_Log("update: %s", SDL_GetError());
+        nw_log_info(NW_LOG_NET, "update: %s", SDL_GetError());
         SDL_SetAtomicInt(&nw_update_state, NW_UPDATE_NONE);
         return;
     }
@@ -135,7 +136,7 @@ void nw_update_poll(SDL_Window *window)
     char url[160];
     SDL_snprintf(url, sizeof(url), "https://github.com/" NW_UPDATE_REPO "/releases/tag/%s", nw_update_found);
     if (!SDL_OpenURL(url)) {
-        SDL_Log("update: cannot open %s: %s", url, SDL_GetError());
+        nw_log_warn(NW_LOG_NET, "update: cannot open %s: %s", url, SDL_GetError());
         return;
     }
     if (window && (SDL_GetWindowFlags(window) & SDL_WINDOW_FULLSCREEN)) {

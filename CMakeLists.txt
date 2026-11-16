@@ -89,6 +89,7 @@ endfunction()
 add_executable(crashwoc-nuworld
   src/main.c
   src/platform/audio.c
+  src/platform/crash.c
   src/platform/display.c
   src/platform/log.c
   src/platform/platform.c
@@ -263,10 +264,29 @@ if(NUWORLD_TESTS)
   target_compile_options(nuworld_test_update PRIVATE -Wall -Wextra)
   target_link_libraries(nuworld_test_update PRIVATE nuworld_port)
   add_test(NAME update COMMAND nuworld_test_update)
-  add_executable(nuworld_test_log tests/c/test_log.c src/platform/log.c)
+  add_executable(nuworld_test_log tests/c/test_log.c src/platform/crash.c src/platform/log.c)
   target_compile_options(nuworld_test_log PRIVATE -Wall -Wextra)
   target_link_libraries(nuworld_test_log PRIVATE nuworld_port ${CMAKE_DL_LIBS})
   add_test(NAME log COMMAND nuworld_test_log)
+  if(NUWORLD_DECOMP)
+    set(nw_crash_state "state: no frame drawn yet.*game thread: not started.*")
+    set(nw_crash_last "last log lines:.*the report's last lines hold")
+    if(WIN32)
+      set(nw_crash_dump "minidump: [^\n]*nuworld-[0-9]+-[0-9]+\\.dmp.*")
+    endif()
+    set(nw_crash_segv "CRASH: [^\n]* at nw_crash_test_fault\\+0x[0-9a-f]+ .*stack:.*nw_crash_test\\+.*")
+    add_test(NAME crash-segv
+      COMMAND crashwoc-nuworld --crash-test segv --data-dir ${CMAKE_CURRENT_BINARY_DIR}/test-crash)
+    set_tests_properties(crash-segv PROPERTIES PASS_REGULAR_EXPRESSION
+      "${nw_crash_segv}${nw_crash_state}${nw_crash_dump}${nw_crash_last}")
+    add_test(NAME crash-abort COMMAND crashwoc-nuworld --crash-test abort)
+    set_tests_properties(crash-abort PROPERTIES PASS_REGULAR_EXPRESSION
+      "CRASH: abort on thread main.*stack:.*nw_crash_test\\+.*${nw_crash_state}${nw_crash_last}")
+    set(nw_crash_fatal "FATAL: crash test on thread main.*stack:.*nw_crash_fatal\\+.*nw_crash_test\\+.*")
+    add_test(NAME crash-fatal COMMAND crashwoc-nuworld --crash-test fatal)
+    set_tests_properties(crash-fatal PROPERTIES PASS_REGULAR_EXPRESSION
+      "${nw_crash_fatal}${nw_crash_state}${nw_crash_last}")
+  endif()
   add_executable(nuworld_test_display tests/c/test_display.c src/platform/display.c)
   target_include_directories(nuworld_test_display PRIVATE src)
   target_compile_options(nuworld_test_display PRIVATE -Wall -Wextra)

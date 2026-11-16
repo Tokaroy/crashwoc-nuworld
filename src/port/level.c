@@ -3,6 +3,7 @@
 #include <SDL3/SDL.h>
 
 #include "game/gametypes.h"
+#include "platform/log.h"
 #include "port/heap.h"
 #include "shim/shim.h"
 #include "vfs/vfs.h"
@@ -243,7 +244,7 @@ void nw_level_poll(void)
     if (steady && Level != nw_level.logged) {
         const char *name = nw_level_name(Level);
         nw_level.logged = Level;
-        SDL_Log("level %d: %s", Level, name ? name : "?");
+        nw_log_info(NW_LOG_GAME, "level %d: %s", Level, name ? name : "?");
     }
     if (!ready) {
         return;

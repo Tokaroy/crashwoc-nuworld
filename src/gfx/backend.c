@@ -13,6 +13,8 @@
 #include "gfx/gl.h"
 #include "gfx/interp.h"
 #include "gfx/vu.h"
+#include "platform/crash.h"
+#include "platform/log.h"
 #include "platform/paths.h"
 
 #define NW_BE_SURFS 16
@@ -102,9 +104,9 @@ static void nw_be_screenshot(void *user)
     (void)user;
     char *path = nw_debug_file(NW_PATHS_SCREENSHOTS, "png");
     if (path && nw_backend_save(path)) {
-        printf("screenshot: %s\n", path);
+        nw_log_info(NW_LOG_GFX, "screenshot: %s", path);
     } else {
-        fprintf(stderr, "screenshot: %s\n", SDL_GetError());
+        nw_log_warn(NW_LOG_GFX, "screenshot: %s", SDL_GetError());
     }
     SDL_free(path);
 }
@@ -350,6 +352,15 @@ static void nw_be_skin_upload(NwGpuSkin *s)
         glTexBuffer(GL_TEXTURE_BUFFER, GL_RGBA32F, s->deltas);
     }
 }
+
+static const char *const nw_be_job_names[] = { "upload mesh",  "upload texture", "upload sprites",
+                                               "upload skin",  "free mesh",      "free texture",
+                                               "free sprites", "free skin",      "free host memory" };
+_Static_assert(SDL_arraysize(nw_be_job_names) == NW_GPU_FREE_HOST + 1, "a name per NwGpuOp");
+static const char *const nw_be_cmd_names[] = { "draw",  "draw ordering table", "clear",     "rect",
+                                               "sprites", "target",            "skin",      "verts",
+                                               "particles", "volumes",         "waves" };
+_Static_assert(SDL_arraysize(nw_be_cmd_names) == NW_CMD_WAVES + 1, "a name per NwCmdOp");
 
 static void nw_be_job(const NwGpuJob *job)
 {
@@ -773,8 +784,8 @@ static void nw_be_undrawn(const NwVuProg *mpg, bool skin)
     for (int i = 0; i < 16 && seen[skin][i] != mpg; i++) {
         if (!seen[skin][i]) {
             seen[skin][i] = mpg;
-            fprintf(stderr, NW_APP_NAME ": %s: its %s program is not drawn\n", mpg ? mpg->name : "no package",
-                    skin ? "skin" : "triangle");
+            nw_log_warn(NW_LOG_GFX, "%s: its %s program is not drawn", mpg ? mpg->name : "no package",
+                        skin ? "skin" : "triangle");
             break;
         }
     }
@@ -1295,6 +1306,7 @@ static void nw_be_run(const NwPacket *p, NwBeSurf *back)
     nw_vu_alpha_writes(true);
     glEnable(GL_DEPTH_TEST);
     glPolygonMode(GL_FRONT_AND_BACK, nw_be.wireframe ? GL_LINE : GL_FILL);
+    nw_crash_phase("upload the frame's rects, verts, particles and palettes", 0, 0);
     nw_be_rects(p);
     nw_be_verts(p);
     nw_be_ptls(p);
@@ -1312,6 +1324,7 @@ static void nw_be_run(const NwPacket *p, NwBeSurf *back)
     nw_be.nheld = 0;
     for (uint32_t i = 0; i < p->ncmds; i++) {
         const NwCmd *c = &p->cmds[i];
+        nw_crash_phase(c->op <= NW_CMD_WAVES ? nw_be_cmd_names[c->op] : "command", i, p->ncmds);
         nw_be_gems_flush(p, c);
         switch (c->op) {
         case NW_CMD_DRAW:
@@ -1445,6 +1458,8 @@ const NwPacket *nw_backend_frame(int width, int height, double now)
     }
     uint32_t njobs = nw_gpu_take(p ? p->seq : 0, &nw_be.jobs, &nw_be.jobcap);
     for (uint32_t i = 0; i < njobs; i++) {
+        NwGpuOp op = nw_be.jobs[i].op;
+        nw_crash_phase(op <= NW_GPU_FREE_HOST ? nw_be_job_names[op] : "job", i, njobs);
         nw_be_job(&nw_be.jobs[i]);
     }
     /* The back buffer at the size of the packet's first back-buffer target, 640 x 512 before one. */
@@ -1482,6 +1497,7 @@ const NwPacket *nw_backend_frame(int width, int height, double now)
         glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
         glDepthMask(GL_TRUE);
     }
+    nw_crash_phase("present", 0, 0);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glViewport(0, 0, width, height);
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
@@ -1493,9 +1509,10 @@ const NwPacket *nw_backend_frame(int width, int height, double now)
     if (nw_be.runs && !nw_be.checked) {
         GLenum e = glGetError();
         if (e != GL_NO_ERROR) {
-            SDL_Log("OpenGL error 0x%04X by the first frame", e);
+            nw_log_error(NW_LOG_GL, "OpenGL error 0x%04X by the first frame", e);
         }
         nw_be.checked = true;
     }
+    nw_crash_phase("between frames", 0, 0);
     return p;
 }

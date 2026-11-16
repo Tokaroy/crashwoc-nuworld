@@ -239,6 +239,15 @@ int main(int argc, char *argv[])
     CHECK(s.updates);
     CHECK(read_text("[updates]\ncheck = false\n", &s) && !s.updates);
     nw_settings_defaults(&s);
+    CHECK(SDL_strcmp(s.log, "info") == 0 && !s.gl_debug && s.minidump);
+    CHECK(read_text("[log]\nlevel = \"info,gfx=debug\"\ngl_debug = true\nminidump = false\n", &s) &&
+          SDL_strcmp(s.log, "info,gfx=debug") == 0 && s.gl_debug && !s.minidump);
+    CHECK(nw_settings_save(&s, root));
+    char *log = file_text();
+    CHECK(log && SDL_strstr(log, "\n[log]\nlevel = \"info,gfx=debug\"\ngl_debug = true\nminidump = false\n") &&
+          SDL_strstr(log, "# log.level: "));
+    SDL_free(log);
+    nw_settings_defaults(&s);
     CHECK(s.camera_stability == 100);
     CHECK(read_text("[game]\ncamera_stability = 40\n", &s) && s.camera_stability == 40);
     CHECK(read_text("[game]\ncamera_stability = 300\n", &s) && s.camera_stability == 100);

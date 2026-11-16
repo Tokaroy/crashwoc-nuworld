@@ -10,6 +10,7 @@
 extern "C" {
 #include "frontend/import.h"
 #include "gfx/gl.h"
+#include "platform/log.h"
 #include "platform/paths.h"
 #include "vfs/extract.h"
 
@@ -122,7 +123,7 @@ static void nw_wizard_open_folder(const char *dir)
     }
     *out = '\0';
     if (!SDL_OpenURL(url)) {
-        SDL_Log("cannot open %s: %s", url, SDL_GetError());
+        nw_log_warn(NW_LOG_APP, "cannot open %s: %s", url, SDL_GetError());
     }
     SDL_free(url);
 }
@@ -223,7 +224,7 @@ static NwWizardResult nw_wizard_pick(NwWizard *w)
     if (!w->scanned || now - w->scanned >= NW_WIZARD_RESCAN_MS) {
         nw_import_list_free(&w->list);
         if (!nw_import_scan(w->import_dir, &w->list)) {
-            SDL_Log("cannot list %s: %s", w->import_dir, SDL_GetError());
+            nw_log_warn(NW_LOG_APP, "cannot list %s: %s", w->import_dir, SDL_GetError());
         }
         w->scanned = now ? now : 1;
     }
@@ -372,7 +373,7 @@ static void nw_wizard_load_shot(NwWizard *w)
     SDL_Surface *rgba = png ? SDL_ConvertSurface(png, SDL_PIXELFORMAT_RGBA32) : NULL;
     SDL_DestroySurface(png);
     if (!rgba || rgba->pitch != rgba->w * 4) {
-        SDL_Log("wizard: screenshot: %s", SDL_GetError());
+        nw_log_warn(NW_LOG_APP, "wizard: screenshot: %s", SDL_GetError());
         SDL_DestroySurface(rgba);
         return;
     }
