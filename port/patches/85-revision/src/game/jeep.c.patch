@@ -1,0 +1,64 @@
+--- a/src/game/jeep.c
++++ b/src/game/jeep.c
+@@ -83,6 +83,7 @@
+ #include "numath/nuquat.h"
+ #include "numath/nutrig.h"
+ #include "numath/nuvec.h"
++#include "numath/nufloat.h"
+ #include "nu3d/nugscn.h"
+ #include "game/gametypes.h"
+ #include "gamelib/terrain.h"
+@@ -91,6 +92,8 @@
+ #include "nups2/ps2ctl.h"
+ #include "game/jeep.h"
+ 
++#define NW_REV_FABS(x) NW_REV(fabs(x), NuFabs(x))
++
+ extern struct nuvec_s BaseWheelPosition[];
+ extern f32 DotProduct(struct nuvec_s *a, struct nuvec_s *b);
+ extern void ApplyFriction(f32 *val, f32 rate, f32 dt);
+@@ -491,7 +494,7 @@ void TiltJeep(struct JEEPSTRUCT *Jeep, f32 DeltaTime) {
+     f32 Tilt;
+     short aTilt;
+ 
+-    Tilt = (f32)fabs(Jeep->CentrefugalForce) * 2.0f;
++    Tilt = (f32)NW_REV_FABS(Jeep->CentrefugalForce) * 2.0f;
+     if (Tilt >= 1.0f) {
+         Tilt = 1.0f;
+     }
+@@ -1041,7 +1044,7 @@ void ProcessJeepMovement(struct JEEPSTRUCT *Jeep, f32 DeltaTime) {
+             Jeep->CentrefugalForce = 0.0f;
+         } else if (Jeep->WheelSpin != 0) {
+             SideRate = 0.02999999933f;
+-        } else if (fabs(Jeep->CentrefugalForce) > fabs(Side)) {
++        } else if (NW_REV_FABS(Jeep->CentrefugalForce) > NW_REV_FABS(Side)) {
+             SideRate = 0.1f;
+         }
+         SeekHalfLife(&Jeep->CentrefugalForce, Side, SideRate, DeltaTime);
+@@ -1064,7 +1067,7 @@ void ProcessJeepMovement(struct JEEPSTRUCT *Jeep, f32 DeltaTime) {
+             SeekHalfLife(&Vel.z, Target, 0.200000003f, DeltaTime);
+         }
+         Accel = (Accel + Vel.z) / DeltaTime / Jeep->MySpeed;
+-        SeekHalfLife(&Accel, 0.0f, 3.0f, fabs(Vel.x));
++        SeekHalfLife(&Accel, 0.0f, 3.0f, NW_REV_FABS(Vel.x));
+         if (Jeep->WheelSpin != 0 && Accel < 1.0f) {
+             Accel = (Accel + 1.0f) * 0.5f;
+         }
+@@ -2501,7 +2504,7 @@ void ProcessJeepTrail(struct SIMWHEEL *Wheel, s32 TrailIndx) {
+         Wheel->SurfaceType = -1;
+     }
+     if (TrailOn != 0 &&
+-        fabs(Wheel->Position.y - (TrailPos[0].y + TrailPos[1].y) * 0.5f) > 0.4f) {
++        NW_REV_FABS(Wheel->Position.y - (TrailPos[0].y + TrailPos[1].y) * 0.5f) > 0.4f) {
+         TrailOn = 0;
+     }
+     if (TrailOn != 0) {
+@@ -3051,7 +3054,7 @@ void ProcessFireBoss(struct fireboss_s *Boss) {
+             f32 TempY = NuAtan2D(DestVel.x * 100.0f, DestVel.z * 100.0f) /
+                         182.0444489f;
+ 
+-            if (fabs(Rationalise360f(TempY - Boss->AngleY)) < 45.0) {
++            if (NW_REV_FABS(Rationalise360f(TempY - Boss->AngleY)) < NW_REV(45.0, 45.0f)) {
+                 Boss->AngleY = TempY;
+             }
+         }

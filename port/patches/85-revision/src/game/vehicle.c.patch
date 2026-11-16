@@ -1,0 +1,280 @@
+--- a/src/game/vehicle.c
++++ b/src/game/vehicle.c
+@@ -237,6 +237,7 @@
+ #include "numath/nuquat.h"
+ #include "numath/nutrig.h"
+ #include "numath/nuvec.h"
++#include "numath/nufloat.h"
+ #include "nu3d/nugscn.h"
+ #include "game/gametypes.h"
+ #include "gamelib/terrain.h"
+@@ -245,6 +246,8 @@
+ #include "nucore/nuerror.h"
+ #include "game/vehicle.h"
+ 
++#define NW_REV_FABS(x) NW_REV(fabs(x), NuFabs(x))
++
+ #ifdef NW_HOST
+ /* gnu89 inline globals stay out of module headers. */
+ struct obj_s;
+@@ -940,7 +943,7 @@ s32 FindSurfaceType(struct nuvec_s *pos)
+     struct nuvec_s probe = *pos;
+ 
+     probe.y += 0.5f;
+-    if (fabs(pos->y - NewShadowMaskPlat(&probe, 0.0f, -1)) < 0.05f) {
++    if (NW_REV_FABS(pos->y - NewShadowMaskPlat(&probe, 0.0f, -1)) < 0.05f) {
+         return ShadowInfo();
+     }
+     return -1;
+@@ -2745,6 +2748,7 @@ extern f32 BIGSCALE;
+ extern f32 SMALLSCALE;
+ extern f32 Level_TargetTime;
+ extern s32 GliderFrameCounter;
++extern s32 GetCurrentLevelObjectives(void);
+ 
+ void DrawTorpedoTarget(void)
+ {
+@@ -2768,6 +2772,9 @@ void DrawTorpedoTarget(void)
+     if (PlayerGlider.TerminalDive != 0) {
+         return;
+     }
++    if (NW_REV(0, 1) && Level == 0x12 && GetCurrentLevelObjectives() == 0) {
++        return;
++    }
+     if (PlayerGlider.TargetOn == 0) {
+         s32 aimobj = 0x5A;
+ 
+@@ -3154,7 +3161,7 @@ void AdjustAtlasRotations(struct NEWBUGGY *Atlas, struct nuvec_s *Velocity, stru
+     s32 pitchang;
+ 
+     vel = *Velocity;
+-    if (fabs(Normal->x) < 0.01f && fabs(Normal->z) < 0.01f) {
++    if (NW_REV_FABS(Normal->x) < 0.01f && NW_REV_FABS(Normal->z) < 0.01f) {
+         yaw = 0.0f;
+     } else {
+         yaw = -(s32)(u16)NuAtan2D(Normal->x, Normal->z) / 182.04445f;
+@@ -3463,7 +3470,7 @@ void TerrainAtlas(struct NEWBUGGY *Atlas, f32 DeltaTime)
+             NuVecScaleAccum(&Atlas->ball_vel, &norm, -dot);
+             if (Atlas->type != 2 && dot < -1.0f) {
+                 speed = NuVecMag(&Atlas->ball_vel);
+-                if (fabs(dot) > BALLBUZZLIMCOS * speed) {
++                if (NW_REV_FABS(dot) > BALLBUZZLIMCOS * speed) {
+                     scale = Atlas->ball_radius / 0.65f;
+                     vol = BALLHITVOLBASE + (1.0f - dot * scale * scale * scale) / BALLHITVOLDIV;
+                     MyGameSfx(0x11, &Atlas->ball_pos, GetVolumeI(vol));
+@@ -3617,7 +3624,7 @@ void ProcessPlatformsAtlas(struct NEWBUGGY *atlas, f32 dt)
+     } else {
+         dir = atlas->platformnormal;
+     }
+-    if (fabs(dir.y) < 0.1f) {
++    if (NW_REV_FABS(dir.y) < 0.1f) {
+         dir.y = 0.0f;
+         NuVecNorm(&dir, &dir);
+     }
+@@ -3714,6 +3721,7 @@ void ProcessAtlasAtlasCollisions_a(struct NEWBUGGY *a, struct NEWBUGGY *b)
+     f32 dva;
+     f32 dvb;
+     f32 dist;
++    f32 va;
+     f32 vb;
+     f32 massa;
+     f32 massb;
+@@ -3728,17 +3736,17 @@ void ProcessAtlasAtlasCollisions_a(struct NEWBUGGY *a, struct NEWBUGGY *b)
+         NuVecSub(&oldrel, &a->ball_lastpos, &b->ball_lastpos);
+         if (dist < NuVecMagSqr(&oldrel)) {
+             NuVecNorm(&norm, &rel);
+-            dist = DotProduct(&a->ball_vel, &norm);
++            va = DotProduct(&a->ball_vel, &norm);
+             vb = DotProduct(&b->ball_vel, &norm);
+             massa = a->ball_radius * a->ball_radius * a->ball_radius;
+             massb = b->ball_radius * b->ball_radius * b->ball_radius;
+-            dvb = (massa * 2.0f * dist - vb * (massa - massb)) / (massa + massb) - vb;
+-            dva = (massb * 2.0f * vb + dist * (massa - massb)) / (massa + massb) - dist;
++            dvb = (massa * 2.0f * va - vb * (massa - massb)) / (massa + massb) - vb;
++            dva = (massb * 2.0f * vb + va * (massa - massb)) / (massa + massb) - va;
+             NuVecScaleAccum(&a->ball_vel, &norm, dva);
+             NuVecScaleAccum(&b->ball_vel, &norm, dvb);
+             a->ball_beenhit = b->type;
+             b->ball_beenhit = a->type;
+-            vol = fabs(dva) * a->ball_radius + fabs(dvb) * b->ball_radius;
++            vol = NW_REV_FABS(dva) * a->ball_radius + NW_REV_FABS(dvb) * b->ball_radius;
+             BIGIMPACT = vol;
+             vol /= 10.0f;
+             if (vol < MINROKVOL) {
+@@ -4563,8 +4571,8 @@ void MoveZoffaUFO(struct zoffa_s *ufo)
+             yawto = NuAtan2D(rel.x, rel.z) / 182.04445f;
+             horiz = NuFsqrt(rel.x * rel.x + rel.z * rel.z);
+             pitchoff = NuAtan2D(-rel.y, horiz) / 182.04445f;
+-            pitchoff = (f32)fabs(Rationalise360f(pitchoff - ufo->pitch));
+-            yawoff = (f32)fabs(Rationalise360f(yawto - ufo->yaw));
++            pitchoff = (f32)NW_REV_FABS(Rationalise360f(pitchoff - ufo->pitch));
++            yawoff = (f32)NW_REV_FABS(Rationalise360f(yawto - ufo->yaw));
+             lenient = 0;
+             if (yawoff < 90.0f && pitchoff < 40.0f) {
+                 lenient = 1;
+@@ -5283,7 +5291,7 @@ s32 CollideGliderBullets(struct nuvec_s *pos, f32 radius, s32 enemy, f32 yscale,
+             b = DotProduct(&bullet->vel, &delta);
+             b = b + b;
+             root = NuFsqrt(b * b - vv * 4.0f * (DotProduct(&delta, &delta) - radsq));
+-            NuVecScaleAccum(&delta, &bullet->vel, -(b + fabs(root)) / (vv + vv));
++            NuVecScaleAccum(&delta, &bullet->vel, -(b + NW_REV_FABS(root)) / (vv + vv));
+             NuVecAdd(bulletpos, &delta, pos);
+             dot = DotProduct(&bullet->vel, &delta);
+             if (dot < 0.0f) {
+@@ -7851,7 +7859,7 @@ void ProcessWBIntro(void)
+         lookpos.z -= WBINTROLOOKAHEAD;
+         FindSplineClosestPointAndDist(&WeatherBossIntroSpline, 0x300, &lookpos, &target, 0, 0);
+         NuVecSub(&dir, &target, &WBIntroGliderPos);
+-        NuVecScale(&dir, &dir, 96.0 / fabs(dir.z));
++        NuVecScale(&dir, &dir, NW_REV(96.0 / fabs(dir.z), 96.0f / NuFabs(dir.z)));
+         NuVecScaleAccum(&WBIntroGliderPos, &dir, 0.02f);
+         WBIntroDestTiltZ = dir.x * WBITILTZSCALE;
+         WBIntroDestTiltX = dir.y * WBITILTXSCALE;
+@@ -8068,7 +8076,6 @@ void MoveGlider(struct creature_s *Cre, struct nupad_s *Pad)
+     struct nuvec_s v;
+     f32 r;
+     f32 TiltVal;
+-    double absval;
+     short Rumble;
+ 
+     Glider = (struct GLIDERSTRUCT *)Cre->Buggy;
+@@ -8267,11 +8274,7 @@ void MoveGlider(struct creature_s *Cre, struct nupad_s *Pad)
+     if (Level == 0x1A) {
+         ProcessCrashteroidsIntro();
+     }
+-    absval = Glider->TiltZ * 0.5f;
+-    if (absval < 0.0) {
+-        absval = -absval;
+-    }
+-    TiltVal = absval;
++    TiltVal = NW_REV_FABS(Glider->TiltZ * 0.5f);
+     if (Glider->DestTiltX > 0.0f) {
+         TiltVal += Glider->DestTiltX * 0.5f;
+     } else {
+@@ -8640,7 +8643,7 @@ void ProcessFireFlyIntro(void)
+     case 3:
+         done = 0;
+         relang = Rationalise360f(PlayerGlider.AngleY - CamAngY);
+-        pan = fabs(relang);
++        pan = NW_REV_FABS(relang);
+         if (pan > 90.0f) {
+             pan = 180.0f - pan;
+         }
+@@ -8648,7 +8651,7 @@ void ProcessFireFlyIntro(void)
+         if (seek < MinPanSeekSpeed) {
+             seek = MinPanSeekSpeed;
+         }
+-        if (fabs(relang) < seek) {
++        if (NW_REV_FABS(relang) < seek) {
+             done = 1;
+             relang = 0.0f;
+         } else {
+@@ -8670,7 +8673,7 @@ void ProcessFireFlyIntro(void)
+         NuVecRotateY(&rel, &rel, (s32)((CamAngY - FireFlyStartAngle - 180.0f) * 182.04445f));
+         NuVecAdd(&GliderIntroCamPos, &rel, &PlayerGlider.Position);
+         camdiff = Rationalise360f(PlayerGlider.AngleY - CamAngY);
+-        GliderIntroCamPos.y += FFINTROCAMYOFF - fabs(camdiff) * FFINTROHEIGHT / 180.0;
++        GliderIntroCamPos.y += FFINTROCAMYOFF - NW_REV_FABS(camdiff) * FFINTROHEIGHT / NW_REV(180.0, 180.0f);
+     }
+ }
+ 
+@@ -8855,9 +8858,11 @@ void GliderCam(struct cammtx_s *cam)
+         NuVecRotateX(&offset, &offset, tilt * 182.0444489f);
+         if (FlyingLevelExtro != 0) {
+             SeekAngLimHalfLife360f(&ExtroAngOff, ExtroTargAng, 120.0f, 0.3f, 0.02f);
+-            NuVecScale(&extropos, &offset, 1.0 - fabs(ExtroAngOff) / 180.0);
+-            NuVecScaleAccum(&extropos, &ExtroIdealPos, fabs(ExtroAngOff) / 180.0);
+-            if (fabs(Rationalise360f(ExtroAngOff - ExtroTargAng)) < ExtroChangeVal) {
++            NuVecScale(&extropos, &offset,
++                       NW_REV(1.0 - fabs(ExtroAngOff) / 180.0, 1.0f - NuFabs(ExtroAngOff) / 180.0f));
++            NuVecScaleAccum(&extropos, &ExtroIdealPos,
++                            NW_REV(fabs(ExtroAngOff) / 180.0, NuFabs(ExtroAngOff) / 180.0f));
++            if (NW_REV_FABS(Rationalise360f(ExtroAngOff - ExtroTargAng)) < ExtroChangeVal) {
+                 NuVecScaleAccum(&ExtroStillCamPos, &ExtroStillVelocity, 0.02f);
+                 NuVecScaleAccum(&ExtroStillInterest, &ExtroStillVelocity, 0.02f);
+                 ideal = ExtroStillCamPos;
+@@ -9764,7 +9769,14 @@ void GliderFire(struct GLIDERSTRUCT *glider, struct nupad_s *pad)
+     struct nuvec_s wbrot[2];
+     struct nuvec_s bombpos;
+ 
+-    firebutton = pad->paddata & 0x40;
++    if (NW_REV(0, 1) && Level == 0x12 && GetCurrentLevelObjectives() == 0) {
++        firebutton = 0;
++        glider->TargetOn = 0;
++        glider->TargetTimer = 0.0f;
++        glider->TargetedTime = 0.0f;
++    } else {
++        firebutton = pad->paddata & 0x40;
++    }
+ 
+     switch (Level) {
+     case 0x1A:
+@@ -10105,7 +10117,7 @@ void ControlGliderWeatherBoss(struct GLIDERSTRUCT *glider, struct nupad_s *pad)
+             || glider->TiltZ > 30.0f || glider->TiltZ < -30.0f) {
+             SeekHalfLife(&glider->BarrelDelta, 7.2f, 0.05f, 0.02f);
+         } else if (glider->TiltZ > 1.0f || glider->TiltZ < -1.0f) {
+-            glider->BarrelDelta = (f32)fabs(glider->TiltZ * 20.0f * 0.02f * 0.5f);
++            glider->BarrelDelta = (f32)NW_REV_FABS(glider->TiltZ * 20.0f * 0.02f * 0.5f);
+         } else {
+             glider->BarrelDelta = 1.0f;
+         }
+@@ -10151,7 +10163,6 @@ void ControlGlider(struct GLIDERSTRUCT *glider, struct nupad_s *pad)
+     f32 maxtiltx;
+     f32 mindest;
+     f32 maxdest;
+-    double absval;
+     s32 turn;
+     s32 ang;
+     struct nuvec_s *pos;
+@@ -10205,11 +10216,7 @@ void ControlGlider(struct GLIDERSTRUCT *glider, struct nupad_s *pad)
+     if (mag >= 32.0f) {
+         ang = NuAtan2D(ctrl.x, ctrl.z) & 0xFFFF;
+         tilt = (mag - 32.0f) * 1.02f / 96.0f;
+-        absval = tilt;
+-        if (absval < 0.0) {
+-            absval = -absval;
+-        }
+-        if (absval >= 1.0) {
++        if (NW_REV_FABS(tilt) >= 1.0f) {
+             input.z = fsign(tilt);
+         } else {
+             input.z = tilt;
+@@ -10286,11 +10293,7 @@ void ControlGlider(struct GLIDERSTRUCT *glider, struct nupad_s *pad)
+         if ((u32)(glider->BarrelRoll + 1) > 2 || glider->TiltZ > 30.0f || glider->TiltZ < -30.0f) {
+             SeekHalfLife(&glider->BarrelDelta, 7.2f, 0.05f, 0.02f);
+         } else if (glider->TiltZ > 1.0f || glider->TiltZ < -1.0f) {
+-            absval = glider->TiltZ * 20.0f * 0.02f * 0.5f;
+-            if (absval < 0.0) {
+-                absval = -absval;
+-            }
+-            glider->BarrelDelta = absval;
++            glider->BarrelDelta = NW_REV_FABS(glider->TiltZ * 20.0f * 0.02f * 0.5f);
+         } else {
+             glider->BarrelDelta = 1.0f;
+         }
+@@ -10326,11 +10329,7 @@ void ControlGlider(struct GLIDERSTRUCT *glider, struct nupad_s *pad)
+     }
+     if (Level == 0x18) {
+         delta = Rationalise360f(glider->RailAngle - glider->AngleY);
+-        absval = glider->Position.x;
+-        if (absval < 0.0) {
+-            absval = -absval;
+-        }
+-        if (absval > 10.0) {
++        if (NW_REV_FABS(glider->Position.x) > 10.0f) {
+             if (glider->Position.x > 10.0f && delta > 0.0f) {
+                 turn = 1;
+             } else if (glider->Position.x < -10.0f && delta < 0.0f) {
+@@ -10348,11 +10347,7 @@ void ControlGlider(struct GLIDERSTRUCT *glider, struct nupad_s *pad)
+     if (turn != 0) {
+         mindest = -1000.0f;
+         maxdest = 1000.0f;
+-        absval = delta;
+-        if (absval < 0.0) {
+-            absval = -absval;
+-        }
+-        if (absval < 2.0) {
++        if (NW_REV_FABS(delta) < 2.0f) {
+             glider->ForceTurn = 0;
+         }
+         if (delta > 90.0f) {

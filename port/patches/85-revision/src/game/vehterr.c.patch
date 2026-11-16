@@ -1,0 +1,38 @@
+--- a/src/game/vehterr.c
++++ b/src/game/vehterr.c
+@@ -18,9 +18,12 @@
+ 
+ #include "numath/nutrig.h"
+ #include "numath/nuvec.h"
++#include "numath/nufloat.h"
+ #include "game/gametypes.h"
+ #include "gamelib/terrain.h"
+ 
++#define NW_REV_FABS(x) NW_REV(fabs(x), NuFabs(x))
++
+ extern struct nuvec_s CrossProduct(struct nuvec_s *a, struct nuvec_s *b);
+ extern f32 DotProduct(struct nuvec_s *a, struct nuvec_s *b);
+ extern f32 NuFsqrt(f32 x);
+@@ -312,7 +315,6 @@ s32 MyCast(struct nuvec_s *pos, struct nuvec_s *target, struct nuvec_s *normals,
+     s32 wall;
+     s32 flip;
+     s32 down;
+-    double dd;
+     f32 d;
+     f32 magcross;
+     f32 magrel;
+@@ -347,12 +349,8 @@ s32 MyCast(struct nuvec_s *pos, struct nuvec_s *target, struct nuvec_s *normals,
+             wall = snorm.x * normals[1].x + snorm.y * normals[1].y + snorm.z * normals[1].z < 0.5f;
+ 
+             if (wall == 0) {
+-                dd = snorm.x * normals[0].x + snorm.y * normals[0].y +
+-                     snorm.z * normals[0].z;
+-                if (dd < 0.0) {
+-                    dd = -dd;
+-                }
+-                wall = dd > 0.707f;
++                wall = NW_REV_FABS(snorm.x * normals[0].x + snorm.y * normals[0].y +
++                                   snorm.z * normals[0].z) > 0.707f;
+             }
+ 
+             if (wall != 0) {
