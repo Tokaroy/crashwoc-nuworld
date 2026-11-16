@@ -7,13 +7,14 @@
 #include "save/saveio.h"
 
 #define NW_SAVE_PS2_SIZE (NW_SAVE_PS2_GAMES * NW_SAVE_GAME_SIZE) /* a PS2 save's file */
-#define NW_SAVE_PS2_FILE NW_SAVE_PS2_NAME "slot00"                /* its name, as the game wrote it */
 #define NW_SAVE_PS2_ICON "crash.ico"                               /* the save's icon on the card */
 #define NW_SAVE_PS2_ICON_SYS 0x3C4                                 /* icon.sys */
 #define NW_SAVE_TIME_KEY "saved"
 #define NW_SAVE_COMMENT                                                                                              \
     "Crash Bandicoot: The Wrath of Cortex save (crashwoc-nuworld).\n"                                               \
     "Levels are keyed by their path, hubs by their number; keys this build does not know are kept."
+
+static const char *const nw_save_ps2_names[] = { NW_SAVE_PS2_PAL, NW_SAVE_PS2_US };
 
 typedef struct NwSaveFiles {
     char *main, *bak, *bak2, *tmp, *bad, *deleted;
@@ -481,6 +482,34 @@ int nw_save_scan_auto(const char *dir, int *last)
 
 /* -- conversion ------------------------------------------------------------------------------------------------- */
 
+static void nw_save_ps2_file(char *out, size_t size, const char *name)
+{
+    SDL_snprintf(out, size, "%sslot00", name);
+}
+
+static uint8_t *nw_save_ps2_on_card(const void *image, size_t size, const char *name, size_t *len, bool *missing,
+                                   const char **found)
+{
+    for (size_t i = 0; i < SDL_arraysize(nw_save_ps2_names); i++) {
+        const char *n = name ? name : nw_save_ps2_names[i];
+        char file[32];
+        nw_save_ps2_file(file, sizeof(file), n);
+        uint8_t *raw = nw_ps2card_file(image, size, n, file, len, missing);
+        *found = n;
+        if (raw || !*missing || name) {
+            return raw;
+        }
+    }
+    return NULL;
+}
+
+static void nw_save_ps2_size_error(const char *name, size_t len)
+{
+    char file[32];
+    nw_save_ps2_file(file, sizeof(file), name);
+    SDL_SetError("/%s/%s is %u bytes, a save %u", name, file, (unsigned)len, (unsigned)NW_SAVE_PS2_SIZE);
+}
+
 /* The checked games of the PS2 save in file, a raw save or a card image; SDL_free them. NULL with *none when the
    card holds no such save, else with an SDL error. */
 static uint8_t *nw_save_ps2_games(const char *file, const NwSaveRegistry *reg, bool *none)
@@ -488,9 +517,10 @@ static uint8_t *nw_save_ps2_games(const char *file, const NwSaveRegistry *reg, b
     size_t size = 0, len = 0;
     bool missing = false;
     uint8_t *data = SDL_LoadFile(file, &size), *raw = NULL;
+    const char *name = NW_SAVE_PS2_PAL;
     *none = false;
     if (data && nw_ps2card_is_card(data, size)) {
-        raw = nw_ps2card_file(data, size, NW_SAVE_PS2_NAME, NW_SAVE_PS2_FILE, &len, &missing);
+        raw = nw_save_ps2_on_card(data, size, NULL, &len, &missing, &name);
         *none = missing;
     } else if (data && size == NW_SAVE_PS2_SIZE) {
         raw = data;
@@ -501,8 +531,7 @@ static uint8_t *nw_save_ps2_games(const char *file, const NwSaveRegistry *reg, b
     }
     SDL_free(data);
     if (raw && len != NW_SAVE_PS2_SIZE) {
-        SDL_SetError("/%s/%s is %u bytes, a save %u", NW_SAVE_PS2_NAME, NW_SAVE_PS2_FILE, (unsigned)len,
-                     (unsigned)NW_SAVE_PS2_SIZE);
+        nw_save_ps2_size_error(name, len);
     } else if (raw && nw_save_check(reg, raw, NW_SAVE_PS2_GAMES)) {
         return raw;
     }
@@ -526,11 +555,16 @@ static uint8_t *nw_save_ps2_folder(const char *dir, const NwSaveRegistry *reg)
     int n = 0;
     char *path = NULL;
     bool none = false;
-    if (SDL_asprintf(&path, "%s%s", dir, NW_SAVE_PS2_FILE) >= 0 && SDL_GetPathInfo(path, NULL) &&
-        !(games = nw_save_ps2_games(path, reg, &none)) && !none) {
-        nw_log_warn(NW_LOG_SAVE, "saves: not converted: %s", SDL_GetError());
+    for (size_t i = 0; i < SDL_arraysize(nw_save_ps2_names) && !games; i++) {
+        char file[32];
+        nw_save_ps2_file(file, sizeof(file), nw_save_ps2_names[i]);
+        path = NULL;
+        if (SDL_asprintf(&path, "%s%s", dir, file) >= 0 && SDL_GetPathInfo(path, NULL) &&
+            !(games = nw_save_ps2_games(path, reg, &none)) && !none) {
+            nw_log_warn(NW_LOG_SAVE, "saves: not converted: %s", SDL_GetError());
+        }
+        SDL_free(path);
     }
-    SDL_free(path);
     char **cards = games ? NULL : SDL_GlobDirectory(dir, "*.ps2", SDL_GLOB_CASEINSENSITIVE, &n);
     if (cards) {
         SDL_qsort(cards, (size_t)n, sizeof(*cards), nw_save_by_name);
@@ -570,7 +604,7 @@ int nw_save_convert(const char *dir, const NwSaveRegistry *reg)
 {
     NwSaveFiles older;
     bool failed = false;
-    if (nw_save_started(dir) || !nw_save_files_at(&older, dir, NW_SAVE_PS2_FILE)) {
+    if (nw_save_started(dir) || !nw_save_files_at(&older, dir, NW_SAVE_PS2_PAL "slot00")) {
         return 0;
     }
     uint8_t *games = nw_save_older(&older, reg, &failed);
@@ -691,8 +725,8 @@ static bool nw_save_blank(const uint8_t *image, size_t size)
 
 /* The card's save of the game into games (NW_SAVE_PS2_SIZE): 1 read, 0 none (the card formatted), -1 an SDL error;
    *blank when the card is not formatted. */
-static int nw_save_card_read(const uint8_t *image, size_t size, const NwSaveRegistry *reg, uint8_t *games,
-                             bool *blank)
+static int nw_save_card_read(const uint8_t *image, size_t size, const char *name, const NwSaveRegistry *reg,
+                             uint8_t *games, bool *blank)
 {
     size_t len = 0;
     bool missing = false;
@@ -706,11 +740,11 @@ static int nw_save_card_read(const uint8_t *image, size_t size, const NwSaveRegi
         SDL_SetError("not a PS2 memory card image");
         return -1;
     }
-    uint8_t *raw = nw_ps2card_file(image, size, NW_SAVE_PS2_NAME, NW_SAVE_PS2_FILE, &len, &missing);
+    const char *found = NW_SAVE_PS2_PAL;
+    uint8_t *raw = nw_save_ps2_on_card(image, size, name, &len, &missing, &found);
     int r = missing ? 0 : -1;
     if (raw && len != NW_SAVE_PS2_SIZE) {
-        SDL_SetError("/%s/%s is %u bytes, a save %u", NW_SAVE_PS2_NAME, NW_SAVE_PS2_FILE, (unsigned)len,
-                     (unsigned)NW_SAVE_PS2_SIZE);
+        nw_save_ps2_size_error(found, len);
     } else if (raw && nw_save_check(reg, raw, NW_SAVE_PS2_GAMES)) {
         SDL_memcpy(games, raw, NW_SAVE_PS2_SIZE);
         r = 1;
@@ -719,12 +753,12 @@ static int nw_save_card_read(const uint8_t *image, size_t size, const NwSaveRegi
     return r;
 }
 
-NwSaveCard nw_save_card(const char *card, const NwSaveRegistry *reg, uint8_t *games)
+NwSaveCard nw_save_card(const char *card, const char *ps2_name, const NwSaveRegistry *reg, uint8_t *games)
 {
     size_t size = 0;
     bool blank = false;
     uint8_t *image = SDL_LoadFile(card, &size);
-    int r = image ? nw_save_card_read(image, size, reg, games, &blank) : -1;
+    int r = image ? nw_save_card_read(image, size, ps2_name, reg, games, &blank) : -1;
     SDL_free(image);
     if (r < 0 && !blank) {
         nw_save_blame(card);
@@ -824,15 +858,15 @@ static bool nw_save_card_write(const char *card, const uint8_t *image, size_t si
     return ok;
 }
 
-bool nw_save_export(const char *dir, const NwSaveRegistry *reg, const char *card, const int *picks, const void *icon,
-                    size_t icon_len)
+bool nw_save_export(const char *dir, const NwSaveRegistry *reg, const char *card, const char *ps2_name,
+                    const int *picks, const void *icon, size_t icon_len)
 {
     size_t size = 0, len = 0;
     bool blank = false, missing = false, keeps = false, ok = false;
     uint8_t icon_sys[NW_SAVE_PS2_ICON_SYS], marker[4] = { 0 };
     uint8_t *games = SDL_calloc(1, NW_SAVE_PS2_SIZE);
     uint8_t *image = games ? SDL_LoadFile(card, &size) : NULL;
-    int had = image ? nw_save_card_read(image, size, reg, games, &blank) : -1;
+    int had = image ? nw_save_card_read(image, size, ps2_name, reg, games, &blank) : -1;
     for (int i = 0; i < NW_SAVE_PS2_GAMES; i++) {
         keeps = keeps || picks[i] == NW_SAVE_PS2_KEEP;
     }
@@ -841,7 +875,7 @@ bool nw_save_export(const char *dir, const NwSaveRegistry *reg, const char *card
         SDL_memset(games, 0, NW_SAVE_PS2_SIZE);
     }
     if (had >= 0 && !icon) { /* only a card without the save's icon needs one */
-        void *old = nw_ps2card_file(image, size, NW_SAVE_PS2_NAME, NW_SAVE_PS2_ICON, &len, &missing);
+        void *old = nw_ps2card_file(image, size, ps2_name, NW_SAVE_PS2_ICON, &len, &missing);
         if (!old) {
             had = -1;
             if (missing) {
@@ -851,18 +885,20 @@ bool nw_save_export(const char *dir, const NwSaveRegistry *reg, const char *card
         SDL_free(old);
     }
     if (had >= 0 && nw_save_picked(dir, reg, picks, had > 0, games)) {
+        char file[32];
+        nw_save_ps2_file(file, sizeof(file), ps2_name);
         nw_save_icon_sys(icon_sys);
         const NwPs2CardFile files[] = {
             /* in the order the game makes them; only the games are written over */
             { NW_SAVE_PS2_ICON, icon, icon_len, true },
             { "icon.sys", icon_sys, sizeof(icon_sys), true },
-            { NW_SAVE_PS2_NAME, marker, sizeof(marker), true },
-            { NW_SAVE_PS2_FILE, games, NW_SAVE_PS2_SIZE, false },
+            { ps2_name, marker, sizeof(marker), true },
+            { file, games, NW_SAVE_PS2_SIZE, false },
         };
         SDL_Time now = 0;
         SDL_GetCurrentTime(&now);
-        ok = nw_ps2card_put(image, size, NW_SAVE_PS2_NAME, files, (int)SDL_arraysize(files), now);
-        uint8_t *back = ok ? nw_ps2card_file(image, size, NW_SAVE_PS2_NAME, NW_SAVE_PS2_FILE, &len, &missing) : NULL;
+        ok = nw_ps2card_put(image, size, ps2_name, files, (int)SDL_arraysize(files), now);
+        uint8_t *back = ok ? nw_ps2card_file(image, size, ps2_name, file, &len, &missing) : NULL;
         if (ok && !(back && len == NW_SAVE_PS2_SIZE && SDL_memcmp(back, games, len) == 0)) { /* as the import reads */
             ok = back ? SDL_SetError("the card did not read back what was written") : false;
         }

@@ -20,7 +20,7 @@
 #include "save/ps2card.h"
 
 #define PAGE_SIZE ((int)sizeof(SaveSlot))
-#define RAW NW_SAVE_PS2_NAME "slot00" /* a raw PS2 save */
+#define RAW NW_SAVE_PS2_PAL "slot00" /* a raw PS2 save */
 
 extern struct game_s SaveSlot[2][2];
 extern struct game_s *game;
@@ -268,7 +268,7 @@ static int test_ps2(void)
     size_t size = 0, len = 0;
     bool missing = false;
     uint8_t *image = SDL_LoadFile(card, &size);
-    uint8_t *raw = image ? nw_ps2card_file(image, size, NW_SAVE_PS2_NAME, RAW, &len, &missing) : NULL;
+    uint8_t *raw = image ? nw_ps2card_file(image, size, NW_SAVE_PS2_PAL, RAW, &len, &missing) : NULL;
     CHECK(raw && len == (size_t)PAGE_SIZE);
     if (!raw || len != (size_t)PAGE_SIZE) {
         SDL_free(image);

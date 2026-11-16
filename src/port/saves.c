@@ -181,10 +181,11 @@ int nw_saves_import(const char *dir, const char *file)
     return reg ? nw_save_import(dir, file, reg) : -1;
 }
 
-bool nw_saves_export(const char *dir, const char *card, const int *picks, const void *icon, size_t icon_len)
+bool nw_saves_export(const char *dir, const char *card, const char *ps2_name, const int *picks, const void *icon,
+                     size_t icon_len)
 {
     const NwSaveRegistry *reg = nw_saves_ready(dir);
-    return reg && nw_save_export(dir, reg, card, picks, icon, icon_len);
+    return reg && nw_save_export(dir, reg, card, ps2_name, picks, icon, icon_len);
 }
 
 static void nw_saves_scan(void)

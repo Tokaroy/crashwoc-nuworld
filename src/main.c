@@ -208,7 +208,8 @@ static int nw_export_save(const char *card, const char *slots, const char *data_
     bool vfs_open = root && nw_extract_has_disc(root) && nw_vfs_init(&vfs, root);
     size_t icon_len = 0;
     void *icon = vfs_open ? nw_saveexport_icon(&vfs, &icon_len) : NULL; /* a card with the save's has one */
-    bool ok = saves && nw_saves_export(saves, card, picks, icon, icon_len);
+    bool ok = saves && nw_saves_export(saves, card, nw_saveexport_ps2_name(vfs_open ? &vfs : NULL), picks, icon,
+                                       icon_len);
     if (ok) {
         printf("Exported to %s (the card before is %s.bak)\n", card, card);
     } else if (root) {

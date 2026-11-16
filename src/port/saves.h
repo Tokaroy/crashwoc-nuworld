@@ -21,7 +21,8 @@ void nw_saves_init(const char *dir);
 int nw_saves_import(const char *dir, const char *file);
 /* Without the game running: dir's saves into the PCSX2 card image card, picks giving the 4 PS2 slots their games
    (nw_save_export). false with an SDL error. */
-bool nw_saves_export(const char *dir, const char *card, const int *picks, const void *icon, size_t icon_len);
+bool nw_saves_export(const char *dir, const char *card, const char *ps2_name, const int *picks, const void *icon,
+                     size_t icon_len);
 /* Any thread: the level and hub keys of the saves (the game's level table); NULL with an SDL error. */
 const NwSaveRegistry *nw_saves_levels(void);
 

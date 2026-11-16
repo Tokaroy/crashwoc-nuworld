@@ -220,10 +220,10 @@ int main(int argc, char *argv[])
     seed("save-by-hand", FUZZ_SAVE, NULL, 0, by_hand, sizeof(by_hand) - 1);
 
     static Pcb card;
-    const char *names[1] = { NW_SAVE_PS2_NAME "slot00" };
+    const char *names[1] = { NW_SAVE_PS2_PAL "slot00" };
     const void *files[1] = { games };
     size_t lens[1] = { sizeof(games) };
-    pcb_build(&card, 1, NW_SAVE_PS2_NAME, 1, names, files, lens);
+    pcb_build(&card, 1, NW_SAVE_PS2_PAL, 1, names, files, lens);
     uint8_t *image = pcb_image(&card, false, &size);
     seed("card", FUZZ_CARD, NULL, 0, image, size);
     free(image);

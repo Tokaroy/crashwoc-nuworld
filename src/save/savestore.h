@@ -17,7 +17,8 @@
 #define NW_SAVE_GAMES 100                /* NuWorld's own saves */
 #define NW_SAVE_AUTOS 100                /* independent autosaves, never manual destinations */
 #define NW_SAVE_TOTAL (NW_SAVE_GAMES + NW_SAVE_AUTOS)
-#define NW_SAVE_PS2_NAME "BESLES-50386" /* a PS2 save's folder and file name prefix */
+#define NW_SAVE_PS2_PAL "BESLES-50386" /* a PS2 save's folder and file name prefix */
+#define NW_SAVE_PS2_US "BASLUS-20238"
 #define NW_SAVE_PS2_GAMES 4              /* the games a PS2 save holds */
 
 typedef enum NwSaveResult {
@@ -89,15 +90,15 @@ typedef enum NwSaveCard {
 } NwSaveCard;
 
 /* What card (a PCSX2 .ps2 image) holds; with the game's save, its games into games (NW_SAVE_PS2_GAMES records). */
-NwSaveCard nw_save_card(const char *card, const NwSaveRegistry *reg, uint8_t *games);
+NwSaveCard nw_save_card(const char *card, const char *ps2_name, const NwSaveRegistry *reg, uint8_t *games);
 /* Back to the PS2: dir's saves into card's save of the game, picks (NW_SAVE_PS2_GAMES) giving each PS2 slot a save's
    number or NW_SAVE_PS2_KEEP / NW_SAVE_PS2_EMPTY. A record goes as it is: NuWorld's longer names stay behind, the
    record holding the game's own 8 and 3 letters. The save is made as the game makes it (its folder with the icon,
    icon.sys and its files; icon (the disc's .ico) may be NULL when the card has the save's already); other saves on
    the card stay. The card is written via .tmp with the one before copied to .bak; false with an SDL error and the
    card unchanged (also when it is not formatted, or a slot keeps a game of a save there that does not read). */
-bool nw_save_export(const char *dir, const NwSaveRegistry *reg, const char *card, const int *picks, const void *icon,
-                    size_t icon_len);
+bool nw_save_export(const char *dir, const NwSaveRegistry *reg, const char *card, const char *ps2_name,
+                    const int *picks, const void *icon, size_t icon_len);
 
 /* An SDL_Time as local time; all zero when it does not convert. */
 void nw_save_time_from(int64_t time, NwSaveTime *t);
