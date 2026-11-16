@@ -1084,6 +1084,9 @@ static int nw_boot(const char *data_dir, int hardware_speed, float aspect, NwPla
         nw_crash_dumps(NULL);
     }
     nw_platform_gl_debug(settings.gl_debug || nw_gl_debug_arg);
+    if (SDL_strcmp(settings.gpu, "auto") != 0) {
+        nw_gpu_prefer(settings.gpu);
+    }
     char aspect_name[32];
     nw_pal_60hz = settings.pal_60hz;
     nw_log_info(NW_LOG_APP,

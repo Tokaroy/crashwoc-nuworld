@@ -91,6 +91,7 @@ add_executable(crashwoc-nuworld
   src/platform/audio.c
   src/platform/crash.c
   src/platform/display.c
+  src/platform/gpu.c
   src/platform/log.c
   src/platform/platform.c
   src/gfx/gl.c
@@ -292,6 +293,11 @@ if(NUWORLD_TESTS)
   target_compile_options(nuworld_test_display PRIVATE -Wall -Wextra)
   target_link_libraries(nuworld_test_display PRIVATE SDL3::SDL3)
   add_test(NAME display COMMAND nuworld_test_display)
+  add_executable(nuworld_test_gpu tests/c/test_gpu.c src/platform/gpu.c)
+  target_include_directories(nuworld_test_gpu PRIVATE src)
+  target_compile_options(nuworld_test_gpu PRIVATE -Wall -Wextra)
+  target_link_libraries(nuworld_test_gpu PRIVATE SDL3::SDL3)
+  add_test(NAME gpu COMMAND nuworld_test_gpu)
   add_executable(nuworld_test_savefile tests/c/test_savefile.c)
   add_library(nuworld_save_test STATIC ${NW_SAVE_SOURCES})
   target_include_directories(nuworld_save_test PUBLIC src)

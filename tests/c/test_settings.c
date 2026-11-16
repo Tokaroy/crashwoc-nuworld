@@ -421,6 +421,15 @@ int main(int argc, char *argv[])
     CHECK(read_text("[video]\nmsaa = -2\n", &s) && s.msaa == 0);
 
     CHECK(read_text("[video]\nfilter = \"bilinear\"\n", &s) && s.filter == NW_FILTER_BILINEAR);
+    CHECK(read_text("[video]\n", &s) && SDL_strcmp(s.gpu, "auto") == 0);
+    CHECK(read_text("[video]\ngpu = \"Intel(R) UHD Graphics 620\"\n", &s) &&
+          SDL_strcmp(s.gpu, "Intel(R) UHD Graphics 620") == 0);
+    CHECK(read_text("[video]\ngpu = \"\"\n", &s) && SDL_strcmp(s.gpu, "auto") == 0);
+    SDL_zero(s.gpu);
+    SDL_strlcpy(s.gpu, "NVIDIA GeForce RTX 4060 Laptop GPU", sizeof(s.gpu));
+    CHECK(nw_settings_save(&s, root));
+    nw_settings_defaults(&s);
+    CHECK(nw_settings_load(&s, root) && SDL_strcmp(s.gpu, "NVIDIA GeForce RTX 4060 Laptop GPU") == 0);
     nw_settings_defaults(&s);
     CHECK(s.gems);
     CHECK(read_text("[video]\ngems = false\n", &s) && !s.gems);
