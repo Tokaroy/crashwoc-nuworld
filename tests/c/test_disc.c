@@ -80,6 +80,11 @@ int main(void)
     CHECK(nw_disc_sfx(188) == 208 && nw_disc_sfx(189) == 269 && nw_disc_sfx(196) == 276 && nw_disc_sfx(197) == -1);
     edSfxLevelTab = NULL;
     CHECK(nw_disc_sfx(121) == 121 && nw_disc_sfx(177) == -1);
+    vfs.canon = &nw_canon_table;
+    edSfxLevelTab = table("SfxTabLIZARDS");
+    CHECK(nw_disc_region() == NW_REGION_US && nw_disc_sfx(177) == 177 && nw_disc_sfx(197) == 197);
+    vfs.canon = NULL;
+    edSfxLevelTab = NULL;
 
     /* PAL's own files are PAL's numbering. */
     vfs.manifest = &nw_disc_manifest;

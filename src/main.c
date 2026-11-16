@@ -463,6 +463,51 @@ static int nw_check_disc(const char *data_dir)
     return failed ? 1 : 0;
 }
 
+static int nw_check_canon(const char *data_dir)
+{
+    NwVfs vfs;
+    char *root = nw_data_root(data_dir);
+    if (!root || !nw_extract_has_disc(root) || !nw_vfs_init(&vfs, root)) {
+        fprintf(stderr, NW_APP_NAME ": no imported disc (run --import)\n");
+        SDL_free(root);
+        return 2;
+    }
+    unsigned patched = 0, added = 0, scenes = 0, failed = 0;
+    for (size_t i = 0; i < nw_canon_table.count; i++) {
+        const NwCanonFile *c = &nw_canon_table.files[i];
+        if (c->disc != vfs.manifest) {
+            continue;
+        }
+        char *path = c->sha256 ? nw_vfs_resolve(&vfs, c->path) : NULL;
+        size_t size = 0;
+        uint8_t *data = !c->sha256 || path ? nw_canon_load(&nw_canon_table, c, path, &size) : NULL;
+        const NwManifestEntry *want = nw_manifest_find(&nw_disc_manifest_usa101, c->path);
+        uint8_t digest[NW_SHA256_SIZE];
+        char hex[NW_SHA256_HEX] = "";
+        if (data) {
+            nw_sha256(data, size, digest);
+            nw_sha256_hex(digest, hex);
+        }
+        bool ok = data && (c->scene || (want && want->size == size && SDL_strcmp(want->sha256, hex) == 0));
+        printf("%s %s size=%zu sha256=%s%s\n", !c->sha256 ? "ADD" : c->scene ? "SCENE" : "PATCH", c->path, size, hex,
+               ok ? (c->scene ? "" : " = USA v1.01") : " FAILED");
+        if (!data) {
+            fflush(stdout);
+            fprintf(stderr, NW_APP_NAME ": %s: %s\n", c->path, SDL_GetError());
+        }
+        failed += !ok;
+        added += ok && !c->sha256;
+        scenes += ok && c->sha256 && c->scene;
+        patched += ok && c->sha256 && !c->scene;
+        SDL_free(data);
+        SDL_free(path);
+    }
+    printf("TOTAL %s: patched=%u added=%u scenes=%u failed=%u\n", vfs.manifest->name, patched, added, scenes, failed);
+    nw_vfs_shutdown(&vfs);
+    SDL_free(root);
+    return failed ? 1 : 0;
+}
+
 /* Every .gsc of the imported disc through the NU20 reader and the VIF decoder; exits 0, 1, or 2 without the disc. */
 static int nw_check_scenes(const char *data_dir)
 {
@@ -576,6 +621,14 @@ static int nw_boot_prepare(const char *data_dir, NwClockMode mode, bool hardware
     }
     if (!nw_run_rev && (vfs.manifest->flags & NW_DISC_LATE)) {
         nw_rev_set("late");
+    }
+    vfs.canon = nw_rev ? &nw_canon_table : NULL;
+    unsigned canon_files = 0;
+    for (size_t i = 0; vfs.canon && i < vfs.canon->count; i++) {
+        canon_files += vfs.canon->files[i].disc == vfs.manifest;
+    }
+    if (canon_files) {
+        nw_log_info(NW_LOG_LOAD, "late revision: %u level files are USA v1.01's", canon_files);
     }
     int script_hz = nw_pad_script ? nw_pad_script_hz(nw_pad_script) : 0;
     if (script_hz && nw_run_hz && nw_run_hz != script_hz) {
@@ -1612,6 +1665,7 @@ int main(int argc, char *argv[])
     const char *dump_after = NULL;                   /* --dump-after <symbol=value> */
     bool dump_heap = true;
     bool verify = false, setup = false, check_data = false, check_scenes = false, check_disc = false;
+    bool check_canon = false;
     bool stepped = false, trace_sound = false; /* --boot-check on a stepped clock, with the sound trace */
     int boot_check = 0; /* vblanks after the first swap; 0 = no --boot-check */
     int boot_loads = 0; /* --loads: background loads instead of vblanks */
@@ -1665,6 +1719,8 @@ int main(int argc, char *argv[])
             check_scenes = true;
         } else if (strcmp(argv[i], "--check-disc") == 0) {
             check_disc = true;
+        } else if (strcmp(argv[i], "--check-canon") == 0) {
+            check_canon = true;
         } else if (strcmp(argv[i], "--scene") == 0) {
             scene = i + 1 < argc && argv[i + 1][0] != '-' ? argv[++i] : "";
         } else if (strcmp(argv[i], "--scene-check") == 0) {
@@ -1765,8 +1821,8 @@ int main(int argc, char *argv[])
         nw_crash_test(crash_test);
     }
     /* The checks, tests and comparisons read the retail disc. */
-    if (nw_overlay_count && (boot_check || capture || dump || check_data || check_scenes || check_disc || scene ||
-                             scene_check || verify || import || import_save || export_card)) {
+    if (nw_overlay_count && (boot_check || capture || dump || check_data || check_scenes || check_disc || check_canon ||
+                             scene || scene_check || verify || import || import_save || export_card)) {
         fprintf(stderr, NW_APP_NAME ": --overlay is for the game window only\n");
         return 2;
     }
@@ -1786,7 +1842,8 @@ int main(int argc, char *argv[])
     }
     /* Without a mode the game starts; the first start (no imported disc) and --setup ask for the disc first. */
     NwPlatform window = { 0 }; /* the setup's window, which the game takes over */
-    if (!(check_data || check_scenes || check_disc || scene || scene_check || boot_check || capture || dump)) {
+    if (!(check_data || check_scenes || check_disc || check_canon || scene || scene_check || boot_check || capture ||
+          dump)) {
         char *root = nw_data_root(data_dir);
         bool ask = setup || !root || !nw_extract_has_disc(root);
         SDL_free(root);
@@ -1801,6 +1858,9 @@ int main(int argc, char *argv[])
     }
     if (check_disc) {
         return nw_check_disc(data_dir);
+    }
+    if (check_canon) {
+        return nw_check_canon(data_dir);
     }
     if (scene_check) {
         return nw_scene_check(argv[0], data_dir, scene_check);

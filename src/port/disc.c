@@ -71,7 +71,8 @@ static int nw_disc_sfx_row(const NwDiscSfxRun *runs, size_t n, int sfx)
 
 int nw_disc_sfx(int sfx)
 {
-    const NwManifest *m = nw_disc();
+    const NwVfs *vfs = nw_shim_file_vfs();
+    const NwManifest *m = vfs && !vfs->canon ? vfs->manifest : NULL;
     for (size_t i = 0; sfx >= 0 && i < SDL_arraysize(nw_disc_sfx_tables); i++) {
         if (m == nw_disc_sfx_tables[i].disc) {
             return nw_disc_sfx_row(nw_disc_sfx_tables[i].runs, nw_disc_sfx_tables[i].count, sfx);

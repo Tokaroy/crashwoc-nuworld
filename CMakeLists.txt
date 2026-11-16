@@ -154,6 +154,7 @@ endif()
 # Disc images, the data folder and the game file system.
 set(NW_VFS_SOURCES
   src/platform/paths.c
+  src/vfs/canon.c
   src/vfs/dat.c
   src/vfs/disc.c
   src/vfs/extract.c

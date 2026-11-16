@@ -7,6 +7,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "vfs/canon.h"
 #include "vfs/manifest.h"
 
 #define NW_VFS_PATH_MAX 256 /* normalised path with the NUL */
@@ -45,6 +46,7 @@ typedef struct NwVfs {
     NwVfsMount mounts[NW_VFS_SLOTS];
     char *host0;
     const NwManifest *manifest;
+    const NwCanonTable *canon;
 } NwVfs;
 
 typedef struct NwVfsFile NwVfsFile;
