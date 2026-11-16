@@ -4,6 +4,7 @@
 
 #include "app.h"
 #include "frontend/debug.h"
+#include "gfx/fog.h"
 #include "gfx/gl.h"
 #include "gfx/interp.h"
 #include "platform/log.h"
@@ -217,6 +218,17 @@ static void nw_video_panel(void *user)
     }
     nw_debug_slider_int("Draw distance %", &s->draw_distance, 100, NW_DRAW_DISTANCE_MAX);
     nw_debug_tooltip("How far objects are drawn; 100 is the PS2's");
+    nw_debug_slider_int("Fog %", &s->fog, 0, 100);
+    nw_debug_tooltip("How strong the levels' fog is");
+    int blur = s->blur, haze = s->haze;
+    if (nw_debug_combo("Distance blur", &blur, offon, 2)) {
+        s->blur = blur;
+    }
+    nw_debug_tooltip("The PS2 blurs what the fog covers");
+    if (nw_debug_combo("Heat haze", &haze, offon, 2)) {
+        s->haze = haze;
+    }
+    nw_debug_tooltip("The shimmer in the fire and underwater levels and over candle flames");
     if (nw_debug_combo("Aspect", &aspect, aspect_names, (int)SDL_arraysize(aspects))) {
         s->aspect = aspects[aspect];
     }
@@ -298,6 +310,7 @@ float nw_video_start(NwPlatform *p, NwSettings *s)
     nw_video_vsync(s->vsync);
     nw_video_render(s);
     nw_wide_draw_distance(s->draw_distance);
+    nw_fog_options(s->fog, s->blur, s->haze);
     return aspect;
 }
 
@@ -332,6 +345,9 @@ void nw_video_apply(const NwSettings *s, const NwSettings *was)
     }
     if (s->draw_distance != was->draw_distance) {
         nw_wide_draw_distance(s->draw_distance);
+    }
+    if (s->fog != was->fog || s->blur != was->blur || s->haze != was->haze) {
+        nw_fog_options(s->fog, s->blur, s->haze);
     }
     if (SDL_strcmp(s->gpu, was->gpu) != 0) {
         nw_gpu_prefer(s->gpu);

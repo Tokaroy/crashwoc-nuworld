@@ -9,6 +9,7 @@
 
 #include "game/cloudfx.h"
 #include "gamelib/debris.h"
+#include "gfx/fog.h"
 #include "gfx/rndr.h"
 #include "nu3d/nucamera.h"
 #include "nu3d/nugobj.h"
@@ -1229,6 +1230,52 @@ static void test_polyhaze(void)
     NuRndrSwapStreamBuffers();
 }
 
+/* [video] fog, blur and haze over test_fog's fog: half the fog halves the composite's alpha and the blur's Ad; without
+   blur no blur record; no fog drops the blur too but keeps the haze; without haze neither haze pass, a haze poly
+   dropped. Retail again after. */
+static void test_fog_options(void)
+{
+    static const struct {
+        int fog;
+        bool blur, haze;
+        uint8_t alpha;
+        bool fog_drawn, blur_drawn;
+    } cases[] = {
+        { 50, true, true, 0x1F, true, true },
+        { 100, false, true, 0x3F, true, false },
+        { 0, true, true, 0, false, false },
+        { 100, true, false, 0x3F, true, true },
+    };
+    struct nuvec_s pos = { 0.0f, 0.0f, 10.0f };
+    for (size_t n = 0; n < SDL_arraysize(cases); n++) {
+        nw_fog_options(cases[n].fog, cases[n].blur, cases[n].haze);
+        NuLightAddHazePoly(&pos, 0.6f, 1.2f);
+        NuLightFog(45.0f, 95.0f, 0x7F613F45, 1, 0x30808080);
+        NuLightFogDraw(0);
+        CHECK(NuLightHazePolyCnt == 0);
+        const NwPacket *p = nw_rndr_packet();
+        const NwCmd *fog = NULL, *blur = NULL, *haze = NULL;
+        for (uint32_t i = 0; i < p->ncmds; i++) {
+            const NwCmd *c = &p->cmds[i];
+            if (c->op != NW_CMD_VERTS) {
+                continue;
+            }
+            fog = c->material == NuLgtSurf[9] ? c : fog;
+            blur = c->material == NuLgtBackAlphaBuff ? c : blur;
+            haze = c->material == NuLgtSurf[12] || c->material == NuLgtBackBuff ? c : haze;
+        }
+        CHECK(!!fog == cases[n].fog_drawn && !!blur == cases[n].blur_drawn && !!haze == cases[n].haze);
+        if (fog) {
+            CHECK(p->verts[fog->first].col[3] == cases[n].alpha);
+        }
+        if (blur && blur->zclut && blur->zclut <= p->nzcluts) {
+            CHECK(p->zcluts[blur->zclut - 1].ad == cases[n].alpha + 1);
+        }
+        NuRndrSwapStreamBuffers();
+    }
+    nw_fog_options(100, true, true);
+}
+
 /* An arc laser two units long in half-unit segments: one GS VERTS strip of four quads, U from U1 back to U0 along a
    segment, V0 on the left and V1 on the right; paused, the same laser again. */
 static void test_arclaser(void)
@@ -1515,6 +1562,7 @@ int main(void)
     test_clouds();
     test_fog();
     test_polyhaze();
+    test_fog_options();
     test_arclaser();
     test_spot();
     test_spot_edges();

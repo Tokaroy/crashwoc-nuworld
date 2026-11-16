@@ -298,6 +298,12 @@ static const NwSettingKey nw_settings_keys[] = {
       .help = "true draws gems, crystals and relics as cut stone and polished metal; false as the PS2" },
     { .table = "video", .name = "draw_distance", .kind = NW_SETTING_INT, NW_FIELD(draw_distance), .lo = 100,
       .hi = NW_DRAW_DISTANCE_MAX, .help = "100-400: how far objects are drawn, percent of the PS2's" },
+    { .table = "video", .name = "fog", .kind = NW_SETTING_INT, NW_FIELD(fog), .lo = 0, .hi = 100,
+      .help = "0-100: how strong the levels' fog is" },
+    { .table = "video", .name = "blur", .kind = NW_SETTING_BOOL, NW_FIELD(blur),
+      .help = "true blurs what the fog covers" },
+    { .table = "video", .name = "haze", .kind = NW_SETTING_BOOL, NW_FIELD(haze),
+      .help = "true draws the heat haze of the fire and underwater levels and over candle" },
     { .table = "video", .name = "aspect", .kind = NW_SETTING_TEXT, NW_FIELD(aspect), .parse = nw_settings_aspect_parse,
       .format = nw_settings_aspect_format,
       .help = "auto (the screen's or window's shape), 4:3, 16:9, 16:10, 21:9, 32:9 or a ratio; 4:3 is the PS2's" },
@@ -412,6 +418,9 @@ void nw_settings_defaults(NwSettings *s)
     s->filter = NW_FILTER_RETAIL;
     s->gems = true;
     s->draw_distance = 400;
+    s->fog = 100;
+    s->blur = true;
+    s->haze = true;
     SDL_zero(s->gpu);
     SDL_strlcpy(s->gpu, "auto", sizeof(s->gpu));
     nw_controls_defaults(&s->controls);
