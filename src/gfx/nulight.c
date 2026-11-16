@@ -410,17 +410,19 @@ static void nw_lgt_spot_vertex(NwVuSpriteVertex *v, float x, float y, float z, u
 static void nw_lgt_spot_edge(int i, NwVuSpriteVertex *v)
 {
     int o = (i + 16) & 0x3F;
+    float right = (float)(0x8000 + (nurndr_pixel_width << 3) + 0x400);
+    float left = (float)(0x8000 - (nurndr_pixel_width << 3) - 0x400);
     if ((o <= 8 || o >= 56) && v->pos[1] > 28672.0f) {
         v->pos[1] = 28672.0f;
     }
-    if (o >= 8 && o <= 24 && v->pos[0] < 38912.0f) {
-        v->pos[0] = 38912.0f;
+    if (o >= 8 && o <= 24 && v->pos[0] < right) {
+        v->pos[0] = right;
     }
     if (o >= 24 && o <= 40 && v->pos[1] < 36864.0f) {
         v->pos[1] = 36864.0f;
     }
-    if (o >= 40 && o <= 56 && v->pos[0] > 26624.0f) {
-        v->pos[0] = 26624.0f;
+    if (o >= 40 && o <= 56 && v->pos[0] > left) {
+        v->pos[0] = left;
     }
 }
 

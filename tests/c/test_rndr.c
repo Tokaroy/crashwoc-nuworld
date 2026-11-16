@@ -1306,6 +1306,36 @@ static void test_spot(void)
     NuRndrSwapStreamBuffers();
 }
 
+static void test_spot_edges(void)
+{
+    static const int widths[] = { 640, 854, 1706 };
+    struct nuvec_s pos = { 0.0f, 0.0f, 10.0f };
+    for (int w = 0; w < 3; w++) {
+        PS2_REZ_W = widths[w];
+        NuLightAddSpotXSpanFade(&pos, 1.5f, 1.0f, (int)0xFF000000, 1, 0x20, 1);
+        NuLightProcessSpot(0);
+        const NwPacket *p = nw_rndr_packet();
+        const NwCmd *ring = NULL;
+        for (uint32_t i = 0; i < p->ncmds; i++) {
+            if (p->cmds[i].op == NW_CMD_VERTS && p->cmds[i].material == NuLgtSurf[9] && p->cmds[i].count == 128 * 3) {
+                ring = &p->cmds[i];
+            }
+        }
+        CHECK(ring != NULL);
+        if (ring) {
+            float left = 65535.0f, right = 0.0f;
+            for (uint32_t i = 0; i < ring->count; i++) {
+                const NwVuSpriteVertex *v = &p->verts[ring->first + i];
+                left = v->pos[0] < left ? v->pos[0] : left;
+                right = v->pos[0] > right ? v->pos[0] : right;
+            }
+            CHECK(left == (float)(0x8000 - widths[w] * 8 - 0x400) && right == (float)(0x8000 + widths[w] * 8 + 0x400));
+        }
+        NuRndrSwapStreamBuffers();
+    }
+    PS2_REZ_W = 640;
+}
+
 /* The vertices of the volume records (+1 and -1 into the stencil) one fx2 program made, and how many lie on the unit
    sphere or one light away from it. */
 static uint32_t volume_verts(const struct nuvec_s *light, uint32_t *on, uint32_t *moved)
@@ -1487,6 +1517,7 @@ int main(void)
     test_polyhaze();
     test_arclaser();
     test_spot();
+    test_spot_edges();
     test_fx2_volumes();
     test_water();
     printf("%s\n", failures ? "FAILED" : "rndr: all checks passed");
