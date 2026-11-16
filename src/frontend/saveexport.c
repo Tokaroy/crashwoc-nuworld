@@ -4,6 +4,7 @@
 #include <stdint.h>
 
 #include "frontend/debug.h"
+#include "platform/log.h"
 #include "port/saves.h"
 
 #define NW_SAVEEXPORT_ICON "cdrom0:\\STUFF\\CRASH.ICO;1"
@@ -159,7 +160,7 @@ static void nw_saveexport_export(void)
     if (nw_saveexport.result_ok) {
         SDL_snprintf(nw_saveexport.result, sizeof(nw_saveexport.result),
                      "Exported. The card as it was before is %s.bak.", nw_saveexport.card);
-        SDL_Log("saves: exported to %s", nw_saveexport.card);
+        nw_log_info(NW_LOG_SAVE, "saves: exported to %s", nw_saveexport.card);
         SDL_zeroa(nw_saveexport.choice);
     } else {
         SDL_snprintf(nw_saveexport.result, sizeof(nw_saveexport.result), "Not exported: %s", SDL_GetError());

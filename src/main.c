@@ -12,6 +12,7 @@
 #include "frontend/wizard.h"
 #include "gfx/gl.h"
 #include "platform/buildid.h"
+#include "platform/crash.h"
 #include "platform/discord.h"
 #include "platform/log.h"
 #include "platform/paths.h"
@@ -56,6 +57,9 @@
 #include "vfs/vfs.h"
 #endif
 
+static const char *nw_log_arg, *nw_log_file_arg;
+static bool nw_gl_debug_arg;
+
 static bool nw_print_progress(void *user, uint64_t done, uint64_t total)
 {
     int *percent = user;
@@ -77,7 +81,7 @@ static char *nw_data_root(const char *data_dir)
         root = NULL;
     }
     if (!root) {
-        SDL_Log(NW_APP_NAME ": no data folder: %s", SDL_GetError());
+        nw_log_error(NW_LOG_APP, "no data folder: %s", SDL_GetError());
     }
     return root;
 }
@@ -521,8 +525,7 @@ static int nw_overlay_count;
 
 static void nw_overlay_conflict(void *user, const char *key)
 {
-    SDL_Log(NW_APP_NAME ": --overlay %s: %s is in an earlier overlay too; this one wins",
-            (const char *)user, key);
+    nw_log_warn(NW_LOG_LOAD, "--overlay %s: %s is in an earlier overlay too; this one wins", (const char *)user, key);
 }
 
 /* Everything the game thread needs before it starts; the file system stays open for the game. Returns 0, else the
@@ -540,7 +543,7 @@ static int nw_boot_prepare(const char *data_dir, NwClockMode mode, bool hardware
     SDL_free(saves);
     SDL_free(root);
     if (!elf) {
-        SDL_Log(NW_APP_NAME ": no data image: %s", SDL_GetError());
+        nw_log_error(NW_LOG_LOAD, "no data image: %s", SDL_GetError());
         if (vfs_open) {
             nw_vfs_shutdown(&vfs);
         }
@@ -548,12 +551,12 @@ static int nw_boot_prepare(const char *data_dir, NwClockMode mode, bool hardware
     }
     for (int i = 0; i < nw_overlay_count; i++) {
         if (!nw_vfs_overlay(&vfs, nw_overlays[i], nw_overlay_conflict, (void *)nw_overlays[i])) {
-            SDL_Log(NW_APP_NAME ": --overlay: %s", SDL_GetError());
+            nw_log_error(NW_LOG_LOAD, "--overlay: %s", SDL_GetError());
             SDL_free(elf);
             nw_vfs_shutdown(&vfs);
             return 2;
         }
-        SDL_Log(NW_APP_NAME ": --overlay %s: %u files", nw_overlays[i], vfs.mounts[NW_VFS_OVERLAY].count);
+        nw_log_info(NW_LOG_LOAD, "--overlay %s: %u files", nw_overlays[i], vfs.mounts[NW_VFS_OVERLAY].count);
     }
     nw_shim_file_init(&vfs);
     nw_newlib_init();
@@ -562,7 +565,7 @@ static int nw_boot_prepare(const char *data_dir, NwClockMode mode, bool hardware
     bool ok = nw_image_build(vfs.manifest, elf, size, &stats, err, sizeof(err));
     SDL_free(elf);
     if (!ok) {
-        SDL_Log(NW_APP_NAME ": data image: %s", err);
+        nw_log_error(NW_LOG_LOAD, "data image: %s", err);
         return 1;
     }
     if (vfs.manifest->flags & NW_DISC_ENGLISH) {
@@ -570,30 +573,30 @@ static int nw_boot_prepare(const char *data_dir, NwClockMode mode, bool hardware
     }
     bool recording = nw_pad_script && nw_pad_script_is_recording(nw_pad_script);
     if (nw_run_hz == 60 && recording) {
-        SDL_Log(NW_APP_NAME ": --pad-script %s replays 50 Hz ticks: 50 Hz", nw_pad_script);
+        nw_log_info(NW_LOG_APP, "--pad-script %s replays 50 Hz ticks: 50 Hz", nw_pad_script);
     }
     /* Each disc at its own release's rate, PAL's 50 Hz and the US disc's 60; a PAL disc at 60 on request. */
     nw_run_pal = !nw_disc_ntsc();
     int disc_hz = nw_run_pal && !nw_pal_60hz ? 50 : 60;
     int hz = nw_hz_set(recording ? 50 : nw_run_hz ? nw_run_hz : disc_hz);
-    SDL_Log("disc: %s at %d Hz", vfs.manifest->name, hz);
+    nw_log_info(NW_LOG_LOAD, "disc: %s at %d Hz", vfs.manifest->name, hz);
     int kept = hz == 60 ? nw_hz_patch() : 0;
     if (kept) {
-        SDL_Log(NW_APP_NAME ": 60 Hz: %d data values are not retail's and stay", kept);
+        nw_log_info(NW_LOG_GAME, "60 Hz: %d data values are not retail's and stay", kept);
     }
     nw_run_hz = hz;
     if (!nw_game_init(mode, (unsigned)hz)) {
-        SDL_Log(NW_APP_NAME ": no vblank clock: %s", SDL_GetError());
+        nw_log_error(NW_LOG_APP, "no vblank clock: %s", SDL_GetError());
         return 1;
     }
     nw_nusound_init(&vfs, nw_game_us);
     nw_nusound_set_hardware_speed(hardware_speed);
     if (nw_run_level && !nw_level_start(nw_run_level)) {
-        SDL_Log(NW_APP_NAME ": --level %s: no such level on the disc", nw_run_level);
+        nw_log_error(NW_LOG_APP, "--level %s: no such level on the disc", nw_run_level);
         return 2;
     }
     if (nw_pad_script && !nw_pad_script_start(&vfs, nw_pad_script, nw_level_final())) {
-        SDL_Log(NW_APP_NAME ": --pad-script %s: %s", nw_pad_script, SDL_GetError());
+        nw_log_error(NW_LOG_APP, "--pad-script %s: %s", nw_pad_script, SDL_GetError());
         return 2;
     }
     return 0;
@@ -616,12 +619,32 @@ static const char *nw_game_state_name(NwGameState state)
     return "?";
 }
 
+static size_t nw_boot_crash_state(char *out, size_t size)
+{
+    const NwPresenceSnap *s = nw_presence_peek();
+    int n;
+    if (s->valid) {
+        n = SDL_snprintf(out, size,
+                         "state: level %d %s, warp room %d, mode %d, cutscene %d, menu %d, bonus %d%s%s%s%s\n",
+                         s->level, s->level_name, s->hub, s->game_mode, s->cutmovie, s->menu, s->bonus,
+                         s->paused ? ", paused" : "", s->loading ? ", loading" : "", s->demo ? ", demo" : "",
+                         s->time_trial ? ", time trial" : "");
+    } else {
+        n = SDL_snprintf(out, size, "state: no frame drawn yet\n");
+    }
+    n = SDL_clamp(n, 0, (int)size - 1);
+    int m = SDL_snprintf(out + n, size - (size_t)n, "game thread: %s, %llu frames, %llu vblanks\n",
+                         nw_game_state_name(nw_game_state()), (unsigned long long)nw_game_swaps(),
+                         (unsigned long long)nw_game_edges());
+    return (size_t)n + (size_t)SDL_clamp(m, 0, (int)(size - (size_t)n) - 1);
+}
+
 /* A game thread that misses the deadline is left running; the process must then _Exit, not unwind under it. */
 static bool nw_game_parked(void)
 {
     NwGameState state = nw_game_state() == NW_GAME_RUNNING ? nw_game_stop(NW_GAME_PARK_MS) : nw_game_state();
     if (state == NW_GAME_RUNNING) {
-        SDL_Log(NW_APP_NAME ": the game thread did not stop within %d ms", NW_GAME_PARK_MS);
+        nw_log_warn(NW_LOG_GAME, "the game thread did not stop within %d ms", NW_GAME_PARK_MS);
         return false;
     }
     if (state == NW_GAME_PARKED || state == NW_GAME_RETURNED) {
@@ -729,7 +752,7 @@ static bool nw_window_ready(NwPlatform *p, const char *data_dir)
     }
     SDL_free(root);
     if (!ok) {
-        SDL_Log(NW_APP_NAME ": %s", SDL_GetError());
+        nw_log_error(NW_LOG_APP, "%s", SDL_GetError());
         nw_platform_shutdown(p);
     }
     return ok;
@@ -752,7 +775,7 @@ static void nw_boot_settings(const char *data_dir, NwSettings *s, bool save)
 {
     char *root = nw_data_root(data_dir);
     if (root && !(save ? nw_settings_save(s, root) : nw_settings_load(s, root))) {
-        SDL_Log(NW_APP_NAME ": %s%s: %s", root, NW_PATHS_SETTINGS, SDL_GetError());
+        nw_log_warn(NW_LOG_APP, "%s%s: %s", root, NW_PATHS_SETTINGS, SDL_GetError());
     }
     SDL_free(root);
 }
@@ -1033,8 +1056,8 @@ static void nw_boot_fatal(SDL_Window *window, const char *data_dir)
 static int nw_boot(const char *data_dir, int hardware_speed, float aspect, NwPlatform *window)
 {
     char *root = nw_data_root(data_dir);
-    if (root && !nw_log_open(root)) {
-        SDL_Log(NW_APP_NAME ": %s%s: %s", root, NW_PATHS_LOG, SDL_GetError());
+    if (root && !nw_log_file_arg && !nw_log_open(root)) {
+        nw_log_error(NW_LOG_APP, "%s%s: %s", root, NW_PATHS_LOG, SDL_GetError());
     }
     SDL_free(root);
     SDL_Time started = 0;
@@ -1050,14 +1073,26 @@ static int nw_boot(const char *data_dir, int hardware_speed, float aspect, NwPla
     if (aspect >= 0.0f) {
         settings.aspect = aspect;
     }
+    if (!nw_log_arg && SDL_strcmp(settings.log, "info") != 0) {
+        if (nw_log_configure(settings.log)) {
+            nw_log_info(NW_LOG_APP, "log: %s", settings.log);
+        } else {
+            nw_log_warn(NW_LOG_APP, "settings: [log] level \"%s\" is not one; info", settings.log);
+        }
+    }
+    if (!settings.minidump) {
+        nw_crash_dumps(NULL);
+    }
+    nw_platform_gl_debug(settings.gl_debug || nw_gl_debug_arg);
     char aspect_name[32];
     nw_pal_60hz = settings.pal_60hz;
-    SDL_Log("settings: hardware speed %s, PAL at 60 Hz %s, aspect %s, interpolation %s, movement %s, "
-            "air indicator %s, boss health %s, camera stability %d%%",
-            settings.hardware_speed ? "on" : "off", settings.pal_60hz ? "on" : "off",
-            nw_settings_aspect_name(settings.aspect, aspect_name, sizeof(aspect_name)),
-            settings.interpolation ? "on" : "off", nw_movement_profiles[nw_movement_profile(&settings.movement)],
-            settings.air_indicator ? "on" : "off", settings.boss_health ? "on" : "off", settings.camera_stability);
+    nw_log_info(NW_LOG_APP,
+                "settings: hardware speed %s, PAL at 60 Hz %s, aspect %s, interpolation %s, movement %s, "
+                "air indicator %s, boss health %s, camera stability %d%%",
+                settings.hardware_speed ? "on" : "off", settings.pal_60hz ? "on" : "off",
+                nw_settings_aspect_name(settings.aspect, aspect_name, sizeof(aspect_name)),
+                settings.interpolation ? "on" : "off", nw_movement_profiles[nw_movement_profile(&settings.movement)],
+                settings.air_indicator ? "on" : "off", settings.boss_health ? "on" : "off", settings.camera_stability);
     int code = nw_boot_prepare(data_dir, NW_CLOCK_REALTIME, settings.hardware_speed);
     if (code) {
         if (window) {
@@ -1073,7 +1108,7 @@ static int nw_boot(const char *data_dir, int hardware_speed, float aspect, NwPla
         platform = *window;
     }
     if (nw_pad_script) {
-        SDL_Log(NW_APP_NAME ": --pad-script plays the retail game: no [game] switches");
+        nw_log_info(NW_LOG_APP, "--pad-script plays the retail game: no [game] switches");
     } else {
         nw_profile_apply(&(NwProfile){ .title_menu = !settings.retail_menu,
                                        .movement = settings.movement,
@@ -1135,17 +1170,17 @@ static int nw_boot(const char *data_dir, int hardware_speed, float aspect, NwPla
     nw_audio_set_buses(settings.master_volume, settings.voice_volume);
     nw_input_set_controls(&settings.controls);
     if (!nw_audio_open()) {
-        SDL_Log(NW_APP_NAME ": no sound: %s", SDL_GetError());
+        nw_log_warn(NW_LOG_AUDIO, "no sound: %s", SDL_GetError());
     }
     nw_stub_set_continue(true);
     if (!nw_game_start(nw_game_main, 1, nw_game_argv)) {
-        SDL_Log(NW_APP_NAME ": no game thread: %s", SDL_GetError());
+        nw_log_error(NW_LOG_GAME, "no game thread: %s", SDL_GetError());
         nw_audio_close();
         nw_window_close(&platform);
         return 1;
     }
     if (presence && !nw_discord_start(&(NwDiscordConfig){ .app_id = NW_DISCORD_APP_ID })) {
-        SDL_Log("discord: %s", SDL_GetError());
+        nw_log_warn(NW_LOG_NET, "discord: %s", SDL_GetError());
     }
     nw_discord_enable(settings.discord);
     nw_update_enable(presence && settings.updates, nw_build_version);
@@ -1227,7 +1262,7 @@ static int nw_boot(const char *data_dir, int hardware_speed, float aspect, NwPla
     fflush(stderr);
     nw_print_stub_hits("boot", state);
     if (state == NW_GAME_FATAL) {
-        SDL_Log(NW_APP_NAME ": %s", nw_game_error());
+        nw_log_error(NW_LOG_GAME, "%s", nw_game_error());
     }
     nw_input_shutdown();
     nw_audio_close();
@@ -1572,6 +1607,7 @@ int main(int argc, char *argv[])
     int boot_loads = 0; /* --loads: background loads instead of vblanks */
     int hardware_speed = -1; /* --hardware-speed on|off; -1: as the mode has it */
     const char *aspect_arg = NULL; /* --aspect auto|W:H|ratio */
+    const char *crash_test = NULL;
 
     nw_log_init(argc, argv);
     for (int i = 1; i < argc; i++) {
@@ -1587,7 +1623,8 @@ int main(int argc, char *argv[])
              strcmp(argv[i], "--poke") == 0 || strcmp(argv[i], "--dump-after") == 0 ||
              strcmp(argv[i], "--level") == 0 || strcmp(argv[i], "--pad-script") == 0 ||
              strcmp(argv[i], "--aspect") == 0 || strcmp(argv[i], "--hz") == 0 ||
-             strcmp(argv[i], "--overlay") == 0) &&
+             strcmp(argv[i], "--overlay") == 0 || strcmp(argv[i], "--log") == 0 ||
+             strcmp(argv[i], "--log-file") == 0 || strcmp(argv[i], "--crash-test") == 0) &&
             i + 1 >= argc) {
             fprintf(stderr, NW_APP_NAME ": %s needs a value\n", argv[i]);
             return 2;
@@ -1679,7 +1716,36 @@ int main(int argc, char *argv[])
                 return 2;
             }
             nw_run_hz = atoi(value);
+        } else if (strcmp(argv[i], "--log") == 0) {
+            nw_log_arg = argv[++i];
+        } else if (strcmp(argv[i], "--log-file") == 0) {
+            nw_log_file_arg = argv[++i];
+        } else if (strcmp(argv[i], "--gl-debug") == 0) {
+            nw_gl_debug_arg = true;
+        } else if (strcmp(argv[i], "--crash-test") == 0) {
+            crash_test = argv[++i];
         }
+    }
+    if (nw_log_arg && !nw_log_configure(nw_log_arg)) {
+        fprintf(stderr, NW_APP_NAME ": --log takes levels like info or info,gfx=debug,decomp=trace\n");
+        return 2;
+    }
+    if (nw_log_file_arg && !nw_log_open_file(nw_log_file_arg)) {
+        fprintf(stderr, NW_APP_NAME ": --log-file %s: %s\n", nw_log_file_arg, SDL_GetError());
+        return 2;
+    }
+    nw_platform_gl_debug(nw_gl_debug_arg);
+#ifdef NW_WITH_GAME
+    nw_crash_on_state(nw_boot_crash_state);
+    nw_game_on_fatal(nw_crash_fatal);
+#endif
+    if (crash_test) {
+        char *root = data_dir ? nw_data_root(data_dir) : NULL;
+        if (root) {
+            nw_log_open(root);
+        }
+        SDL_free(root);
+        nw_crash_test(crash_test);
     }
     /* The checks, tests and comparisons read the retail disc. */
     if (nw_overlay_count && (boot_check || capture || dump || check_data || check_scenes || check_disc || scene ||

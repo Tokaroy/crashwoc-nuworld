@@ -2,6 +2,7 @@
 
 #include <SDL3/SDL.h>
 
+#include "platform/log.h"
 #include "save/ps2card.h"
 #include "save/saveio.h"
 
@@ -527,7 +528,7 @@ static uint8_t *nw_save_ps2_folder(const char *dir, const NwSaveRegistry *reg)
     bool none = false;
     if (SDL_asprintf(&path, "%s%s", dir, NW_SAVE_PS2_FILE) >= 0 && SDL_GetPathInfo(path, NULL) &&
         !(games = nw_save_ps2_games(path, reg, &none)) && !none) {
-        SDL_Log("saves: not converted: %s", SDL_GetError());
+        nw_log_warn(NW_LOG_SAVE, "saves: not converted: %s", SDL_GetError());
     }
     SDL_free(path);
     char **cards = games ? NULL : SDL_GlobDirectory(dir, "*.ps2", SDL_GLOB_CASEINSENSITIVE, &n);
@@ -538,7 +539,7 @@ static uint8_t *nw_save_ps2_folder(const char *dir, const NwSaveRegistry *reg)
         path = NULL;
         if (SDL_asprintf(&path, "%s%s", dir, cards[i]) >= 0 && !(games = nw_save_ps2_games(path, reg, &none)) &&
             !none) {
-            SDL_Log("saves: not converted: %s", SDL_GetError());
+            nw_log_warn(NW_LOG_SAVE, "saves: not converted: %s", SDL_GetError());
         }
         SDL_free(path);
     }

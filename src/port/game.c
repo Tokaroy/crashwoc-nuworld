@@ -7,6 +7,7 @@
 #endif
 
 #include "app.h"
+#include "platform/log.h"
 #include "port/fptrap.h"
 #include "port/ps2video.h"
 
@@ -226,8 +227,8 @@ uint64_t nw_game_yield(bool wait_edge)
             static bool reported;
             if (!reported) {
                 reported = true;
-                SDL_Log(NW_APP_NAME ": the game fell %llu vblanks behind; it gets %d of them (reported once)",
-                        (unsigned long long)n, NW_GAME_MAX_CATCHUP);
+                nw_log_warn(NW_LOG_GAME, "the game fell %llu vblanks behind; it gets %d of them (reported once)",
+                            (unsigned long long)n, NW_GAME_MAX_CATCHUP);
             }
             n = NW_GAME_MAX_CATCHUP;
         }

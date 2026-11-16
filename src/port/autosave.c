@@ -3,6 +3,7 @@
 #include <SDL3/SDL.h>
 
 #include "game/gametypes.h"
+#include "platform/log.h"
 #include "port/names.h"
 #include "port/saves.h"
 #include "save/saveworker.h"
@@ -120,7 +121,7 @@ static void nw_autosave_collect(void)
         nw_saves_auto_changed();
         nw_autosave_notice(NW_AUTOSAVE_COMPLETE);
     } else {
-        SDL_Log("autosave: %s", nw_auto.job.error);
+        nw_log_warn(NW_LOG_SAVE, "autosave: %s", nw_auto.job.error);
         nw_auto.have_submitted = false;
         nw_autosave_notice(NW_AUTOSAVE_FAILED);
     }

@@ -18,7 +18,7 @@ static struct {
 static void nw_help_open(void *url)
 {
     if (!SDL_OpenURL(url)) {
-        SDL_Log("help: cannot open %s: %s", (const char *)url, SDL_GetError());
+        nw_log_warn(NW_LOG_APP, "help: cannot open %s: %s", (const char *)url, SDL_GetError());
         return;
     }
     if (SDL_GetWindowFlags(nw_help.window) & SDL_WINDOW_FULLSCREEN) {
@@ -57,9 +57,9 @@ static void nw_help_info(void *unused)
                  nw_help_gl(GL_VERSION), nw_help_gl(GL_RENDERER), nw_help_gl(GL_VENDOR), display, w, h,
                  fullscreen ? " fullscreen" : "", disc ? disc->name : "not imported", folder ? folder : "?");
     if (text && SDL_SetClipboardText(text)) {
-        SDL_Log("help: system info copied to the clipboard");
+        nw_log_info(NW_LOG_APP, "help: system info copied to the clipboard");
     } else {
-        SDL_Log("help: cannot copy the system info: %s", SDL_GetError());
+        nw_log_warn(NW_LOG_APP, "help: cannot copy the system info: %s", SDL_GetError());
     }
     SDL_free(text);
     SDL_free(folder);

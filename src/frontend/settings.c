@@ -180,6 +180,25 @@ static const char *nw_settings_hud_format(const void *field, char *buf, int size
     return nw_settings_hud_name(*(const float *)field, buf, size);
 }
 
+static bool nw_settings_log_parse(const char *text, void *field)
+{
+    char *log = field;
+    size_t size = sizeof(((NwSettings *)0)->log);
+    if (SDL_strlen(text) >= size) {
+        return false;
+    }
+    SDL_memset(log, 0, size);
+    SDL_strlcpy(log, text, size);
+    return true;
+}
+
+static const char *nw_settings_log_format(const void *field, char *buf, int size)
+{
+    (void)buf;
+    (void)size;
+    return field;
+}
+
 static const char *const nw_settings_windows[NW_WINDOW_MODES] = { "windowed", "borderless", "fullscreen" };
 static const char *const nw_settings_vsyncs[NW_VSYNC_MODES] = { "off", "on", "adaptive" };
 static const char *const nw_settings_filters[NW_FILTERS] = { "retail", "nearest", "bilinear" };
@@ -306,6 +325,16 @@ static const NwSettingKey nw_settings_keys[] = {
       .help = "true shows the level, warp room or menu on your Discord profile while Discord runs" },
     { .table = "updates", .name = "check", .kind = NW_SETTING_BOOL, NW_FIELD(updates),
       .help = "true asks GitHub at the start whether a newer NuWorld is out and shows it in the title menu" },
+    { .table = "log", .name = "level", .kind = NW_SETTING_TEXT, NW_FIELD(log), .parse = nw_settings_log_parse,
+      .format = nw_settings_log_format,
+      .help = "what nuworld.log keeps: trace, debug, info, warn or error, then exceptions per area, e.g. "
+              "\"info,gfx=debug,decomp=debug\" (app, game, decomp, gfx, gl, audio, load, save, input, net, port, "
+              "stdio, sdl)" },
+    { .table = "log", .name = "gl_debug", .kind = NW_SETTING_BOOL, NW_FIELD(gl_debug),
+      .help = "true asks the graphics driver for its warnings and errors and writes them to the log; from the next "
+              "start" },
+    { .table = "log", .name = "minidump", .kind = NW_SETTING_BOOL, NW_FIELD(minidump),
+      .help = "true writes a minidump to crashes/ when NuWorld crashes (Windows), for a bug report" },
     { .table = "input", .name = "left_deadzone", .kind = NW_SETTING_INT, NW_FIELD(controls.left_deadzone), .lo = 0,
       .hi = 90, .help = "0-90: how far (percent) the left stick counts as centred; the game has its own after it" },
     { .table = "input", .name = "right_deadzone", .kind = NW_SETTING_INT, NW_FIELD(controls.right_deadzone), .lo = 0,
@@ -344,6 +373,10 @@ void nw_settings_defaults(NwSettings *s)
     s->voice_volume = 100;
     s->discord = true;
     s->updates = true;
+    SDL_zero(s->log);
+    SDL_strlcpy(s->log, "info", sizeof(s->log));
+    s->gl_debug = false;
+    s->minidump = true;
     s->aspect = 0.0f;
     s->hud = 16.0f / 9.0f;
     s->window = NW_WINDOW_WINDOWED;

@@ -9,6 +9,7 @@
 
 #include "app.h"
 #include "nw_convert.h"
+#include "platform/log.h"
 #include "port/names.h"
 #include "port/autosave.h"
 #include "port/savemenu.h"
@@ -165,9 +166,9 @@ static const NwSaveRegistry *nw_saves_ready(const char *dir)
     if (reg && !(ours && nw_saves.converted)) {
         int made = nw_save_convert(dir, reg);
         if (made > 0) {
-            fprintf(stderr, NW_APP_NAME ": saves: converted %d games\n", made);
+            nw_log_info(NW_LOG_SAVE, "saves: converted %d games", made);
         } else if (made < 0) {
-            fprintf(stderr, NW_APP_NAME ": saves: cannot convert: %s\n", SDL_GetError());
+            nw_log_warn(NW_LOG_SAVE, "saves: cannot convert: %s", SDL_GetError());
         }
         nw_saves.converted = nw_saves.converted || ours;
     }
@@ -253,9 +254,9 @@ void nw_saves_show(int page)
         nw_saves.recovered[i] = r == NW_SAVE_BACKUP;
         nw_saves.free[i] = r == NW_SAVE_NONE && reg && !nw_save_exists(nw_saves.dir, n);
         if (r == NW_SAVE_BACKUP) {
-            fprintf(stderr, NW_APP_NAME ": saves: save %d: loaded the backup: %s\n", n + 1, SDL_GetError());
+            nw_log_warn(NW_LOG_SAVE, "saves: save %d: loaded the backup: %s", n + 1, SDL_GetError());
         } else if (r == NW_SAVE_FAILED) {
-            fprintf(stderr, NW_APP_NAME ": saves: save %d: cannot load: %s\n", n + 1, SDL_GetError());
+            nw_log_warn(NW_LOG_SAVE, "saves: save %d: cannot load: %s", n + 1, SDL_GetError());
         }
         if (r == NW_SAVE_NONE || r == NW_SAVE_FAILED) {
             slot->empty = 1;
@@ -317,7 +318,7 @@ static void nw_saves_poll(void)
         nw_saves.last = nw_saves.job.last >= 0 ? nw_saves.job.last - offset : -1;
     }
     if (!nw_saves.ok) {
-        fprintf(stderr, NW_APP_NAME ": saves: %s\n", nw_saves.job.error);
+        nw_log_warn(NW_LOG_SAVE, "saves: %s", nw_saves.job.error);
         return;
     }
     if (nw_saves.page == nw_saves.job.page && nw_saves.automatic == nw_saves.job.automatic) {
@@ -462,9 +463,9 @@ static void nw_saves_import_end(bool reshow)
     if (reshow && nw_savemenu_grid_open()) nw_saves_show(nw_saves.page);
     NwSavesImported *r = &nw_saves_imp.result;
     for (int i = 0; i < NW_SAVE_PS2_GAMES; i++) {
-        if (r->saved[i] >= 0) fprintf(stderr, NW_APP_NAME ": saves: imported a game as save %d\n", r->saved[i] + 1);
+        if (r->saved[i] >= 0) nw_log_info(NW_LOG_SAVE, "saves: imported a game as save %d", r->saved[i] + 1);
     }
-    if (r->why[0]) fprintf(stderr, NW_APP_NAME ": saves: import failed: %s\n", r->why);
+    if (r->why[0]) nw_log_warn(NW_LOG_SAVE, "saves: import failed: %s", r->why);
     SDL_SetAtomicInt(&nw_saves_imp.state, r->why[0] ? NW_SAVES_IMPORT_FAILED : NW_SAVES_IMPORT_DONE);
 }
 
