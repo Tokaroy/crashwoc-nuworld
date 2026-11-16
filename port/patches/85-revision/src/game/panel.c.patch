@@ -1,0 +1,38 @@
+--- a/src/game/panel.c
++++ b/src/game/panel.c
+@@ -223,7 +223,7 @@ inline s32 NextLetter(char *text, struct nuspecial_s **obj) {
+         obj[1] = 0;
+         obj[0] = 0;
+     }
+-    c = Font3DRemap[*text];
++    c = Font3DRemap[NW_REV(*text, *text & 0xff)];
+     if ((c != -1) && (obj != 0)) {
+         obj[0] = Font3DTab[c].obj.special;
+     }
+@@ -1028,7 +1028,7 @@ void DrawPanel(void) {
+             if (hubleveltext_open != 0) {
+                 if (hubleveltext_i == 2) {
+                     xs = 0.0f;
+-                    ys = -0.7f - f * 0.5f;
++                    ys = -0.7f - f * NW_REV(0.5f, 0.8f);
+                 } else {
+                     ys = -0.7f;
+                     if (hubleveltext_i > 2) {
+@@ -1040,7 +1040,7 @@ void DrawPanel(void) {
+                 DrawTimeTrialTimes(hubleveltext_level, xs, ys);
+             } else if (Hub == 5) {
+                 sprintf(tbuf, tRELICSREQUIRED[Game.language], (hubleveltext_i + 1) * 5);
+-                if (Game.language == 0x63) {
++                if (NW_REV(Game.language == 0x63, 0)) {
+                     AddSpacesIntoText(tbuf, 2);
+                 }
+                 Text3D(tbuf, 0.0f, f * 0.3f + 0.85f, 1.0f, 0.6f, 0.6f, 0.6f, 0, 3);
+@@ -1883,7 +1883,7 @@ void UpdatePlayerStats(struct creature_s *plr) {
+         if (plr->obj.mask != 0) {
+             NewMask(plr->obj.mask, &vNEWMASK);
+             if (newmask_advise != 0) {
+-                if (plr->obj.mask->active < 3) {
++                if (NW_REV(1, 0) && plr->obj.mask->active < 3) {
+                     NewMenu(&Cursor, 0x21, -1, -1);
+                     ResetAnimPacket(&plr->obj.mask->anim, 0x22);
+                     player->obj.mom.x = 0;

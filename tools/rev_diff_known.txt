@@ -46,3 +46,27 @@
 ^func:game/camera/MoveGameCamera@\w+\+0x(32c|3[4-9a][0-9a-f]|1d[bc][0-9a-f]) imm (19|2[0-9]|30) -> (2[0-9]|3[0-2])$  # menu ids (Cursor.menu/new_menu of the hub menus that select the hub menu camera): the late revision's two new menus shift them; NuWorld keeps PAL v1.03's
 ^func:game/game_obj/CrateCollisions@usa101\+0x[0-9a-f]+ off (340 -> 344|344 -> 348)$  # register allocation: USA v1.01 orders the stack spill slots (loop count, next group, &obj->pos) differently
 ^func:game/camera/MoveGameCamera@pal201 structure$  # the late hub-camera menu list also holds the new menu 25, which neither late build ever opens
+^func:game/game/GameTiming@pal201 structure$  # US v1.01 only, taken as canonical: the time trial timer clamped at 179997 and the jingle without + Game.language; PAL v2.01 keeps v1.03's code
+^func:game/game/AddKaboom@pal201 structure$  # US v1.01 only, taken as canonical: rate defaults to 3.0f before the switch; PAL v2.01 keeps v1.03's code
+^func:game/game/UpdateMask@\w+\+0x[0-9a-f]+ imm 33 -> 35$  # menu ids: the late revision's two new menus shift them; NuWorld keeps PAL v1.03's
+^func:game/game/UpdateMask@pal201 structure$  # register allocation: the camera-relative mask position sums use swapped float registers
+^func:game/game/(GetMenuInfo|NewMenu|ProcMenu|DrawMenu|DrawMenuEntry|DrawNameInputTable|InitLevel)@\w+\+0x[0-9a-f]+ imm (2 -> 3|3 -> 4|4 -> 5|5 -> 6|6 -> 7|7 -> 8|8 -> 9|9 -> 10|10 -> 11|11 -> 12|12 -> 13|13 -> 14|14 -> 15|15 -> 16|16 -> 17|17 -> 18|18 -> 19|19 -> 20|20 -> 21|21 -> 22|22 -> 23|23 -> 24|24 -> 26|25 -> 27|26 -> 28|27 -> 29|28 -> 30|29 -> 31|30 -> 32|31 -> 33|32 -> 34|33 -> 35|34 -> 36)$  # menu ids: the late revision's new menus 2 and 25 shift them; NuWorld keeps PAL v1.03's
+^func:game/game/ProcMenu@pal201\+0x[0-9a-f]+ imm (95 -> 32|20 -> 24|-1 -> 28|-1 -> 2|60 -> 54|-1 -> 20)$  # token misalignment next to code not ported (name entry, load/save menu exit cross-jump)
+^func:game/game/(ProcMenu|DrawMenu|NewMenu)@pal201 structure$  # not ported by decision, reported: memory-card UI changes, the name-entry rework (key repeat, x reset) and the new menus 2 and 25; the rest is ported and matches
+^func:game/game/DrawMenu@pal201\+0x[0-9a-f]+ f32 (0\.419999987 -> 0\.449999988|-0\.150000006 -> -0\.300000012)$  # memory-card screen text positions, memory-card UI not ported (reported)
+^func:game/game/DrawNameInputTable@pal201 structure$  # the late revision's new menu 25 shares menu 2's skip of the panel; register allocation otherwise
+^func:game/game/InitLevel@pal201 structure$  # register allocation: 1.03 menu ids kept (the late 0x22 shares a register with action 0x22), and the 13-byte clear indexes instead of walking a pointer
+^func:game/game/InitLevel@pal201\+0x[0-9a-f]+ imm 37 -> 18$  # token misalignment from the late menu id 0x22 sharing the action 0x22 register
+^func:game/game/UpdateMask@pal201\+0x[0-9a-f]+ off (168 -> 156|136 -> 168|172 -> 132|160 -> 136)$  # register allocation: the camera-relative mask position sums load the GameCam fields in another order
+^func:game/game/Draw3DCrateCount@\w+( structure|\+0x[0-9a-f]+ (frame|off|imm) -?\d+ -> -?\d+)$  # the late Font3DRemap is s16 indexed by an unsigned char (font3d.c type change, reported) and the loop counts up; same glyphs for the digits and '/' drawn here
+^func:game/main/(DoInput|PauseGame)@\w+\+0x[0-9a-f]+ imm (3 -> 4|32 -> 34)$  # menu ids: the late revision's two new menus shift them; NuWorld keeps PAL v1.03's
+^func:game/main/main@\w+\+0x[0-9a-f]+ imm (10 -> 11|17 -> 18|31 -> 33|33 -> 35)$  # menu ids: the late revision's two new menus shift them; NuWorld keeps PAL v1.03's
+^func:game/main/main@\w+\+0x[0-9a-f]+ imm (1404 -> (1445|1479)|4593 -> (4732|4774)|4595 -> (4734|4776)|4622 -> (4761|4803)|4624 -> (4763|4805)|4632 -> (4771|4813)|4640 -> (4779|4821))$  # line numbers: loaded in the delay slot of NuMemAllocFn, NuErrorProlog or NuDebugMsgProlog
+^func:game/main/main@\w+ structure$  # the IOP reboot image setup at entry (irrelevant to the port) and the screen dump's a1 = 1 reused from ps2video_ignore_frameout
+^func:game/main/(LoadLevel|InitTexAnimScripts)@\w+\+0x[0-9a-f]+ imm 1279 -> (1316|1335)$  # line numbers: loaded in the delay slot of NuDebugMsgProlog
+^func:game/main/TextureDestroy@\w+\+0x[0-9a-f]+ imm 1803 -> (1844|1878)$  # line numbers: loaded in the delay slot of NuMemFreeFn
+^func:game/panel/(DrawPanel|GameVP)@\w+\+0x[0-9a-f]+ imm (-3 -> -4|14 -> 15|17 -> 18|32 -> 34)$  # menu ids: the late revision's two new menus shift them; NuWorld keeps PAL v1.03's
+^func:game/font3d/InitFont3D@\w+\+0x[0-9a-f]+ imm (255 -> 510|-1 -> -2)$  # Font3DRemap is s16[256] late (512 bytes), NuWorld keeps s8[256]: the clear loop's end offset and step
+^func:game/font3d/InitFont3D@\w+ structure$  # type widths only: Font3DRemap's s16 elements late (values are glyph indices below 60 and -1, so s8 holds them) and Font3DTab's ascii read as a byte (the same low byte of the s32)
+^func:game/panel/(Draw3DCheckpointLetters|NextLetter)@\w+ structure$  # type width only: Font3DRemap's s16 elements late (lh and the doubled index), NuWorld keeps s8[256]; the index is the same unsigned byte
+^func:game/font3d/Text3D@\w+[ +]  # NuWorld replaces Text3D (src/port/font3d.c), which carries the late index fix

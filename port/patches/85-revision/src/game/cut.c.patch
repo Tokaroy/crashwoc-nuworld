@@ -1,0 +1,38 @@
+--- a/src/game/cut.c
++++ b/src/game/cut.c
+@@ -773,8 +773,10 @@ void PlayCutMovie(s32 movie) {
+                         quit = 1;
+                     }
+                     NuMtlAnimate(0.02f);
+-                    NuTexAnimSetSignals(texanimbits);
+-                    NuTexAnimProcess();
++                    if (NW_REV(1, cutmovie != 0 || logos_played != 0 || CutInst[cutworldix]->speed != 0.0f)) {
++                        NuTexAnimSetSignals(texanimbits);
++                        NuTexAnimProcess();
++                    }
+                     pCam = GameCam;
+                     if (NuRndrBeginScene(-1) != 0) {
+                         NuRndrClear(3, 0, 1.0f);
+@@ -785,12 +787,20 @@ void PlayCutMovie(s32 movie) {
+                                 NuGScnRndr3(world_scene[cutworldix]);
+                             }
+                             DebrisDraw(0);
+-                            if (cutmovie == 0) {
++                            if (NW_REV(cutmovie == 0, 0)) {
+                                 DrawPanel();
+                             }
+-                            DrawFade();
++                            if (NW_REV(1, cutmovie != 0)) {
++                                DrawFade();
++                            }
+                         }
+                         NuRndrEndScene();
++                        if (NW_REV(0, 1) && cutmovie == 0 && NuRndrBeginScene(-1) != 0) {
++                            NuRndrClear(6, 0, 1.0f);
++                            DrawPanel();
++                            DrawFade();
++                            NuRndrEndScene();
++                        }
+                     }
+                     NuRndrSwapScreen(-1);
+                 }

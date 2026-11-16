@@ -17,6 +17,7 @@
 #include "nu3d/nutex.h"
 #include "numath/numtx.h"
 #include "platform/log.h"
+#include "port/rev.h"
 
 extern struct font3dobj_s Font3DObjTab[];
 extern struct font3dtab_s Font3DTab[];
@@ -248,10 +249,15 @@ static f32 nw_font3d_width(char c)
     return 1.0f;
 }
 
+static s32 nw_font3d_remap(char c)
+{
+    return Font3DRemap[nw_rev ? (unsigned char)c : (int)c];
+}
+
 /* Retail's draw of a letter (or a button) of Font3DTab in the cell at x. */
 static void nw_font3d_letter(char c, f32 x, f32 y, f32 z, f32 dx, f32 scalex, f32 scaley, f32 scalez)
 {
-    s32 idx = Font3DRemap[(int)c];
+    s32 idx = nw_font3d_remap(c);
     if (idx == -1) {
         return;
     }
@@ -449,7 +455,7 @@ void Text3D(char *txt, f32 x, f32 y, f32 z, f32 scalex, f32 scaley, f32 scalez, 
                 continue;
             } else if (nw_font3d_target(c) >= 0) {
                 nw_font3d_glyph(c, x, y, z, dx, scalex, scaley, scalez);
-            } else if ((c >= 'a' && c <= 'z') && (Font3DRemap[(int)c] == -1)) {
+            } else if ((c >= 'a' && c <= 'z') && (nw_font3d_remap(c) == -1)) {
                 obj = &Font3DObjTab[c - 'a'];
                 if (obj->i != -1) {
                     if ((obj->flags & 2) != 0) {
@@ -467,7 +473,7 @@ void Text3D(char *txt, f32 x, f32 y, f32 z, f32 scalex, f32 scaley, f32 scalez, 
                     }
                 }
             } else {
-                idx = Font3DRemap[(int)c];
+                idx = nw_font3d_remap(c);
                 if (idx != -1) {
                     if (c == 'x' || c == 't' || c == 'o' || c == 's') {
                         f = 1.0f;
@@ -495,7 +501,7 @@ void Text3D(char *txt, f32 x, f32 y, f32 z, f32 scalex, f32 scaley, f32 scalez, 
         } else if (c < 0) {
             accent = RemapAccentedCharacter(&c);
             if (accent != -1) {
-                idx = Font3DRemap[(int)c];
+                idx = nw_font3d_remap(c);
                 if (idx != -1) {
                     DrawPanel3DObject(-1, x, y, z, FONT3DSIZE * scalex,
                         FONT3DSIZE * scaley, (FONT3DSIZE * scalez) * 4.0f, 0, 0, 0,
