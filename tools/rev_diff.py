@@ -48,6 +48,11 @@ class Target(nd.Elf):
         super().__init__(path, funcs, objects)
         self.key = key
         self.by_ref = {f["ref"]: f for f in funcs}
+        self.data_ref = {}
+        for line in (revmap.OUT / f"{key}.txt").read_text(encoding="utf-8").splitlines():
+            p = line.split()
+            if p and p[0] == "data":
+                self.data_ref[int(p[1], 16)] = (int(p[2], 16), p[3])
 
 
 def callees_elf(elf: nd.Elf, f: dict) -> dict[int, str]:
@@ -193,6 +198,51 @@ def cmd_functions(args) -> int:
     return rc
 
 
+def same_pointee(ref: nd.Elf, tgt: Target, x: int, y: int) -> bool:
+    if not ref.section_at(x) or not tgt.section_at(y):
+        return False
+    a, b = nd.cstr(ref, x), nd.cstr(tgt, y)
+    return bool(a) and a == b
+
+
+def data_changes(ref: nd.Elf, tgt: Target) -> list[nd.Field]:
+    out = []
+    for lo, hi, name in ref.objects:
+        sec = ref.section_at(lo)
+        if lo not in tgt.data_ref or not sec or sec["name"] not in nd.DATA_SECTIONS:
+            continue
+        a, b = ref.read(lo, hi - lo), tgt.read(tgt.data_ref[lo][0], hi - lo)
+        if a is None or b is None or a == b:
+            continue
+        for off in range(0, len(a) - len(a) % 4, 4):
+            x, y = int.from_bytes(a[off:off + 4], "little"), int.from_bytes(b[off:off + 4], "little")
+            if x == y:
+                continue
+            if ref.section_at(x) and tgt.section_at(y):
+                tx = ref.target(x)
+                if (tx is None or tx != tgt.target(y)) and not same_pointee(ref, tgt, x, y):
+                    text = f"{nd.cstr(ref, x)[:40]!r} -> {nd.cstr(tgt, y)[:40]!r}"
+                    out.append(nd.Field(name, off, 4, "ptr", x, y, text, lo))
+                continue
+            for f in nd.data_fields(name, a[off:off + 4], b[off:off + 4], ref, tgt):
+                f.off += off
+                f.addr = lo
+                out.append(f)
+    return out
+
+
+def cmd_data(args) -> int:
+    ref = ref_elf(args)
+    tgts = targets(args, ref)
+    for key, tgt in tgts.items():
+        fields = data_changes(ref, tgt)
+        for f in fields:
+            what = f.cls if f.kind == "ptr" else f"{f.show(f.pal)} -> {f.show(f.ntsc)}"
+            print(f"{key} {f.symbol}+0x{f.off:x} {f.kind}{f.size} {what}")
+        print(f"{revmap.ELFS[key][1]}: {len(fields)} values differ")
+    return 0
+
+
 def in_container() -> bool:
     return Path("/.dockerenv").exists()
 
@@ -280,7 +330,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="The decomp built with the late revision's NW_REV values against the "
                                                  "PAL v2.01 and USA v1.01 code, through port/revmap.")
     sub = parser.add_subparsers(dest="cmd", required=True)
-    for name in ("functions", "check"):
+    for name in ("functions", "check", "data"):
         p = sub.add_parser(name)
         for key, (env, what) in revmap.ELFS.items():
             p.add_argument(f"--{key}", help=f"the {what} ELF (default ${env})")
@@ -297,7 +347,7 @@ def main() -> int:
     p.add_argument("--out", type=Path, required=True)
     p.add_argument("units", nargs="+")
     args = parser.parse_args()
-    return {"functions": cmd_functions, "check": cmd_check, "compile": cmd_compile}[args.cmd](args)
+    return {"functions": cmd_functions, "check": cmd_check, "data": cmd_data, "compile": cmd_compile}[args.cmd](args)
 
 
 if __name__ == "__main__":

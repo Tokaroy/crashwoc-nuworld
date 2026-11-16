@@ -314,6 +314,7 @@ static int nw_check_data(const char *data_dir)
         if (ok) {
             int kept = nw_hz_patch();
             printf("60 Hz table: %d values not retail's\n", kept);
+            printf("late revision table: %d values not PAL v1.03's\n", nw_rev_patch(50));
             ok = kept == 0;
         }
     }
@@ -580,6 +581,10 @@ static int nw_boot_prepare(const char *data_dir, NwClockMode mode, bool hardware
     int hz = nw_hz_set(script_hz ? script_hz : nw_run_hz ? nw_run_hz : nw_game_hz ? nw_game_hz : disc_hz);
     nw_log_info(NW_LOG_LOAD, "disc: %s at %d Hz, revision %s", vfs.manifest->name, hz, nw_rev_name());
     int kept = hz == 60 ? nw_hz_patch() : 0;
+    int rev_kept = nw_rev ? nw_rev_patch(hz) : 0;
+    if (rev_kept) {
+        nw_log_info(NW_LOG_GAME, "late revision: %d data values are not PAL v1.03's and stay", rev_kept);
+    }
     if (kept) {
         nw_log_info(NW_LOG_GAME, "60 Hz: %d data values are not retail's and stay", kept);
     }
