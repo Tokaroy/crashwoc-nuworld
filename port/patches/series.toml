@@ -30,6 +30,10 @@ name = "80-interp"
 reason = "Display-rate interpolation keys and snaps (NW_INTERP_*)."
 
 [[concern]]
+name = "85-revision"
+reason = "The late revision (PAL v2.01, USA v1.01) beside PAL v1.03's code (NW_REV)."
+
+[[concern]]
 name = "95-load-bounds"
 reason = "Loads bounded by their buffers, so a file from an overlay cannot run past them (NW_LOAD_*)."
 

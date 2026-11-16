@@ -211,6 +211,15 @@ extern int nw_hz;
 #define NW_HZ(pal, ntsc) (pal)
 #endif
 
+#ifdef NW_HOST
+extern int nw_rev;
+#define NW_REV(old, new) (nw_rev ? (new) : (old))
+#elif defined(NW_REV_LATEST)
+#define NW_REV(old, new) (new)
+#else
+#define NW_REV(old, new) (old)
+#endif
+
 /* A game's and a time trial record's name as shown: NuWorld's longer one when it stands (src/port/names.h), and a
    scale that keeps a longer name inside the width of fit letters; the game's own on the PS2. */
 #ifdef NW_HOST

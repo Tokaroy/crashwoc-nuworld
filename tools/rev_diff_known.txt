@@ -1,0 +1,2 @@
+^func:game/game/CheckFinish@\w+ structure$  # register allocation: the late revision keeps the hub and level flags in swapped registers
+^func:game/game/CheckFinish@\w+\+0x[0-9a-f]+ imm (14 -> 15|15 -> 16|16 -> 17)$  # menu ids: the late revision's two new menus shift them; NuWorld keeps PAL v1.03's

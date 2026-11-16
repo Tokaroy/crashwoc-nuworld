@@ -156,7 +156,7 @@ set(nw_game_sources ${nw_dataimage} src/gfx/dma.c src/gfx/fx2.c src/gfx/nulight.
   src/gfx/numtl.c src/gfx/nutex.c src/gfx/nuwater.c src/gfx/ps2txtr.c src/gfx/ptl.c src/hle/asmmem.c src/hle/asmstrm.c
   src/hle/eefloat.c src/hle/nuanim.c src/hle/nucamvu0.c src/hle/numath.c src/hle/numtxvu0.c src/hle/nuplnvu0.c
   src/hle/nuvecvu0.c src/port/fptrap.c src/port/game.c src/port/gcutscn.c src/port/heap.c src/port/nuanim.c
-  src/port/hz.c src/port/nudat.c src/port/nuerror.c src/port/nugscn.c
+  src/port/hz.c src/port/nudat.c src/port/nuerror.c src/port/nugscn.c src/port/rev.c
   src/port/nuhgobj.c src/port/level.c src/port/options.c src/port/padscript.c src/port/presence.c
   src/port/capture.c src/port/disc.c src/port/dump.c src/port/edptl.c src/port/ps2video.c src/port/saves.c src/port/scene.c src/port/shadcom.c
   src/port/autosave.c src/port/cloudfx.c src/port/crate.c src/port/font3d.c src/port/menu.c src/port/nameentry.c src/port/names.c src/port/savemenu.c src/port/nubridge.c src/port/terrain.c
@@ -342,6 +342,12 @@ if(NUWORLD_TESTS)
   target_compile_options(nuworld_test_hz PRIVATE -Wall -Wextra)
   target_link_libraries(nuworld_test_hz PRIVATE $<LINK_LIBRARY:WHOLE_ARCHIVE,nuworld_game>)
   add_test(NAME hz COMMAND nuworld_test_hz)
+  add_executable(nuworld_test_rev tests/c/test_rev.c)
+  target_include_directories(nuworld_test_rev PRIVATE ${nw_decomp_includes})
+  target_compile_definitions(nuworld_test_rev PRIVATE NW_HOST)
+  target_compile_options(nuworld_test_rev PRIVATE -Wall -Wextra)
+  target_link_libraries(nuworld_test_rev PRIVATE $<LINK_LIBRARY:WHOLE_ARCHIVE,nuworld_game>)
+  add_test(NAME rev COMMAND nuworld_test_rev)
   # The disc's region and its level files' sound numbers in PAL's numbering.
   add_executable(nuworld_test_disc tests/c/test_disc.c)
   target_include_directories(nuworld_test_disc PRIVATE ${nw_decomp_includes})

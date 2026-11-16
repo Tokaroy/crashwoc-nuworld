@@ -40,6 +40,7 @@
 #include "port/dump.h"
 #include "port/game.h"
 #include "port/hz.h"
+#include "port/rev.h"
 #include "port/level.h"
 #include "port/padscript.h"
 #include "port/options.h"
@@ -577,7 +578,7 @@ static int nw_boot_prepare(const char *data_dir, NwClockMode mode, bool hardware
     }
     int disc_hz = nw_disc_region() == NW_REGION_PAL ? 50 : 60;
     int hz = nw_hz_set(script_hz ? script_hz : nw_run_hz ? nw_run_hz : nw_game_hz ? nw_game_hz : disc_hz);
-    nw_log_info(NW_LOG_LOAD, "disc: %s at %d Hz", vfs.manifest->name, hz);
+    nw_log_info(NW_LOG_LOAD, "disc: %s at %d Hz, revision %s", vfs.manifest->name, hz, nw_rev_name());
     int kept = hz == 60 ? nw_hz_patch() : 0;
     if (kept) {
         nw_log_info(NW_LOG_GAME, "60 Hz: %d data values are not retail's and stay", kept);
@@ -1623,6 +1624,7 @@ int main(int argc, char *argv[])
              strcmp(argv[i], "--poke") == 0 || strcmp(argv[i], "--dump-after") == 0 ||
              strcmp(argv[i], "--level") == 0 || strcmp(argv[i], "--pad-script") == 0 ||
              strcmp(argv[i], "--aspect") == 0 || strcmp(argv[i], "--hz") == 0 ||
+             strcmp(argv[i], "--revision") == 0 ||
              strcmp(argv[i], "--overlay") == 0 || strcmp(argv[i], "--log") == 0 ||
              strcmp(argv[i], "--log-file") == 0 || strcmp(argv[i], "--crash-test") == 0) &&
             i + 1 >= argc) {
@@ -1716,6 +1718,11 @@ int main(int argc, char *argv[])
                 return 2;
             }
             nw_run_hz = atoi(value);
+        } else if (strcmp(argv[i], "--revision") == 0) {
+            if (!nw_rev_set(argv[++i])) {
+                fprintf(stderr, NW_APP_NAME ": --revision takes 1.03 or late\n");
+                return 2;
+            }
         } else if (strcmp(argv[i], "--log") == 0) {
             nw_log_arg = argv[++i];
         } else if (strcmp(argv[i], "--log-file") == 0) {

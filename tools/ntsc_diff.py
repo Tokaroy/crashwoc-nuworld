@@ -275,16 +275,20 @@ def compare(a: Code, b: Code) -> Diff:
 class Elf:
     """A linked ELF's functions as tokens: lui/%lo and $gp pairs from declib.code_refs."""
 
-    def __init__(self, path: Path):
+    def __init__(self, path: Path, funcs: list[dict] | None = None, objects: list[tuple[int, int, str]] | None = None):
         self.sections, self.symbols, _ = read_elf(path.read_bytes())
         self.by_name = {s["name"]: s for s in self.sections}
         text = self.by_name[".text"]
         self.text = text
         reginfo = self.by_name[".reginfo"]["data"]
         self.gp = struct.unpack_from("<I", reginfo, 20)[0]
-        self.funcs = sorted((s for s in self.symbols if s["type"] == FUNC and s["size"]), key=lambda s: s["value"])
-        self.objects = sorted((s["value"], s["value"] + s["size"], s["name"]) for s in self.symbols
-                              if s["type"] == OBJECT and s["size"])
+        if funcs is None:
+            funcs = [s for s in self.symbols if s["type"] == FUNC and s["size"]]
+        self.funcs = sorted(funcs, key=lambda s: s["value"])
+        if objects is None:
+            objects = [(s["value"], s["value"] + s["size"], s["name"]) for s in self.symbols
+                       if s["type"] == OBJECT and s["size"]]
+        self.objects = sorted(objects)
         self.func_at = {f["value"]: f["name"] for f in self.funcs}
         refs = code_refs(text["data"], text["addr"], [f["value"] for f in self.funcs], self.gp)
         self.lo = {r.vram: r for r in refs}

@@ -13,6 +13,7 @@ schema = 1
 "_impure_ptr" = "newlib reent block (src/shim/libc.c): retail impure_data holds an SDK code pointer (_cleanup_r)"
 "nw_wide" = "the widescreen view (src/port/wide.c) the NW_WIDE seams read; retail has none"
 "nw_hz" = "the game logic's rate (src/port/hz.c) the NW_HZ seams read; retail has none"
+"nw_rev" = "the revision (src/port/rev.c) the NW_REV seams read; retail has none"
 
 [conflicts]
 

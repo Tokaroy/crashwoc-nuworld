@@ -1,0 +1,12 @@
+--- a/src/game/game.c
++++ b/src/game/game.c
+@@ -8681,6 +8681,9 @@ void CheckFinish(struct obj_s *obj) {
+         if ((LBIT & 0x3E00000) != 0) {
+             Game.level[Level].flags |= 0x800;
+         } else if (TimeTrial != 0) {
++            if (NW_REV(0, 1)) {
++                TimeTrialWait = 0;
++            }
+             if (obj->finished == 1) {
+                 NewLevelTime(TimeTrialTimer.itime);
+                 if (TimeTrialTimer.itime < LDATA->time[2]) {
