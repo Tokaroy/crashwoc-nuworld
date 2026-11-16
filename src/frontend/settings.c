@@ -315,9 +315,8 @@ static const NwSettingKey nw_settings_keys[] = {
               "the Video menu lists it (Windows); from the next start" },
     { .table = "game", .name = "hardware_speed", .kind = NW_SETTING_BOOL, NW_FIELD(hardware_speed),
       .help = "true simulates original hardware speed: the PS2's disc and sound load times" },
-    { .table = "game", .name = "pal_60hz", .kind = NW_SETTING_BOOL, NW_FIELD(pal_60hz),
-      .help = "true runs a PAL disc at 60 Hz like the US release, false at its own 50 Hz, 1:1 with the PS2; "
-              "the US disc always runs at 60 Hz; from the next start" },
+    { .table = "game", .name = "hz", .kind = NW_SETTING_INT, NW_FIELD(hz), .lo = 50, .hi = 60, .step = 10,
+      .help = "60 plays every disc like the US Greatest Hits release, 50 at PAL's timing; from the next start" },
     { .table = "game", .name = "retail_menu", .kind = NW_SETTING_BOOL, NW_FIELD(retail_menu),
       .help = "true starts with the PS2's logos and title cut, false with NuWorld's title menu; from the next start" },
     { .table = "game", .name = "air_indicator", .kind = NW_SETTING_BOOL, NW_FIELD(air_indicator),
@@ -389,7 +388,7 @@ static const NwSettingKey nw_settings_keys[] = {
 void nw_settings_defaults(NwSettings *s)
 {
     s->hardware_speed = false;
-    s->pal_60hz = false;
+    s->hz = 60;
     s->retail_menu = false;
     s->movement = (NwMovement)NW_MOVEMENT_NHANCED;
     s->air_indicator = true;
