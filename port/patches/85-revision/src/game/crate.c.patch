@@ -1,0 +1,45 @@
+--- a/src/game/crate.c
++++ b/src/game/crate.c
+@@ -243,7 +243,9 @@ s32 GetCrateType(struct cratecube_s *crt, s32 flags) {
+         }
+     } else if (crt->newtype != -1) {
+     changed:
+-        if (TimeTrial == 0 && crt->subtype != -1) {
++        if (NW_REV(0, 1)) {
++            type = ((TimeTrial == 0 || type == 9) && crt->subtype != -1) ? crt->subtype : crt->newtype;
++        } else if (TimeTrial == 0 && crt->subtype != -1) {
+             type = crt->subtype;
+         } else {
+             type = crt->newtype;
+@@ -271,6 +273,11 @@ inline void AddExtraLife(struct nuvec_s *pos, s32 pdeb) {
+     cV[0].y = pos->y + GameCam[0].vX.y * 0.1f;
+     cV[0].z = pos->z + GameCam[0].vX.z * 0.1f;
+     NuCameraTransformScreenClip(&cV[1], &cV[0], 1, 0);
++    if (NW_REV(0, 1)) {
++        AddPanelDebris(NW_WIDE_SCALE(scr.x, nw_wide.k), scr.y, pdeb,
++                       NW_WIDE_SCALE(NuFabs(scr.x - cV[1].x), nw_wide.k) * 3.6363637f, 1);
++        return;
++    }
+     scale = scr.x - cV[1].x;
+     if (scale < 0.0) {
+         scale = 0.0 - scale;
+@@ -1694,6 +1701,8 @@ f32 CrateBottomAbove(struct nuvec_s *pos) {
+     return y;
+ }
+ 
++extern s32 Bonus;
++
+ void CrateSafety(struct crategroup_s *group, struct cratecube_s *crate,
+                  struct obj_s *obj) {
+     struct cratecube_s *crate2;
+@@ -1701,6 +1710,10 @@ void CrateSafety(struct crategroup_s *group, struct cratecube_s *crate,
+     f32 size;
+     s32 i;
+ 
++    if (NW_REV(0, Level == 7 && Bonus == 2)) {
++        obj->pos.y = crate->pos.y - obj->top * obj->SCALE;
++        goto SetBot;
++    }
+     size = (obj->top - obj->bot) * obj->SCALE;
+     if (obj->pos.y + (obj->bot + obj->top) * obj->SCALE * 0.5f <
+         crate->pos.y + 0.25f) {

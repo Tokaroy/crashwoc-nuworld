@@ -1,0 +1,108 @@
+--- a/src/game/game_obj.c
++++ b/src/game/game_obj.c
+@@ -50,6 +50,7 @@
+ 
+ #include "nu3d/nugscn.h"
+ #include "nu3d/nulight.h"
++#include "numath/nufloat.h"
+ #include "numath/numtx.h"
+ #include "numath/nutrig.h"
+ #include "numath/nuvec.h"
+@@ -1058,6 +1059,11 @@ void CrateCollisions(struct obj_s *obj) {
+         jump = 0;
+     }
+     obj->clearance = 2000000.0f;
++    if (NW_REV(0, 1)) {
++        y_floor = y_ceiling = 2000000.0f;
++        i_floor = i_ceiling = ceiling_attack = 0;
++        d0 = 0.0f;
++    }
+     temp_crate_y_floor_adjust = 0;
+     temp_crate_y_ceiling_adjust = 0;
+     temp_crate_xz_adjust = 0;
+@@ -1193,7 +1199,9 @@ void CrateCollisions(struct obj_s *obj) {
+                             if (got_floor == 0 ||
+                                 (crate->dx == obj_dx && crate->dz == obj_dz) || d < d0) {
+                                 i_floor = j;
+-                                d0 = d;
++                                if (NW_REV(1, 0)) {
++                                    d0 = d;
++                                }
+                             }
+                             y_floor = y;
+                             got_floor = 1;
+@@ -1203,9 +1211,11 @@ void CrateCollisions(struct obj_s *obj) {
+                     } else if (obj->oldobjtop <= crate->oldy + 0.012f &&
+                                CrateBelow(obj, group, crate) == 0) {
+                         attack = obj->attack;
+-                        if (type == 0x13 ? (attack & 0x80)
+-                                         : (attack != 0 || crate->mom < 0.0f || type == 0x10 ||
+-                                            (*(u32 *)&obj->attack & 0x480))) {
++                        if (NW_REV(type == 0x13 ? (attack & 0x80)
++                                                : (attack != 0 || crate->mom < 0.0f || type == 0x10 ||
++                                                   (*(u32 *)&obj->attack & 0x480)),
++                                   type == 0x13 || attack != 0 || crate->mom < 0.0f || type == 0x10 ||
++                                       (*(u32 *)&obj->attack & 0x480))) {
+                             if (AttackCrate(obj, group, crate) == 1) {
+                                 if (attack & 2) {
+                                     temp_crate_y_ceiling_adjust = 1;
+@@ -1224,7 +1234,9 @@ void CrateCollisions(struct obj_s *obj) {
+                             if (got_ceiling == 0 ||
+                                 (crate->dx == obj_dx && crate->dz == obj_dz) || d < d0) {
+                                 i_ceiling = j;
+-                                d0 = d;
++                                if (NW_REV(1, 0)) {
++                                    d0 = d;
++                                }
+                             }
+                             ceiling_attack = attack;
+                             y_ceiling = y;
+@@ -1258,8 +1270,10 @@ void CrateCollisions(struct obj_s *obj) {
+                 type = GetCrateType(crate, 0);
+                 if (crate->oldy + 0.5f < obj->oldobjbot &&
+                     (type == 4 || type == 6 || type == 0xD ||
+-                     (jump != 0 ? fabs(crate->mom - obj->mom.y) > JUMPONCRATEBREAKSPEED
+-                                : fabs(crate->mom - obj->mom.y) > FALLONCRATEBREAKSPEED) ||
++                     (jump != 0 ? NW_REV(fabs(crate->mom - obj->mom.y) > JUMPONCRATEBREAKSPEED,
++                                         NuFabs(crate->mom - obj->mom.y) > JUMPONCRATEBREAKSPEED)
++                                : NW_REV(fabs(crate->mom - obj->mom.y) > FALLONCRATEBREAKSPEED,
++                                         NuFabs(crate->mom - obj->mom.y) > FALLONCRATEBREAKSPEED)) ||
+                      (VEHICLECONTROL != 0 && type == 9))) {
+                     CrateBounceReaction(group, crate, type, 2);
+                     obj->boing = temp_crate_bounce;
+@@ -1560,7 +1574,7 @@ void MoveLoopXZ(struct obj_s *obj, u16 *hdg) {
+         v.x = v.x + (0.08999999613f - v.x) * 0.25f;
+     }
+     obj->side = v.x;
+-    obj->abs_side = fabs(v.x);
++    obj->abs_side = NW_REV(fabs(v.x), NuFabs(v.x));
+ 
+     if (v.z > in_speed) {
+         v.z -= in_f_friction;
+@@ -1574,7 +1588,7 @@ void MoveLoopXZ(struct obj_s *obj, u16 *hdg) {
+         }
+     }
+     obj->forward = v.z;
+-    obj->abs_forward = fabs(v.z);
++    obj->abs_forward = NW_REV(fabs(v.z), NuFabs(v.z));
+ 
+     NuVecRotateY(&obj->mom, &v, angle);
+ }
+@@ -1627,7 +1641,7 @@ void GetSurfaceInfo(struct obj_s *obj, s32 mode, f32 reflect) {
+                     NuVecSub(&plr_conveyor_mom, &obj->pos, &obj->oldpos);
+                 } else if (old_surface == 6) {
+                     yrot = NuAtan2D(plr_conveyor_mom.x, plr_conveyor_mom.z);
+-                    if (fabs(RotDiff(plr_conveyor_yrot, yrot)) < 16384.0) {
++                    if (NW_REV(fabs(RotDiff(plr_conveyor_yrot, yrot)) < 16384.0, NuFabs(RotDiff(plr_conveyor_yrot, yrot)) < 16384.0f)) {
+                         obj->mom.x = NuTrigTable[plr_conveyor_yrot] * 0.03f * 2.0f;
+                         obj->mom.z = NuTrigTable[(u16)(plr_conveyor_yrot + 0x4000)] * 0.03f * 2.0f;
+                     }
+@@ -1745,7 +1759,7 @@ void ObjectRotation(struct obj_s *obj, s32 mode, s32 blend) {
+         if (obj == &player->obj && VEHICLECONTROL == 2) {
+             obj->surface_xrot = SeekRot(obj->surface_xrot, temp_xrot, 3);
+             obj->surface_zrot = SeekRot(obj->surface_zrot, temp_zrot, 3);
+-            if (obj->pad_speed == 0.0f || fabs(obj->pad_dx) < 0.33333334f) {
++            if (obj->pad_speed == 0.0f || NW_REV(fabs(obj->pad_dx) < 0.33333334f, NuFabs(obj->pad_dx) < 0.33333334f)) {
+                 xrot = NW_EE_S32(obj->pad_dz * 16384.0f);
+             } else {
+                 xrot = 0x4000 - abs(RotDiff(0, obj->pad_angle));

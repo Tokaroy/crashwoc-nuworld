@@ -33,3 +33,16 @@
 ^func:game/creature/MovePlayer@\w+\+0x[0-9a-f]+ imm (14 -> 15|16 -> 17|19 -> 20|31 -> 33|33 -> 35)$  # menu ids: the late revision's two new menus shift them; NuWorld keeps PAL v1.03's
 ^func:game/creature/ManageCreatures@pal201 structure$  # register allocation: the late revision puts the AIType stride in $a2 and loads the debug line number before it
 ^func:game/move/MoveMINECART@pal201 structure$  # register allocation: the late revision's float bounce and cart sound timing use other FPU registers
+^func:game/ai/FindAILabel@\w+ structure$  # revmap boundary: the late image's FindAILabel ends two instructions later (its loop tail b/addiu), which port/revmap gives to PlayerLateralInRange
+^func:game/ai/PlayerLateralInRange@\w+ structure$  # revmap boundary: starts with FindAILabel's last two instructions (b/addiu) in the late images; the body is equal
+^func:game/game_obj/(PickupItem|PickupPower)@\w+\+0x[0-9a-f]+ imm 31 -> 33$  # menu ids: the late revision's two new menus shift them; NuWorld keeps PAL v1.03's
+^func:game/game_obj/CrateCollisions@pal201 structure$  # USA v1.01's crate tie-break (canonical): floor/ceiling locals start at 0 and 2000000.0f, d0 stays 0.0f (no d0 = d)
+^func:game/game_obj/CrateCollisions@pal201\+0x[0-9a-f]+ off (348 -> 344|340 -> 348|344 -> 340)$  # USA v1.01's crate tie-break (canonical): its stack spill slots (loop count, next group, &obj->pos) land differently
+^func:game/game_obj/CrateCollisions@usa101 structure$  # register allocation: USA v1.01 rematerializes the constant d0 (0.0f) in the loop instead of keeping it in f30
+^func:game/game_obj/CrateCollisions@usa101\+0x[0-9a-f]+ frame (-608 -> -592|608 -> 592)$  # register allocation: one callee-saved float register (f30) fewer in USA v1.01
+^func:game/cloudfx/cloudInit@\w+\+0x190 imm 109 -> 112$  # source line number passed to NuMemFreeFn in the last call's delay slot, which the line mask does not reach
+^func:game/sfx/GameAudioUpdate@\w+\+0x[0-9a-f]+ imm (5 -> 6|33 -> 35)$  # menu ids (Cursor.menu: the sound test menu and the one GameAudioUpdate mutes on): the late revision's two new menus shift them; NuWorld keeps PAL v1.03's
+^func:game/deb3/LaunchObjects@\w+ structure$  # register allocation: the late revision swaps s0/s1 for the rain splash loop's flag and the GDeb base
+^func:game/camera/MoveGameCamera@\w+\+0x(32c|3[4-9a][0-9a-f]|1d[bc][0-9a-f]) imm (19|2[0-9]|30) -> (2[0-9]|3[0-2])$  # menu ids (Cursor.menu/new_menu of the hub menus that select the hub menu camera): the late revision's two new menus shift them; NuWorld keeps PAL v1.03's
+^func:game/game_obj/CrateCollisions@usa101\+0x[0-9a-f]+ off (340 -> 344|344 -> 348)$  # register allocation: USA v1.01 orders the stack spill slots (loop count, next group, &obj->pos) differently
+^func:game/camera/MoveGameCamera@pal201 structure$  # the late hub-camera menu list also holds the new menu 25, which neither late build ever opens

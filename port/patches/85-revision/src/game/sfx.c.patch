@@ -1,0 +1,31 @@
+--- a/src/game/sfx.c
++++ b/src/game/sfx.c
+@@ -17,6 +17,7 @@
+  */
+ 
+ #include "nu_port.h"
++#include "numath/nufloat.h"
+ #include "numath/nuvec.h"
+ #include "game/gametypes.h"
+ #include "game/creature.h"
+@@ -1432,11 +1433,16 @@ void GameAudioUpdate(void) {
+         vol = (testMode != 0) ? temp_music_volume : Game.music_volume;
+         vol = (f32)(vol * 0x1BFF / 100) * musicvol_mul;
+         if (Bonus == 1 || Bonus == 3) {
+-            dist = bonus_duration * 0.5f - bonus_time;
+-            if (dist < 0.0) {
+-                dist = 0.0 - dist;
++            volScale = bonus_duration * 0.5f - bonus_time;
++            if (NW_REV(0, 1)) {
++                volScale = NuFabs(volScale);
++            } else {
++                dist = volScale;
++                if (dist < 0.0) {
++                    dist = 0.0 - dist;
++                }
++                volScale = dist;
+             }
+-            volScale = dist;
+             if (volScale < 1.0f) {
+                 volScale *= (f32)(25 - Paused) / 25.0f;
+                 vol = (f32)vol * volScale;

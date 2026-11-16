@@ -1,0 +1,40 @@
+--- a/src/game/deb3.c
++++ b/src/game/deb3.c
+@@ -905,6 +905,8 @@ void JonExtraDraw(void)
+     }
+ }
+ 
++extern s32 loading;
++
+ void LaunchObjects(void) {
+     float *pt;
+     float temp;
+@@ -1528,7 +1530,9 @@ void LaunchObjects(void) {
+         ang = NuAtan2D(vec2.x, vec2.z);
+         vec.x += NuTrigTable[(u16)ang] * 5.0f;
+         vec.z += NuTrigTable[(u16)(ang + 0x4000)] * 5.0f;
+-        AddVariableShotDebrisEffect(GDeb[95].i, &vec, 0x10, -0x8000, 0);
++        if (NW_REV(1, loading >= NW_HZ(25, 30))) {
++            AddVariableShotDebrisEffect(GDeb[95].i, &vec, 0x10, -0x8000, 0);
++        }
+         if (Level == 0x17 || (Level == 8 && VEHICLECONTROL != 0)) {
+             r = 1;
+             temp = 8192.0f;
+@@ -1547,11 +1551,15 @@ void LaunchObjects(void) {
+                 if (vec.y != 2000000.0f) {
+                     key = -1;
+                     vec.y = vec.y - 0.2f;
+-                    AddFiniteShotDebrisEffect(&key, GDeb[96].i, &vec, 1);
++                    if (NW_REV(1, loading >= NW_HZ(25, 30))) {
++                        AddFiniteShotDebrisEffect(&key, GDeb[96].i, &vec, 1);
++                    }
+                     if (r == 0) {
+                         r = 1;
+                         vec.y += 0.35f;
+-                        AddVariableShotDebrisEffect(GDeb[97].i, &vec, 1, 0, 0);
++                        if (NW_REV(1, loading >= NW_HZ(25, 30))) {
++                            AddVariableShotDebrisEffect(GDeb[97].i, &vec, 1, 0, 0);
++                        }
+                     }
+                 }
+             }

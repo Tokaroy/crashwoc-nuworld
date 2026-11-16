@@ -1,0 +1,40 @@
+--- a/src/game/camera.c
++++ b/src/game/camera.c
+@@ -25,6 +25,7 @@
+ #include "nu_libc.h"
+ #include "nu_port.h"
+ 
++#include "numath/nufloat.h"
+ #include "numath/numtx.h"
+ #include "numath/nutrig.h"
+ #include "numath/nuvec.h"
+@@ -568,7 +569,7 @@ void RailInfo(RailPosition *rpos, struct nuvec_s *pos, u16 *angle,
+                     *mode = 1;
+                 } else if (dp < -0.866f) {
+                     *mode = 2;
+-                } else if (fabs(dp) < 0.5) {
++                } else if (NW_REV(fabs(dp) < 0.5, NuFabs(dp) < 0.5f)) {
+                     if (RotDiff(NuAtan2D(dx, dz), *angle) > 0) {
+                         *mode = 4;
+                     } else {
+@@ -1237,8 +1238,9 @@ void MoveGameCamera(struct cammtx_s *GameCamera, struct obj_s *obj) {
+             }
+             pos = v000;
+             for (i = 0; i < cRPosCOUNT; i++) {
+-                MoveRailPosition(&tmp, &cRPos[i], fabs(GameCamera->distance),
+-                                 (GameCamera->distance > 0.0f) ? 0 : 1);
++                MoveRailPosition(&tmp, &cRPos[i],
++                                 NW_REV(fabs(GameCamera->distance), NuFabs(GameCamera->distance)),
++                                 NW_REV((GameCamera->distance > 0.0f) ? 0 : 1, (GameCamera->distance >= 0.0f) ? 0 : 1));
+                 if (best_cRPos == &cRPos[i]) {
+                     pVIS = Rail[cRPos[i].iRAIL].pCAM;
+                     iVIS = TempRPos.iALONG;
+@@ -1291,7 +1293,7 @@ void MoveGameCamera(struct cammtx_s *GameCamera, struct obj_s *obj) {
+             } else {
+                 dist = NuTrigTable[(RotDiff(obj->hdg, best_cRPos->angle) + 0x4000) & 0xFFFF];
+             }
+-            f = fabs(dist) * 0.02f;
++            f = NW_REV(fabs(dist), NuFabs(dist)) * 0.02f;
+         }
+         if (GameCamera->ahead > dist) {
+             GameCamera->ahead -= f;

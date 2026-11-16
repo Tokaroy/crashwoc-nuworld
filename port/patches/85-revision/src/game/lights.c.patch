@@ -1,0 +1,62 @@
+--- a/src/game/lights.c
++++ b/src/game/lights.c
+@@ -28,6 +28,7 @@
+ #include "nu_port.h"
+ 
+ #include "nu3d/nustream.h"
++#include "numath/nufloat.h"
+ #include "numath/nuvec.h"
+ #include "game/gametypes.h"
+ #include "game/creature.h"
+@@ -938,27 +939,39 @@ void SetLevelLights(void) {
+                   &titledir[2], (struct nuvec_s *)&titlergb);
+         NuRndrSetSpecularLight(&specular, 0);
+     } else if (Level == 43 && cutmovie == -1) {
+-        trig = NuTrigTable[creditsang[0] & 0xFFFF];
+-        if (trig < 0.0) {
+-            trig = -trig;
++        if (NW_REV(0, 1)) {
++            intensity = NuFabs(NuTrigTable[creditsang[0] & 0xFFFF]);
++        } else {
++            trig = NuTrigTable[creditsang[0] & 0xFFFF];
++            if (trig < 0.0) {
++                trig = -trig;
++            }
++            intensity = trig;
+         }
+-        intensity = trig;
+         NuVecRotateY(&creditsdir[0], &ZVec, creditsang[0]);
+         creditsdircol[0].r = intensity;
+         creditsang[0] += 256;
+-        trig = NuTrigTable[creditsang[1] & 0xFFFF];
+-        if (trig < 0.0) {
+-            trig = -trig;
++        if (NW_REV(0, 1)) {
++            intensity = NuFabs(NuTrigTable[creditsang[1] & 0xFFFF]);
++        } else {
++            trig = NuTrigTable[creditsang[1] & 0xFFFF];
++            if (trig < 0.0) {
++                trig = -trig;
++            }
++            intensity = trig;
+         }
+-        intensity = trig;
+         NuVecRotateY(&creditsdir[1], &ZVec, -creditsang[1]);
+         creditsdircol[1].r = intensity;
+         creditsang[1] += 256;
+-        trig = NuTrigTable[creditsang[2] & 0xFFFF];
+-        if (trig < 0.0) {
+-            trig = -trig;
++        if (NW_REV(0, 1)) {
++            intensity = NuFabs(NuTrigTable[creditsang[2] & 0xFFFF]);
++        } else {
++            trig = NuTrigTable[creditsang[2] & 0xFFFF];
++            if (trig < 0.0) {
++                trig = -trig;
++            }
++            intensity = trig;
+         }
+-        intensity = trig;
+         NuVecRotateX(&creditsdir[2], &ZVec, creditsang[2]);
+         creditsang[2] += 256;
+         creditsdircol[2].r = intensity;
