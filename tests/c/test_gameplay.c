@@ -346,6 +346,7 @@ typedef struct Arc {
 static struct nupad_s pad;
 static short jump_character; /* who jump() takes off, Crash or Coco */
 static signed char jump_type = 1;
+static u8 jump_boing;
 
 static struct MoveInfo *jump_info(void)
 {
@@ -355,18 +356,23 @@ static struct MoveInfo *jump_info(void)
 /* MoveCRASH's and MoveCOCO's jump steps. */
 static void retail_jump(struct creature_s *c, bool held)
 {
+    float speed = jump_info()->JUMPHEIGHT / jump_info()->JUMPFRAMES2;
     if (c->jump && c->jump_frame < c->jump_frames) {
-        c->obj.mom.y = jump_info()->JUMPHEIGHT / jump_info()->JUMPFRAMES2;
+        c->obj.mom.y = c->jump_type == 3 ? speed * 1.5f : speed;
     }
-    if (!c->obj.ground) {
+    if (!(c->obj.ground & 1)) {
         c->obj.mom.y += GRAVITY;
     }
     if (c->jump && c->jump_frame < c->jump_frames) {
         c->jump_frame++;
     }
-    if (c->jump == 1 && held && c->jump_frames < jump_info()->JUMPFRAMES2) {
-        c->jump_frames++;
-    } else if (c->jump == 1 && !held) {
+    if (held || c->obj.boing) {
+        if (c->jump == 1 && c->jump_type != 0 && c->jump_frames < jump_info()->JUMPFRAMES2) {
+            c->jump_frames++;
+        } else if (c->jump == 1) {
+            c->jump = 2;
+        }
+    } else if (c->jump == 1 || c->jump == 2) {
         c->jump = 3;
     }
 }
@@ -380,15 +386,30 @@ static Arc jump(int hz, const NwProfile *p, int hold)
     float run = jump_info()->RUNSPEED, friction = NW_HZ(0.0072f, 0.005f), dt = 1.0f / hz;
     c->obj.mom.z = run;
     GameTimer.frame++;
-    pad.paddata = pad.paddata_db = 0x40;
-    c->obj.ground = 1;
-    nw_air_before(c, &pad);
-    c->jump = 1;
-    c->jump_type = jump_type;
-    c->jump_frames = jump_info()->JUMPFRAMES0;
-    c->jump_frame = 0;
-    c->obj.ground = 0;
-    nw_air_move(c, &pad);
+    if (jump_boing) {
+        pad.paddata = hold > 0 ? 0x40 : 0;
+        pad.paddata_db = 0;
+        c->obj.ground = 2;
+        c->obj.boing = jump_boing;
+        c->jump = 1;
+        c->jump_type = jump_boing & 2 ? 3 : 1;
+        c->jump_frames = jump_info()->JUMPFRAMES1 + 1;
+        c->jump_frame = 0;
+        nw_air_before(c, &pad);
+        retail_jump(c, hold > 0);
+        nw_air_move(c, &pad);
+        c->obj.boing = 0;
+    } else {
+        pad.paddata = pad.paddata_db = 0x40;
+        c->obj.ground = 1;
+        nw_air_before(c, &pad);
+        c->jump = 1;
+        c->jump_type = jump_type;
+        c->jump_frames = jump_type == 0 ? jump_info()->STARJUMPFRAMES : jump_info()->JUMPFRAMES0;
+        c->jump_frame = 0;
+        c->obj.ground = 0;
+        nw_air_move(c, &pad);
+    }
     Arc arc = { 0 };
     float was = c->obj.mom.y;
     for (int tick = 1; tick < 500; tick++) {
@@ -482,6 +503,61 @@ static void jump_fall(void)
     float fall = c->obj.mom.y;
     nw_air_move(c, &pad);
     CHECK(c->obj.mom.y == fall);
+}
+
+static void jump_fall_moves(void)
+{
+    NwProfile retail = { 0 }, on = neutral_arc(ONLY(jump_fall)), heavy = ONLY(jump_fall);
+    jump_type = 0;
+    Arc pal = jump(50, &retail, 100), arc = jump(50, &on, 100), tap = jump(50, &on, 1), ntsc = jump(60, &on, 120);
+    CHECK(near(arc.apex, pal.apex, 0.03f) && near(arc.reach, pal.reach, 0.05f) && arc.early > pal.early);
+    CHECK(near(tap.apex, arc.apex, 0.001f) && near(ntsc.apex, arc.apex, 0.03f) && fabsf(ntsc.time - arc.time) <= 0.03f);
+    Arc tuned = jump(50, &heavy, 100);
+    CHECK(near(tuned.apex, pal.apex * 1.13f, 0.03f) && tuned.time < arc.time && tuned.reach >= pal.reach * 0.995f);
+    jump_type = 1;
+
+    for (jump_boing = 1; jump_boing <= 2; jump_boing++) {
+        Arc held = jump(50, &retail, 100), off = jump(50, &retail, 0);
+        arc = jump(50, &on, 100);
+        Arc let = jump(50, &on, 0);
+        CHECK(near(arc.apex, held.apex, 0.03f) && near(arc.reach, held.reach, 0.05f) && arc.early > held.early);
+        CHECK(let.apex >= off.apex * 0.995f && let.apex < arc.apex && jump(50, &on, 3).apex >= let.apex);
+        tuned = jump(50, &heavy, 100);
+        Arc tuned_let = jump(50, &heavy, 0);
+        CHECK(near(tuned.apex, held.apex * 1.13f, 0.03f) && tuned.reach >= held.reach * 0.995f);
+        CHECK(tuned_let.apex >= off.apex * 1.13f * 0.995f && tuned.pull <= 61.0f);
+        ntsc = jump(60, &on, 120);
+        CHECK(near(ntsc.apex, arc.apex, 0.03f) && fabsf(ntsc.time - arc.time) <= 0.03f);
+    }
+    jump_boing = 0;
+
+    static const float want[4] = { 18.0f, 27.0f, 27.0f * 1.62f, 54.0f };
+    struct creature_s *c = &Character[0];
+    for (int hz = 50; hz <= 60; hz += 10) {
+        float dt = 1.0f / hz;
+        for (int i = 0; i < 4; i++) {
+            const NwProfile *p = i == 0 ? &retail : i == 1 ? &on : &heavy;
+            crash_at(hz, p);
+            c->jump = 3;
+            c->slam = i == 3 ? 2 : 1;
+            c->obj.mom.y = -0.05f;
+            GameTimer.frame++;
+            nw_air_before(c, &pad);
+            c->obj.mom.y += GRAVITY * (i == 3 ? 3.0f : 1.0f);
+            nw_air_move(c, &pad);
+            CHECK(near((-0.05f - c->obj.mom.y) / (dt * dt), want[i], 0.01f));
+        }
+        crash_at(hz, &heavy);
+        c->jump = 3;
+        c->slam = 1;
+        c->obj.mom.y = 0.1f;
+        GameTimer.frame++;
+        nw_air_before(c, &pad);
+        c->obj.mom.y += GRAVITY * 2.0f;
+        float rise = c->obj.mom.y;
+        nw_air_move(c, &pad);
+        CHECK(c->obj.mom.y == rise);
+    }
 }
 
 /* MoveCRASH's case 3. */
@@ -807,6 +883,42 @@ static void slide(void)
     CrashMoveInfo.SLIDEFRAMES = 25;
     nw_ground_loaded();
     CHECK(CrashMoveInfo.SLIDEFRAMES == 25);
+
+    static const struct {
+        int kept;
+        bool slid;
+        float slow, fast;
+    } jumps[] = {
+        { 50, true, 0.0972f, 0.1128f },
+        { 100, true, 0.0972f, 0.1272f },
+        { 100, false, 0.0828f, 0.1128f },
+        { 0, true, 0.0828f, 0.1128f },
+    };
+    for (size_t i = 0; i < sizeof(jumps) / sizeof(jumps[0]); i++) {
+        NwProfile p = ONLY(slide);
+        p.movement.crash.slide_jump = jumps[i].kept;
+        crash_at(50, &p);
+        c->obj.ground = 1;
+        c->slide = jumps[i].slid ? 10 : 0;
+        c->crawl = !jumps[i].slid;
+        c->obj.mom.z = 0.13f;
+        nw_air_move(c, &pad);
+        GameTimer.frame++;
+        nw_air_before(c, &pad);
+        c->slide = c->crawl = 0;
+        c->jump = 1;
+        c->jump_type = 0;
+        c->jump_frame = 0;
+        c->obj.ground = 0;
+        nw_air_move(c, &pad);
+        CHECK(near(loop_forward(0.09f, 0.072f), jumps[i].slow, 1e-4f));
+        c->jump = 3;
+        nw_air_move(c, &pad);
+        CHECK(near(loop_forward(0.12f, 0.072f), jumps[i].fast, 1e-4f));
+        c->obj.ground = 1;
+        nw_air_move(c, &pad);
+        CHECK(near(loop_forward(0.12f, 0.072f), 0.1128f, 1e-4f));
+    }
 }
 
 static void coco_jump(void)
@@ -2820,6 +2932,7 @@ int main(void)
     boss_health();
     steadycam();
     jump_fall();
+    jump_fall_moves();
     jump_distance();
     air_momentum();
     dash_jump();
