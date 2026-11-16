@@ -64,7 +64,9 @@ static struct {
     int samples;        /* the frame's MSAA, 0 off */
     GLint max_tex;      /* GL_MAX_TEXTURE_SIZE */
     GLint max_samples;  /* GL_MAX_SAMPLES */
-    GLuint present_fbo; /* a mip level of the back buffer, to shrink it from */
+    GLuint present_prog, present_vao;
+    GLint present_rect, present_level;
+    bool checked; /* glGetError after the first packet run */
 } nw_be;
 
 /* A command with no material: GS defaults, untextured. */
@@ -107,12 +109,80 @@ static void nw_be_screenshot(void *user)
     SDL_free(path);
 }
 
+
+static const char nw_be_present_vs[] =
+    "#version 330 core\n"
+    "uniform vec4 u_rect;\n"
+    "out vec2 v_pos;\n"
+    "void main()\n"
+    "{\n"
+    "    vec2 c = vec2(gl_VertexID & 1, gl_VertexID >> 1);\n"
+    "    v_pos = mix(u_rect.xy, u_rect.zw, c);\n"
+    "    gl_Position = vec4(c * 2.0 - 1.0, 0.0, 1.0);\n"
+    "}\n";
+
+static const char nw_be_present_fs[] =
+    "#version 330 core\n"
+    "uniform sampler2D u_surf;\n"
+    "uniform vec4 u_rect;\n"
+    "uniform int u_level;\n"
+    "in vec2 v_pos;\n"
+    "out vec4 o_col;\n"
+    "vec3 texel(ivec2 p)\n"
+    "{\n"
+    "    return texelFetch(u_surf, clamp(p, ivec2(u_rect.xy), ivec2(u_rect.zw) - 1), u_level).rgb;\n"
+    "}\n"
+    "void main()\n"
+    "{\n"
+    "    vec2 p = v_pos - 0.5;\n"
+    "    ivec2 i = ivec2(floor(p));\n"
+    "    vec2 f = p - vec2(i);\n"
+    "    o_col = vec4(mix(mix(texel(i), texel(i + ivec2(1, 0)), f.x),\n"
+    "                     mix(texel(i + ivec2(0, 1)), texel(i + ivec2(1, 1)), f.x), f.y), 1.0);\n"
+    "}\n";
+
+static bool nw_be_present_init(void)
+{
+    static const char *const src[2] = { nw_be_present_vs, nw_be_present_fs };
+    static const GLenum type[2] = { GL_VERTEX_SHADER, GL_FRAGMENT_SHADER };
+    char log[1024] = "";
+    GLint ok = 1;
+    GLuint p = nw_be.present_prog = glCreateProgram();
+    for (int i = 0; i < 2 && ok; i++) {
+        GLuint s = glCreateShader(type[i]);
+        glShaderSource(s, 1, &src[i], NULL);
+        glCompileShader(s);
+        glGetShaderiv(s, GL_COMPILE_STATUS, &ok);
+        if (!ok) {
+            glGetShaderInfoLog(s, sizeof(log), NULL, log);
+        }
+        glAttachShader(p, s);
+        glDeleteShader(s);
+    }
+    if (ok) {
+        glLinkProgram(p);
+        glGetProgramiv(p, GL_LINK_STATUS, &ok);
+        if (!ok) {
+            glGetProgramInfoLog(p, sizeof(log), NULL, log);
+        }
+    }
+    if (!ok) {
+        return SDL_SetError("present: %s", log);
+    }
+    nw_be.present_rect = glGetUniformLocation(p, "u_rect");
+    nw_be.present_level = glGetUniformLocation(p, "u_level");
+    glUseProgram(p);
+    glUniform1i(glGetUniformLocation(p, "u_surf"), 2);
+    glGenVertexArrays(1, &nw_be.present_vao);
+    return true;
+}
+
 bool nw_backend_init(void)
 {
     nw_be.opts.scale = 1;
     glGetIntegerv(GL_MAX_TEXTURE_SIZE, &nw_be.max_tex);
     glGetIntegerv(GL_MAX_SAMPLES, &nw_be.max_samples);
-    return nw_vu_init();
+    return nw_vu_init() && nw_be_present_init();
 }
 
 void nw_backend_debug_menu(void)
@@ -211,7 +281,8 @@ void nw_backend_shutdown(void)
     glDeleteBuffers(1, &nw_be.verts_vbo);
     glDeleteVertexArrays(1, &nw_be.ptl_vao);
     glDeleteBuffers(1, &nw_be.ptl_vbo);
-    glDeleteFramebuffers(1, &nw_be.present_fbo);
+    glDeleteProgram(nw_be.present_prog);
+    glDeleteVertexArrays(1, &nw_be.present_vao);
     nw_vu_shutdown();
     SDL_free(nw_be.jobs);
     SDL_free(nw_be.rect_verts);
@@ -1336,29 +1407,30 @@ static int nw_be_scale(int h, int bh, int tw, int th)
     return n;
 }
 
-/* Shrinking more than 2x blits from a mip level at least the window's size, as glGenerateMipmap averages. */
+/* Shrinking more than 2x reads a mip level at least the window's size, as glGenerateMipmap averages.*/
 static void nw_be_present(NwBeSurf *back, int bw, int bh, int x, int y, int w, int h)
 {
     int n = back->n, level = 0;
     nw_be_resolve(back);
-    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
     while (level < 12 && (bw * n) >> (level + 1) >= w && (bh * n) >> (level + 1) >= h) {
         level++;
     }
-    glBindFramebuffer(GL_READ_FRAMEBUFFER, back->fbo);
+    glActiveTexture(GL_TEXTURE0 + 2);
+    glBindTexture(GL_TEXTURE_2D, back->tex);
     if (level) {
-        glActiveTexture(GL_TEXTURE0 + 2);
-        glBindTexture(GL_TEXTURE_2D, back->tex);
         glGenerateMipmap(GL_TEXTURE_2D);
-        glActiveTexture(GL_TEXTURE0);
-        if (!nw_be.present_fbo) {
-            glGenFramebuffers(1, &nw_be.present_fbo);
-        }
-        glBindFramebuffer(GL_READ_FRAMEBUFFER, nw_be.present_fbo);
-        glFramebufferTexture2D(GL_READ_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, back->tex, level);
     }
-    glBlitFramebuffer(0, ((back->th - bh) * n) >> level, (bw * n) >> level, (back->th * n) >> level, x, y, x + w,
-                      y + h, GL_COLOR_BUFFER_BIT, GL_LINEAR);
+    glActiveTexture(GL_TEXTURE0);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glViewport(x, y, w, h);
+    glDisable(GL_DEPTH_TEST);
+    glDisable(GL_BLEND);
+    glUseProgram(nw_be.present_prog);
+    glUniform4f(nw_be.present_rect, 0.0f, (float)(((back->th - bh) * n) >> level), (float)((bw * n) >> level),
+                (float)((back->th * n) >> level));
+    glUniform1i(nw_be.present_level, level);
+    glBindVertexArray(nw_be.present_vao);
+    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 }
 
 const NwPacket *nw_backend_frame(int width, int height, double now)
@@ -1418,5 +1490,12 @@ const NwPacket *nw_backend_frame(int width, int height, double now)
         nw_be_present(back, bw, bh, (width - w) / 2, (height - h) / 2, w, h);
     }
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    if (nw_be.runs && !nw_be.checked) {
+        GLenum e = glGetError();
+        if (e != GL_NO_ERROR) {
+            SDL_Log("OpenGL error 0x%04X by the first frame", e);
+        }
+        nw_be.checked = true;
+    }
     return p;
 }

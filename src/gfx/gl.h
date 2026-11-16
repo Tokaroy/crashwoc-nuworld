@@ -30,7 +30,9 @@ typedef ptrdiff_t GLsizeiptr;
 #define GL_TRUE 1
 #define GL_ZERO 0
 #define GL_ONE 1
+#define GL_NO_ERROR 0
 #define GL_TRIANGLES 0x0004
+#define GL_TRIANGLE_STRIP 0x0005
 #define GL_NEVER 0x0200
 #define GL_LESS 0x0201
 #define GL_SRC_ALPHA 0x0302
@@ -74,6 +76,7 @@ typedef ptrdiff_t GLsizeiptr;
 #define GL_FUNC_ADD 0x8006
 #define GL_FUNC_SUBTRACT 0x800A
 #define GL_FUNC_REVERSE_SUBTRACT 0x800B
+#define GL_SAMPLES 0x80A9
 #define GL_TEXTURE_MAX_LEVEL 0x813D
 #define GL_R8UI 0x8232
 #define GL_TEXTURE0 0x84C0
@@ -113,6 +116,7 @@ typedef ptrdiff_t GLsizeiptr;
     X(void, glScissor, (GLint x, GLint y, GLsizei w, GLsizei h)) \
     X(void, glClearDepth, (GLdouble depth)) \
     X(const GLubyte *, glGetString, (GLenum name)) \
+    X(GLenum, glGetError, (void)) \
     X(void, glGetIntegerv, (GLenum pname, GLint *data)) \
     X(void, glEnable, (GLenum cap)) \
     X(void, glDisable, (GLenum cap)) \
@@ -208,6 +212,7 @@ NW_GL_FUNCTIONS(NW_GL_DECLARE)
 #define glScissor nw_glScissor
 #define glClearDepth nw_glClearDepth
 #define glGetString nw_glGetString
+#define glGetError nw_glGetError
 #define glGetIntegerv nw_glGetIntegerv
 #define glEnable nw_glEnable
 #define glDisable nw_glDisable

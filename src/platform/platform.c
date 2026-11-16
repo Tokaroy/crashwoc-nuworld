@@ -69,6 +69,11 @@ bool nw_platform_init(NwPlatform *p, const char *title, int width, int height)
 
     SDL_GL_SetSwapInterval(1);
     SDL_Log("OpenGL %s (%s)", (const char *)glGetString(GL_VERSION), (const char *)glGetString(GL_RENDERER));
+    GLint samples = 0;
+    glGetIntegerv(GL_SAMPLES, &samples);
+    if (samples > 0) {
+        SDL_Log("OpenGL window: %d samples, antialiasing forced by the driver", samples);
+    }
     return true;
 }
 
