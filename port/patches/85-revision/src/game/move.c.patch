@@ -1,0 +1,156 @@
+--- a/src/game/move.c
++++ b/src/game/move.c
+@@ -525,6 +525,9 @@ s16 jeepsfx[4] = { 87, 102, 108, 107 };
+ s32 i_jkeepsfx = -1;
+ f32 MECHRUNNINGJUMPPAUSEFRAME = 31.0f;
+ f32 MECHSTANDINGJUMPPAUSEFRAME = 43.0f;
++#if defined(NW_HOST) || defined(NW_REV_LATEST)
++s32 mech_land_sfx = 0;
++#endif
+ f32 FIREENGINERUNNINGJUMPPAUSEFRAME = 31.0f;
+ f32 FIREENGINESTANDINGJUMPPAUSEFRAME = 43.0f;
+ f32 CARPETTIME = 90.0f;
+@@ -599,6 +602,7 @@ f32 NuFsqrt(f32 x);
+ u16 SeekRot(u16 a, u16 target, s32 rate);
+ s32 qrand(void);
+ s32 ResetHGobjAnim(struct nuhspecial_s *obj);
++s32 EndHGobjAnim(struct nuhspecial_s *obj);
+ void SetNearestLights(struct Nearest_Light_s *l);
+ void SetLevelLights(void);
+ s32 NuHGobjRndrMtxDwa(struct NUHGOBJ_s *hobj, struct numtx_s *m, s32 nlayers,
+@@ -738,6 +742,7 @@ void UpdateChaseRunAnim(struct creature_s *plr) {
+ 
+ extern u64 LBIT;
+ extern struct nuvec_s loadsavepos;
++s32 InLoadSaveZone(struct creature_s *c);
+ 
+ void MoveCRASH(struct creature_s *plr, struct nupad_s *pad) {
+     struct MoveInfo *minfo = &CrashMoveInfo;
+@@ -855,8 +860,9 @@ void MoveCRASH(struct creature_s *plr, struct nupad_s *pad) {
+             }
+             switch (plr->jump) {
+             case 0:
+-                if (plr->obj.ground != 0 && plr->obj.idle_gametime > 0.0f &&
+-                    NuVecDistSqr(&plr->obj.pos, &loadsavepos, 0) < 1.0f) {
++                if (NW_REV(plr->obj.ground != 0 && plr->obj.idle_gametime > 0.0f &&
++                           NuVecDistSqr(&plr->obj.pos, &loadsavepos, 0) < 1.0f,
++                           InLoadSaveZone(plr))) {
+                     break;
+                 }
+                 if ((plr->obj.ground != 0 || plr->allow_jump != 0) && plr->slam_wait == 0 &&
+@@ -901,7 +907,8 @@ void MoveCRASH(struct creature_s *plr, struct nupad_s *pad) {
+             case 3:
+                 if ((ExtraMoves != 0 || (Game.powerbits & 2) != 0) && plr->obj.mom.y > -0.099999994f &&
+                     (plr->spin == 0 ||
+-                     plr->spin_frame >= plr->spin_frames - plr->minfo->SPINRESETFRAMES)) {
++                     plr->spin_frame >= plr->spin_frames - plr->minfo->SPINRESETFRAMES) &&
++                    NW_REV(1, plr->slam == 0 && plr->slam_wait == 0)) {
+                     if (plr->obj.pad_speed == 0.0f) {
+                         plr->jump_type = 0;
+                         plr->jump_subtype = qrand() / 0x8000;
+@@ -1051,7 +1058,8 @@ landing:
+                 if (plr->spin == 0 ||
+                     plr->spin_frame >= plr->spin_frames - plr->minfo->SPINRESETFRAMES) {
+                     if (plr->obj.pad_speed > 0.0f && plr->crawl == 0 && plr_rebound == 0 &&
+-                        plr->freeze == 0 && (Level != 0x16 || FireBossHoldPlayer == 0)) {
++                        plr->freeze == 0 && (Level != 0x16 || FireBossHoldPlayer == 0) &&
++                        NW_REV(1, plr->slam_wait == 0)) {
+                         plr->slide = minfo->SLIDEFRAMES;
+                         GameSfx(0x12, &plr->obj.pos);
+                     } else {
+@@ -1089,6 +1097,9 @@ landing:
+     }
+     if (plr->target != 0 && old_target == 0) {
+         plr->obj.target_yrot = 0;
++        if (NW_REV(0, 1)) {
++            plr->tap = NW_HZ(0xA, 0xC);
++        }
+         plr->obj.target_xrot = 0;
+     }
+     plr->obj.attack = 0;
+@@ -2072,11 +2083,15 @@ void MoveMINECART(struct creature_s *plr, struct nupad_s *pad) {
+         obj.top = 1.25f;
+         if (plr->jump != 0 && plr->jump_frame < plr->jump_frames) {
+             t = (f32)plr->jump_frame / (f32)plr->jump_frames;
+-            bounce = 0.5f - t;
+-            if (bounce < 0.0) {
+-                bounce = 0.0 - bounce;
++            if (NW_REV(0, 1)) {
++                obj.top += (0.5f - NuFabs(0.5f - t)) * 2.0f * 0.75f;
++            } else {
++                bounce = 0.5f - t;
++                if (bounce < 0.0) {
++                    bounce = 0.0 - bounce;
++                }
++                obj.top += (f32)((0.5 - bounce) * 2.0) * 0.75f;
+             }
+-            obj.top += (f32)((0.5 - bounce) * 2.0) * 0.75f;
+         }
+         obj.pos.x = plr->obj.pos.x - NuTrigTable[plr->obj.hdg] * 0.25f;
+         obj.pos.z = plr->obj.pos.z - NuTrigTable[(plr->obj.hdg + 0x4000) & 0xFFFF] * 0.25f;
+@@ -2334,9 +2349,13 @@ void MoveMECH(struct creature_s *plr, struct nupad_s *pad) {
+         fire_pressed = 0;
+         jump_pressed = 0;
+     }
+-    if (plr->obj.ground != 0 && plr->jump != 0 && plr->jump_frame == plr->jump_frames &&
+-        plr->jump_hold == 0) {
++    if (NW_REV(1, mech_land_sfx == 0) && plr->obj.ground != 0 && plr->jump != 0 &&
++        plr->jump_frame == plr->jump_frames && plr->jump_hold == 0) {
+         GameSfx(0x48, &plr->obj.pos);
++        NW_REV(0, mech_land_sfx = 1);
++    }
++    if (NW_REV(0, plr->jump == 0)) {
++        NW_REV(0, mech_land_sfx = 0);
+     }
+     if (plr->target == 2 && plr->fire == 0 && plr->fire_lock == 0 && plr->tap == 0) {
+         plr->target = 1;
+@@ -2776,7 +2795,7 @@ void AnimateSWIMMING(struct creature_s *plr) {
+                 plr->spin_frames - plr->minfo->SPINRESETFRAMES)) {
+         plr->obj.anim.newaction = 0x46;
+     } else if ((plr->obj.pad_speed > 0.0f) || (plr->tap != 0) ||
+-               (fabs(plr->obj.mom.z) > info->WALKSPEED)) {
++               NW_REV(fabs(plr->obj.mom.z) > info->WALKSPEED, NuFabs(plr->obj.mom.z) > info->WALKSPEED)) {
+         plr->obj.anim.newaction = 0x4C;
+     } else {
+         plr->obj.anim.newaction = 0x22;
+@@ -2998,6 +3017,18 @@ void CheckPlayerEvents(struct obj_s *obj) {
+     }
+ }
+ 
++#if defined(NW_HOST) || defined(NW_REV_LATEST)
++s32 EndHGobjAnim(struct nuhspecial_s *obj) {
++    if (obj->special != 0 && obj->special->instance != 0 && obj->special->instance->anim != 0) {
++        obj->special->instance->anim->flagword &= ~1;
++        obj->special->instance->anim->ltime =
++            world_scene[0]->instanimdata[obj->special->instance->anim->anim_ix]->time;
++        return 1;
++    }
++    return 0;
++}
++#endif
++
+ void ResetPlayerEvents(void) {
+     struct plrevent_s *ev;
+     s32 i;
+@@ -3007,10 +3038,17 @@ void ResetPlayerEvents(void) {
+         ev = PlrEvent;
+         for (i = 0; i < 8; i++, ev++) {
+             if ((ev->spl != 0) &&
+-                (AheadOfCheckpoint(ev->iRAIL, ev->iALONG, ev->fALONG) != 0)) {
+-                for (j = 0; j < 16; j++) {
+-                    ResetHGobjAnim(&ev->obj[j]);
+-                    ev->triggered = 0;
++                NW_REV(AheadOfCheckpoint(ev->iRAIL, ev->iALONG, ev->fALONG) != 0, 1)) {
++                if (NW_REV(1, AheadOfCheckpoint(ev->iRAIL, ev->iALONG, ev->fALONG) != 0)) {
++                    for (j = 0; j < 16; j++) {
++                        ResetHGobjAnim(&ev->obj[j]);
++                        ev->triggered = 0;
++                    }
++                } else if (NW_REV(0, Level == 0x14)) {
++                    for (j = 0; j < 16; j++) {
++                        EndHGobjAnim(&ev->obj[j]);
++                        ev->triggered = 1;
++                    }
+                 }
+             }
+         }

@@ -214,10 +214,13 @@ extern int nw_hz;
 #ifdef NW_HOST
 extern int nw_rev;
 #define NW_REV(old, new) (nw_rev ? (new) : (old))
+#define NW_REV_DIM(old, new) (new)
 #elif defined(NW_REV_LATEST)
 #define NW_REV(old, new) (new)
+#define NW_REV_DIM(old, new) (new)
 #else
 #define NW_REV(old, new) (old)
+#define NW_REV_DIM(old, new) (old)
 #endif
 
 /* A game's and a time trial record's name as shown: NuWorld's longer one when it stands (src/port/names.h), and a

@@ -29,3 +29,7 @@
 ^func:gamelib/saveload/saveloadASCallEachFrame@\w+ structure$  # the late card state machine: new state 4 (sceMcGetDir on a formatted PS2 card, sets a new save-found flag); NuWorld drops gamelib/saveload
 ^func:gamelib/saveload/saveloadASCallEachFrame@\w+\+0x[0-9a-f]+ imm (31 -> 32|1 -> 2|6 -> 7|7 -> 8|8 -> 9|14 -> 15|10 -> 11|12 -> 13|13 -> 14|15 -> 16|16 -> 17|17 -> 18|18 -> 19|19 -> 20|20 -> 21|21 -> 22|22 -> 23|23 -> 24|24 -> 25|11 -> 12|26 -> 27|27 -> 28|28 -> 29|29 -> 30|30 -> 31|32 -> 33)$  # memory-card state ids shifted by the late state 4; NuWorld drops gamelib/saveload
 ^func:game/vehicle/TerrainAtlas@(pal201|usa101)\+0x[0-9a-f]+ off (280|284|288) -> (280|284|288)$  # register allocation: the three spilled loop values (the QuatStack base, &Atlas->lastnormal, Depth - 1) get their stack slots in another order
+^func:game/move/(MoveCRASH|MoveCOCO|MoveMECH)@\w+\+0x[0-9a-f]+ imm (31 -> 33|33 -> 35)$  # menu ids: the late revision's two new menus shift them; NuWorld keeps PAL v1.03's
+^func:game/creature/MovePlayer@\w+\+0x[0-9a-f]+ imm (14 -> 15|16 -> 17|19 -> 20|31 -> 33|33 -> 35)$  # menu ids: the late revision's two new menus shift them; NuWorld keeps PAL v1.03's
+^func:game/creature/ManageCreatures@pal201 structure$  # register allocation: the late revision puts the AIType stride in $a2 and loads the debug line number before it
+^func:game/move/MoveMINECART@pal201 structure$  # register allocation: the late revision's float bounce and cart sound timing use other FPU registers

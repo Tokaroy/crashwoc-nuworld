@@ -1,0 +1,19 @@
+--- a/include/game/creature.h
++++ b/include/game/creature.h
+@@ -1,6 +1,7 @@
+ #ifndef GAME_CREATURE_H
+ #define GAME_CREATURE_H
+ 
++#include "nu_port.h"
+ #include "nu_types.h"
+ #include "numath/numathtypes.h"
+ #include "nu3d/nugscn.h"
+@@ -322,7 +323,7 @@ extern struct creature_s Character[9];
+ extern struct creature_s *player;
+ extern struct creature_s OppTubCreature;
+ extern struct CharacterData CData[191];
+-extern struct CharacterModel CModel[48];
++extern struct CharacterModel CModel[NW_REV_DIM(48, 49)];
+ extern signed char CRemap[191];
+ 
+ void ResetPlayer(s32 warp);
