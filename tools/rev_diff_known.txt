@@ -70,3 +70,5 @@
 ^func:game/font3d/InitFont3D@\w+ structure$  # type widths only: Font3DRemap's s16 elements late (values are glyph indices below 60 and -1, so s8 holds them) and Font3DTab's ascii read as a byte (the same low byte of the s32)
 ^func:game/panel/(Draw3DCheckpointLetters|NextLetter)@\w+ structure$  # type width only: Font3DRemap's s16 elements late (lh and the doubled index), NuWorld keeps s8[256]; the index is the same unsigned byte
 ^func:game/font3d/Text3D@\w+[ +]  # NuWorld replaces Text3D (src/port/font3d.c), which carries the late index fix
+^func:game/(edai|edlight)/\w+@\w+[ +]  # the level editor's input and drawing; NuWorld's game does not run it
+^func:game/loadsave/UpdateSaveSlots@\w+[ +]  # NuWorld replaces the memory card saves (port/units.toml)

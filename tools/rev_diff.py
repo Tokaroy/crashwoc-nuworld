@@ -5,6 +5,7 @@ import argparse
 import difflib
 import os
 import re
+import struct
 import subprocess
 import sys
 from collections import Counter
@@ -243,6 +244,40 @@ def cmd_data(args) -> int:
     return 0
 
 
+HZ_ROW = re.compile(r'NW_HZ_(INT|F32)\("([^"]+)", 0x([0-9a-f]+), (?:(\d+), (-?\d+), (-?\d+)|([-0-9.e]+)f, ([-0-9.e]+)f)\)')
+
+
+def hz_rows(path: Path) -> list[tuple[str, int, int, bytes, bytes]]:
+    out = []
+    for m in HZ_ROW.finditer(path.read_text(encoding="utf-8")):
+        kind, name, addr = m[1], m[2], int(m[3], 16)
+        if kind == "INT":
+            size = int(m[4])
+            pal, ntsc = (int(v) & ((1 << 8 * size) - 1) for v in (m[5], m[6]))
+            out.append((name, addr, size, pal.to_bytes(size, "little"), ntsc.to_bytes(size, "little")))
+        else:
+            out.append((name, addr, 4, struct.pack("<f", float(m[7])), struct.pack("<f", float(m[8]))))
+    return out
+
+
+def cmd_hz(args) -> int:
+    ref = ref_elf(args)
+    tgt = targets(argparse.Namespace(target=["usa101"], usa101=args.usa101), ref)["usa101"]
+    rows = hz_rows(ROOT / "src" / "port" / "hz_table.inc")
+    bad = Counter()
+    for name, addr, size, pal, ntsc in rows:
+        obj = next((o for o in ref.objects if o[0] <= addr < o[1]), None)
+        mapped = tgt.data_ref.get(obj[0]) if obj else None
+        have = tgt.read(mapped[0] + addr - obj[0], size) if mapped else None
+        if have != ntsc:
+            bad[name.split("+")[0]] += 1
+            if args.verbose:
+                print(f"{name}: table {ntsc.hex()}, USA v1.01 {have.hex() if have else 'unmapped'}")
+    print(f"{len(rows)} 60 Hz values, {len(rows) - sum(bad.values())} as in USA v1.01" +
+          ("; differ: " + ", ".join(f"{k} {n}" for k, n in bad.most_common()) if bad else ""))
+    return 1 if bad else 0
+
+
 def in_container() -> bool:
     return Path("/.dockerenv").exists()
 
@@ -342,12 +377,16 @@ def main() -> int:
     sub.choices["check"].add_argument("--functions", nargs="*")
     sub.choices["check"].add_argument("--no-compile", action="store_true")
     sub.choices["check"].add_argument("--disasm", action="store_true")
+    p = sub.add_parser("hz")
+    p.add_argument("--pal103")
+    p.add_argument("--usa101")
+    p.add_argument("--verbose", action="store_true")
     p = sub.add_parser("compile", help=argparse.SUPPRESS)
     p.add_argument("--decomp", type=Path, required=True)
     p.add_argument("--out", type=Path, required=True)
     p.add_argument("units", nargs="+")
     args = parser.parse_args()
-    return {"functions": cmd_functions, "check": cmd_check, "data": cmd_data, "compile": cmd_compile}[args.cmd](args)
+    return {"functions": cmd_functions, "check": cmd_check, "data": cmd_data, "hz": cmd_hz, "compile": cmd_compile}[args.cmd](args)
 
 
 if __name__ == "__main__":

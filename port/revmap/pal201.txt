@@ -3927,6 +3927,7 @@ data 0055cca0 0055d720 CocoAnim_DROPSHIP
 data 0055cce8 0055d768 CocoAnim
 data 0055d018 0055da98 CortexAnim
 data 0055d180 0055dc00 HoloCortexAnim
+data 0055d258 0055dcd8 AkuAkuAnim
 data 0055d288 0055dd08 AkuAkuFeathersAnim
 data 0055d2b8 0055dd38 UkaUkaAnim
 data 0055d2d0 0055dd50 HoloUkaUkaAnim

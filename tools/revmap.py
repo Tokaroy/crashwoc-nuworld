@@ -242,6 +242,7 @@ def align(ref: Image, tgt: Image) -> Mapping:
         placed.append(Placed(funcs[k], addr, end - addr, ratio[k], same))
     removed = [f for k, f in enumerate(funcs) if k not in ranges]
     data = data_votes(ref, tgt, placed, sorted(set(starts) | {p.addr for p in placed}))
+    data = data_pointers(ref, tgt, data)
     data = data_between(ref, tgt, data)
     return Mapping(sorted(placed, key=lambda p: p.func.addr), removed, sorted(new), data)
 
@@ -327,6 +328,26 @@ def alike(a: bytes | None, b: bytes | None) -> float:
         return 1.0 if a == b else 0.0
     same = sum(a[4 * i:4 * i + 4] == b[4 * i:4 * i + 4] for i in range(n))
     return same / n
+
+
+def data_pointers(ref: Image, tgt: Image, voted: list[tuple]) -> list[tuple]:
+    starts = {o[0]: o for o in ref.objects}
+    placed = {a: b for a, b, _, _, _ in voted}
+    out = list(voted)
+    todo = list(placed.items())
+    while todo:
+        a, b = todo.pop()
+        obj = starts.get(a)
+        ra, rb = (ref.read(a, obj[1]), tgt.read(b, obj[1])) if obj else (None, None)
+        if not ra or not rb:
+            continue
+        for off in range(0, len(ra) - 3, 4):
+            x, y = int.from_bytes(ra[off:off + 4], "little"), int.from_bytes(rb[off:off + 4], "little")
+            if x in starts and x not in placed and tgt.read(y, 4) is not None:
+                placed[x] = y
+                out.append((x, y, starts[x][2], 0, 0))
+                todo.append((x, y))
+    return sorted(out)
 
 
 def data_between(ref: Image, tgt: Image, voted: list[tuple]) -> list[tuple]:
