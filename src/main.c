@@ -576,7 +576,7 @@ static int nw_boot_prepare(const char *data_dir, NwClockMode mode, bool hardware
         nw_log_info(NW_LOG_APP, "--pad-script %s replays 50 Hz ticks: 50 Hz", nw_pad_script);
     }
     /* Each disc at its own release's rate, PAL's 50 Hz and the US disc's 60; a PAL disc at 60 on request. */
-    nw_run_pal = !nw_disc_ntsc();
+    nw_run_pal = nw_disc_region() == NW_REGION_PAL;
     int disc_hz = nw_run_pal && !nw_pal_60hz ? 50 : 60;
     int hz = nw_hz_set(recording ? 50 : nw_run_hz ? nw_run_hz : disc_hz);
     nw_log_info(NW_LOG_LOAD, "disc: %s at %d Hz", vfs.manifest->name, hz);

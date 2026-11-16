@@ -17,6 +17,8 @@ typedef struct NwManifestEntry {
     unsigned flags;
 } NwManifestEntry;
 
+typedef enum NwRegion { NW_REGION_PAL, NW_REGION_US } NwRegion;
+
 typedef struct NwManifest {
     const NwManifestEntry *entries;
     size_t count;
@@ -24,6 +26,7 @@ typedef struct NwManifest {
     const char *boot;  /* SYSTEM.CNF's BOOT2, VER and VMODE */
     const char *ver;
     const char *vmode;
+    NwRegion region;
     unsigned flags;    /* NW_DISC_* */
 } NwManifest;
 

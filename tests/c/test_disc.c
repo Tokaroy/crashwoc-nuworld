@@ -61,7 +61,7 @@ int main(void)
     }
     NwVfs vfs = { .manifest = &nw_disc_manifest_usa100 };
     nw_shim_file_init(&vfs);
-    CHECK(nw_disc_ntsc());
+    CHECK(nw_disc() == &nw_disc_manifest_usa100 && nw_disc_region() == NW_REGION_US);
     edSfxGlobalCount = 197;
 
     /* Global sounds keep their number; none follows the US table's 177. */
@@ -84,9 +84,9 @@ int main(void)
     /* PAL's own files are PAL's numbering. */
     vfs.manifest = &nw_disc_manifest;
     edSfxLevelTab = table("SfxTabVOID");
-    CHECK(!nw_disc_ntsc() && nw_disc_sfx(183) == 183 && nw_disc_sfx(-1) == -1);
+    CHECK(nw_disc_region() == NW_REGION_PAL && nw_disc_sfx(183) == 183 && nw_disc_sfx(-1) == -1);
     nw_shim_file_init(NULL);
-    CHECK(nw_disc_sfx(183) == 183);
+    CHECK(!nw_disc() && nw_disc_region() == NW_REGION_PAL && nw_disc_sfx(183) == 183);
     nw_image_free();
 
     if (failures) {

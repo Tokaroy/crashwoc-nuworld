@@ -106,7 +106,8 @@ static void test_disc_manifest(void)
         const NwManifestEntry *elf = nw_manifest_find(m, m->boot);
         unsigned skipped = 0;
 
-        CHECK(m->count == discs[d].count && m->flags == discs[d].flags);
+        CHECK(m->count == discs[d].count && m->flags == discs[d].flags &&
+              m->region == (SDL_strcmp(m->vmode, "NTSC") == 0 ? NW_REGION_US : NW_REGION_PAL));
         CHECK(cnf && cnf->size == discs[d].cnf_size && strcmp(cnf->sha256, discs[d].cnf) == 0);
         CHECK(elf && elf->size == discs[d].elf_size && strcmp(elf->sha256, discs[d].elf) == 0);
         for (size_t i = 0; i < m->count; i++) {
@@ -163,7 +164,7 @@ static void manifest_add(TestManifest *t, const char *path, const void *data, si
 static void manifest_build(TestManifest *t)
 {
     memset(t, 0, sizeof(*t));
-    t->m = (NwManifest){ t->entries, 0, "PAL v1.03", "SLES_503.86", "1.03", "PAL", NW_DISC_DATA_ELF };
+    t->m = (NwManifest){ t->entries, 0, "PAL v1.03", "SLES_503.86", "1.03", "PAL", NW_REGION_PAL, NW_DISC_DATA_ELF };
     t->known[0] = &t->m;
     manifest_add(t, "DUMMY.DAT", dummy_data, DUMMY_SIZE, NW_MANIFEST_SKIP);
     manifest_add(t, "EMPTY.BIN", "", 0, 0);
@@ -354,8 +355,9 @@ static void test_verify(void)
     }
 
     /* Picked by BOOT2 and VER. */
-    NwManifest usa = { t.entries, t.m.count, "USA v1.00", "SLUS_202.38", "1.00", "NTSC", NW_DISC_ENGLISH };
-    NwManifest pal2 = { t.entries, t.m.count, "PAL v2.01", "SLES_503.86", "2.01", "PAL", 0 };
+    NwManifest usa = { t.entries, t.m.count, "USA v1.00", "SLUS_202.38", "1.00",
+                       "NTSC", NW_REGION_US, NW_DISC_ENGLISH };
+    NwManifest pal2 = { t.entries, t.m.count, "PAL v2.01", "SLES_503.86", "2.01", "PAL", NW_REGION_PAL, 0 };
     const NwManifest *several[] = { &usa, &pal2, &t.m, NULL };
     spec.cnf = pal_cnf;
     if (open_spec(&spec, &disc, &iso)) {

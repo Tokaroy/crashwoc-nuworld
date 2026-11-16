@@ -88,7 +88,7 @@ void DrawGameSlot(struct game_s *game, f32 x, f32 y, s32 colour)
         NwSaveTime t;
         nw_savemenu_when(game, &t);
         if (t.year) {
-            bool ntsc = nw_disc_ntsc();
+            bool ntsc = nw_disc_region() == NW_REGION_US;
             SDL_snprintf(tbuf, sizeof(tbuf), "%02d:%02d %02d.%02d.%02d", t.hour, t.minute, ntsc ? t.month : t.day,
                          ntsc ? t.day : t.month, t.year % 100);
             Text3D(tbuf, x, y - 0.3f, 1.0f, 0.5f, 0.5f, 0.5f, 0, 0);

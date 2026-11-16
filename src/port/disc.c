@@ -34,16 +34,16 @@ static const struct {
     { &nw_disc_manifest_usa100, nw_disc_sfx_usa, SDL_arraysize(nw_disc_sfx_usa) },
 };
 
-static const NwManifest *nw_disc(void)
+const NwManifest *nw_disc(void)
 {
     const NwVfs *vfs = nw_shim_file_vfs();
     return vfs ? vfs->manifest : NULL;
 }
 
-bool nw_disc_ntsc(void)
+NwRegion nw_disc_region(void)
 {
     const NwManifest *m = nw_disc();
-    return m && m->vmode && SDL_strcmp(m->vmode, "NTSC") == 0;
+    return m ? m->region : NW_REGION_PAL;
 }
 
 static int nw_disc_sfx_row(const NwDiscSfxRun *runs, size_t n, int sfx)
