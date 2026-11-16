@@ -199,6 +199,25 @@ static const char *nw_settings_log_format(const void *field, char *buf, int size
     return field;
 }
 
+static bool nw_settings_gpu_parse(const char *text, void *field)
+{
+    char *gpu = field;
+    size_t size = sizeof(((NwSettings *)0)->gpu);
+    if (!*text || SDL_strlen(text) >= size) {
+        return false;
+    }
+    SDL_memset(gpu, 0, size);
+    SDL_strlcpy(gpu, text, size);
+    return true;
+}
+
+static const char *nw_settings_gpu_format(const void *field, char *buf, int size)
+{
+    (void)buf;
+    (void)size;
+    return field;
+}
+
 static const char *const nw_settings_windows[NW_WINDOW_MODES] = { "windowed", "borderless", "fullscreen" };
 static const char *const nw_settings_vsyncs[NW_VSYNC_MODES] = { "off", "on", "adaptive" };
 static const char *const nw_settings_filters[NW_FILTERS] = { "retail", "nearest", "bilinear" };
@@ -284,6 +303,10 @@ static const NwSettingKey nw_settings_keys[] = {
       .help = "auto (the screen's or window's shape), 4:3, 16:9, 16:10, 21:9, 32:9 or a ratio; 4:3 is the PS2's" },
     { .table = "video", .name = "hud", .kind = NW_SETTING_TEXT, NW_FIELD(hud), .parse = nw_settings_hud_parse,
       .format = nw_settings_hud_format, .help = "how far out the HUD goes: edges, or an aspect it stays inside, centred" },
+    { .table = "video", .name = "gpu", .kind = NW_SETTING_TEXT, NW_FIELD(gpu), .parse = nw_settings_gpu_parse,
+      .format = nw_settings_gpu_format,
+      .help = "auto (Windows and the driver choose, NuWorld asks for the faster card) or the graphics card's name as "
+              "the Video menu lists it (Windows); from the next start" },
     { .table = "game", .name = "hardware_speed", .kind = NW_SETTING_BOOL, NW_FIELD(hardware_speed),
       .help = "true simulates original hardware speed: the PS2's disc and sound load times" },
     { .table = "game", .name = "pal_60hz", .kind = NW_SETTING_BOOL, NW_FIELD(pal_60hz),
@@ -389,6 +412,8 @@ void nw_settings_defaults(NwSettings *s)
     s->filter = NW_FILTER_RETAIL;
     s->gems = true;
     s->draw_distance = 400;
+    SDL_zero(s->gpu);
+    SDL_strlcpy(s->gpu, "auto", sizeof(s->gpu));
     nw_controls_defaults(&s->controls);
 }
 
@@ -439,7 +464,7 @@ static int nw_settings_doc(const char *path, NwDoc *doc)
 
 static void nw_settings_take(const NwSettingKey *k, const NwDocValue *v, NwSettings *s)
 {
-    char *field = (char *)s + k->offset, text[64];
+    char *field = (char *)s + k->offset, text[NW_GPU_NAME];
     if (k->kind == NW_SETTING_BOOL && v->type == NW_DOC_BOOL) {
         *(bool *)field = v->i != 0;
     } else if (k->kind == NW_SETTING_INT && v->type == NW_DOC_INT) {

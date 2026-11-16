@@ -9,6 +9,7 @@
 #include "gfx/backend.h"
 #include "platform/controls.h"
 #include "platform/display.h"
+#include "platform/gpu.h"
 
 #define NW_FPS_MAX 1000
 #define NW_DRAW_DISTANCE_MAX 400
@@ -43,6 +44,7 @@ typedef struct NwSettings {
     NwTexFilter filter;
     bool gems; /* gems, crystals and relics as cut stone and polished metal */
     int draw_distance; /* percent of the PS2's */
+    char gpu[NW_GPU_NAME];
     NwControls controls; /* [input], [pad], [keyboard] */
 } NwSettings;
 

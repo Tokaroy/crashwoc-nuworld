@@ -4,6 +4,7 @@
 
 #include "app.h"
 #include "frontend/debug.h"
+#include "gfx/gl.h"
 #include "gfx/interp.h"
 #include "platform/log.h"
 #include "port/wide.h"
@@ -18,6 +19,9 @@ static struct {
     NwResolution asked;      /* the window size the port set last, which no drag made */
     NwVsync vsync;           /* in effect */
     float aspect, hud;       /* the game's view, as last asked for */
+    char gpu[NW_GPU_NAME];
+    char gpus[NW_GPU_CARDS][NW_GPU_NAME];
+    int ngpus;
 } nw_video;
 
 static bool nw_video_near(NwResolution a, NwResolution b)
@@ -220,6 +224,40 @@ static void nw_video_panel(void *user)
         s->hud = huds[hud];
     }
     nw_debug_text("frame %d px wide", nw_wide_width());
+#ifdef _WIN32
+    const char *gpus[NW_GPU_CARDS + 2] = { "Auto" };
+    int n = 1, current = 0;
+    for (int i = 0; i < nw_video.ngpus; i++) {
+        gpus[n++] = nw_video.gpus[i];
+    }
+    for (int i = 1; i < n && !current; i++) {
+        current = SDL_strcmp(s->gpu, gpus[i]) == 0 ? i : 0;
+    }
+    if (!current && SDL_strcmp(s->gpu, "auto") != 0) {
+        gpus[n] = s->gpu;
+        current = n++;
+    }
+    int pick = current;
+    if (nw_debug_combo("Graphics card", &pick, gpus, n) && pick != current) {
+        SDL_zero(s->gpu);
+        SDL_strlcpy(s->gpu, pick ? gpus[pick] : "auto", sizeof(s->gpu));
+    }
+    nw_debug_tooltip("Auto lets Windows and the graphics driver choose; NuWorld asks for the faster card.");
+    if (SDL_strcmp(s->gpu, nw_video.gpu) != 0) {
+        nw_debug_text("takes effect at the next start");
+    }
+#endif
+    const GLubyte *renderer = glGetString(GL_RENDERER);
+    nw_debug_text("drawn by %s", renderer ? (const char *)renderer : "?");
+}
+
+static void nw_video_gpus(const char *gpu)
+{
+    SDL_strlcpy(nw_video.gpu, gpu, sizeof(nw_video.gpu));
+    nw_video.ngpus = nw_gpu_list(nw_video.gpus);
+    for (int i = 0; i < nw_video.ngpus; i++) {
+        nw_log_info(NW_LOG_GL, "graphics card: %s", nw_video.gpus[i]);
+    }
 }
 
 unsigned nw_video_fps(const NwSettings *s)
@@ -245,6 +283,7 @@ float nw_video_start(NwPlatform *p, NwSettings *s)
     nw_video.platform = p;
     nw_video.settings = s;
     nw_video.fullscreen = s->window == NW_WINDOW_WINDOWED ? NW_WINDOW_BORDERLESS : s->window;
+    nw_video_gpus(s->gpu);
     nw_debug_panel("Settings", "Video", nw_video_panel, s, false);
     nw_debug_action("Settings", "Fullscreen", SDL_SCANCODE_F11, nw_video_toggle, s);
     float aspect = nw_video_aspect(s);
@@ -293,6 +332,9 @@ void nw_video_apply(const NwSettings *s, const NwSettings *was)
     }
     if (s->draw_distance != was->draw_distance) {
         nw_wide_draw_distance(s->draw_distance);
+    }
+    if (SDL_strcmp(s->gpu, was->gpu) != 0) {
+        nw_gpu_prefer(s->gpu);
     }
     int w, h;
     nw_display_size(nw_video.platform->window, &w, &h);
