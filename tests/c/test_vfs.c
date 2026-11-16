@@ -97,9 +97,14 @@ static void test_disc_manifest(void)
           "7fc6826d08c42a5a92fc018edae3e520783beb5a8330410251192bfe26b1eca1", NW_DISC_DATA_ELF },
         { &nw_disc_manifest_usa100, 446, 57, 6823304, "c672d8baae995ad043a6af7a0351c89cbec5b96b93e1175ce1394dada10c1f61",
           "4ce4cfb85538d5986bd2401b2a30af64ad7aa8cad3649705bbcd1fa0c6543f9d", NW_DISC_ENGLISH },
+        { &nw_disc_manifest_pal201, 453, 56, 5546092, "68648f550bdc1ff6f2945e97e4e21bb5cfbf89b0c0be21749a39f713efcfdbb2",
+          "3c8d2997e27b2034fa9027764deebbab87f06d443b633cf729d172086b251c25", NW_DISC_LATE },
+        { &nw_disc_manifest_usa101, 455, 57, 5596300, "673c91a7f2d1810a848e1bb0da88cea12d3199713e151c487f53c6fa9c57ff77",
+          "b72fe66ea1111645313e6ec0d09fece7eaabc2042c2ac0fe1fa9b4602ef40e74", NW_DISC_ENGLISH | NW_DISC_LATE },
     };
     CHECK(nw_disc_manifests[0] == &nw_disc_manifest && nw_disc_manifests[1] == &nw_disc_manifest_usa100 &&
-          !nw_disc_manifests[2]);
+          nw_disc_manifests[2] == &nw_disc_manifest_pal201 && nw_disc_manifests[3] == &nw_disc_manifest_usa101 &&
+          !nw_disc_manifests[4]);
     for (size_t d = 0; d < SDL_arraysize(discs); d++) {
         const NwManifest *m = discs[d].m;
         const NwManifestEntry *cnf = nw_manifest_find(m, "system.cnf");
@@ -480,10 +485,13 @@ static void test_import(void)
     CHECK(nw_extract_manifest(root, nw_disc_manifests) == &nw_disc_manifest);
     static const char usa[] = "nuworld-disc 1\r\nboot SLUS_202.38\r\nver 1.00\r\n";
     static const char usa101[] = "nuworld-disc 1\nboot SLUS_202.38\nver 1.01\n";
+    static const char usa9[] = "nuworld-disc 1\nboot SLUS_202.38\nver 9.99\n";
     SDL_SaveFile(AT("disc/" NW_DISC_STAMP), usa, strlen(usa));
     CHECK(nw_extract_manifest(root, nw_disc_manifests) == &nw_disc_manifest_usa100);
     SDL_SaveFile(AT("disc/" NW_DISC_STAMP), usa101, strlen(usa101));
-    CHECK_FAILS(nw_extract_manifest(root, nw_disc_manifests), "the imported disc is SLUS_202.38 v1.01");
+    CHECK(nw_extract_manifest(root, nw_disc_manifests) == &nw_disc_manifest_usa101);
+    SDL_SaveFile(AT("disc/" NW_DISC_STAMP), usa9, strlen(usa9));
+    CHECK_FAILS(nw_extract_manifest(root, nw_disc_manifests), "the imported disc is SLUS_202.38 v9.99");
     SDL_SaveFile(AT("disc/" NW_DISC_STAMP), "", 0);
     CHECK(nw_extract_manifest(root, nw_disc_manifests) == &nw_disc_manifest);
 

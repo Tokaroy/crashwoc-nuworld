@@ -522,6 +522,7 @@ static const char *nw_run_level;  /* --level */
 static const char *nw_pad_script; /* --pad-script */
 static int nw_run_hz;             /* --hz, else the disc's rate */
 static int nw_game_hz;
+static bool nw_run_rev;
 static const char *nw_overlays[NW_VFS_OVERLAYS]; /* --overlay, in the order given: the later wins */
 static int nw_overlay_count;
 
@@ -572,6 +573,9 @@ static int nw_boot_prepare(const char *data_dir, NwClockMode mode, bool hardware
     }
     if (vfs.manifest->flags & NW_DISC_ENGLISH) {
         LANGUAGEOPTION = 0;
+    }
+    if (!nw_run_rev && (vfs.manifest->flags & NW_DISC_LATE)) {
+        nw_rev_set("late");
     }
     int script_hz = nw_pad_script ? nw_pad_script_hz(nw_pad_script) : 0;
     if (script_hz && nw_run_hz && nw_run_hz != script_hz) {
@@ -1724,6 +1728,7 @@ int main(int argc, char *argv[])
             }
             nw_run_hz = atoi(value);
         } else if (strcmp(argv[i], "--revision") == 0) {
+            nw_run_rev = true;
             if (!nw_rev_set(argv[++i])) {
                 fprintf(stderr, NW_APP_NAME ": --revision takes 1.03 or late\n");
                 return 2;

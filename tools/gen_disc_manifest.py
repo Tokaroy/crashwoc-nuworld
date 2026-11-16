@@ -38,6 +38,14 @@ DISCS = {
         "SYSTEM.CNF": (57, "c672d8baae995ad043a6af7a0351c89cbec5b96b93e1175ce1394dada10c1f61"),
         "SLUS_202.38": (6823304, "4ce4cfb85538d5986bd2401b2a30af64ad7aa8cad3649705bbcd1fa0c6543f9d"),
     }),
+    "pal201": Disc("PAL v2.01", REPO / "src" / "vfs" / "disc_manifest_pal201.inc", 453, {
+        "SYSTEM.CNF": (56, "68648f550bdc1ff6f2945e97e4e21bb5cfbf89b0c0be21749a39f713efcfdbb2"),
+        "SLES_503.86": (5546092, "3c8d2997e27b2034fa9027764deebbab87f06d443b633cf729d172086b251c25"),
+    }),
+    "usa101": Disc("USA v1.01", REPO / "src" / "vfs" / "disc_manifest_usa101.inc", 455, {
+        "SYSTEM.CNF": (57, "673c91a7f2d1810a848e1bb0da88cea12d3199713e151c487f53c6fa9c57ff77"),
+        "SLUS_202.38": (5596300, "b72fe66ea1111645313e6ec0d09fece7eaabc2042c2ac0fe1fa9b4602ef40e74"),
+    }),
 }
 
 SKIP = {"DUMMY.DAT"}  # zero padding the game never opens

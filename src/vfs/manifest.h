@@ -9,6 +9,7 @@
 
 #define NW_DISC_DATA_ELF 1u /* the data image is made from its ELF */
 #define NW_DISC_ENGLISH 2u  /* English voices only */
+#define NW_DISC_LATE 4u
 
 typedef struct NwManifestEntry {
     const char *path;   /* uppercase, '/'-separated, no ";1" */
@@ -31,7 +32,7 @@ typedef struct NwManifest {
 } NwManifest;
 
 /* From src/vfs/disc_manifest*.inc. */
-extern const NwManifest nw_disc_manifest, nw_disc_manifest_usa100;
+extern const NwManifest nw_disc_manifest, nw_disc_manifest_usa100, nw_disc_manifest_pal201, nw_disc_manifest_usa101;
 /* PAL first, NULL-terminated. */
 extern const NwManifest *const nw_disc_manifests[];
 

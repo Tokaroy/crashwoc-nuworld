@@ -26,6 +26,14 @@ schema = 1
 "glb_amb_error_flag" = "ffffffff"
 "glb_dir_error_flag" = "ffffffff"
 
+[discs."PAL v2.01"]
+"ariel16_fnt" = 0x002e66d8
+"ariel16_bmp" = 0x002e6f78
+
+[discs."USA v1.01"]
+"ariel16_fnt" = 0x002dfcd8
+"ariel16_bmp" = 0x002e0578
+
 [discs."USA v1.00"]
 "ariel16_fnt" = 0x002e4558
 "ariel16_bmp" = 0x002e4df8
