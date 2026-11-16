@@ -1,2 +1,30 @@
 ^func:game/game/CheckFinish@\w+ structure$  # register allocation: the late revision keeps the hub and level flags in swapped registers
 ^func:game/game/CheckFinish@\w+\+0x[0-9a-f]+ imm (14 -> 15|15 -> 16|16 -> 17)$  # menu ids: the late revision's two new menus shift them; NuWorld keeps PAL v1.03's
+^func:nucore/nufile/NuFileSifLoadModule@\w+\+0x[0-9a-f]+ imm (450 -> 453|454 -> 457|458 -> 461|462 -> 465|467 -> 470)$  # debug line numbers: the late source has more lines (loads in call delay slots)
+^func:nucore/nufile/NuFileOpen@\w+\+0x[0-9a-f]+ imm (538 -> 541|542 -> 545|545 -> 548|555 -> 558|566 -> 569)$  # debug line numbers: the late source has more lines (loads in call delay slots)
+^func:nucore/nufile/NuFileSize@\w+\+0x[0-9a-f]+ imm (780 -> 783|589 -> 592|596 -> 599)$  # debug line numbers: the late source has more lines (loads in call delay slots)
+^func:nucore/nufile/NuFileLoad@\w+\+0x[0-9a-f]+ imm (868 -> 871|589 -> 592|596 -> 599)$  # debug line numbers: the late source has more lines (loads in call delay slots)
+^func:nucore/nufile/NuFileLoadBuffer@\w+\+0x[0-9a-f]+ imm (919 -> 922|921 -> 924|589 -> 592|596 -> 599)$  # debug line numbers: the late source has more lines (loads in call delay slots)
+^func:nucore/nufile/NuFileBeginBlkRead@\w+\+0x[0-9a-f]+ imm (780 -> 783)$  # debug line numbers: the late source has more lines (loads in call delay slots)
+^func:nucore/nufile/NuFileBeginBlkWrite@\w+\+0x[0-9a-f]+ imm (780 -> 783|1211 -> 1214)$  # debug line numbers: the late source has more lines (loads in call delay slots)
+^func:nucore/nufile/NuFileEndBlkWrite@\w+\+0x[0-9a-f]+ imm (780 -> 783|1243 -> 1246)$  # debug line numbers: the late source has more lines (loads in call delay slots)
+^func:nucore/nufile/NuFileWriteAddress@\w+\+0x[0-9a-f]+ imm (780 -> 783)$  # debug line numbers: the late source has more lines (loads in call delay slots)
+^func:nucore/nufile/NuFileSetAddress@\w+\+0x[0-9a-f]+ imm (780 -> 783)$  # debug line numbers: the late source has more lines (loads in call delay slots)
+^func:nucore/nufile/NuFileAlign@\w+\+0x[0-9a-f]+ imm (780 -> 783)$  # debug line numbers: the late source has more lines (loads in call delay slots)
+^func:nucore/nufile/NuDatFileLoadBuffer@\w+\+0x[0-9a-f]+ imm (617 -> 620|1505 -> 1585|1508 -> 1588|589 -> 592|596 -> 599|1522 -> 1602|1525 -> 1605)$  # debug line numbers: the late source has more lines (loads in call delay slots)
+^func:nucore/nufile/NuDatFileOpen@\w+\+0x[0-9a-f]+ imm (1669 -> 1749)$  # debug line numbers: the late source has more lines (loads in call delay slots)
+^func:nucore/nufile/NuDatClose@\w+\+0x[0-9a-f]+ imm (589 -> 592|596 -> 599|1709 -> 1789)$  # debug line numbers: the late source has more lines (loads in call delay slots)
+^func:nucore/nufile/NuDatOpenEx@\w+\+0x[0-9a-f]+ imm (617 -> 620|1794 -> 1876|1796 -> 1878|1802 -> 1884|1821 -> 1903|1823 -> 1905|596 -> 599)$  # debug line numbers: the late source has more lines (loads in call delay slots)
+^func:nucore/nufile/NuFileClose@\w+\+0x[0-9a-f]+ imm (589 -> 592|596 -> 599)$  # debug line numbers: the late source has more lines (loads in call delay slots)
+^func:nucore/nufile/NuFilePos@\w+\+0x[0-9a-f]+ imm (780 -> 783)$  # debug line numbers: the late source has more lines (loads in call delay slots)
+^func:nucore/nufile/NuFileInitAddress@\w+\+0x[0-9a-f]+ imm (1381 -> 1384)$  # debug line numbers: the late source has more lines (loads in call delay slots)
+^func:nu3d/nucvtgeo/NuCvtSizeDmaTriStripCFromIdx@\w+\+0x[0-9a-f]+ imm (1685 -> 1688)$  # debug line numbers: the late source has more lines (loads in call delay slots)
+^func:nu3d/nucvtgeo/NuCvtDmaTriStripCFromIdx@\w+\+0x[0-9a-f]+ imm (2191 -> 2194)$  # debug line numbers: the late source has more lines (loads in call delay slots)
+^func:nu3d/nucvtgeo/NuPs2CreateFaceOn@\w+\+0x[0-9a-f]+ imm (2359 -> 2362|2389 -> 2392|2370 -> 2373)$  # debug line numbers: the late source has more lines (loads in call delay slots)
+^func:nu3d/nucvtgeo/NuPs2CreateRenderStream@\w+\+0x[0-9a-f]+ imm (2577 -> 2580|2594 -> 2597|2663 -> 2666)$  # debug line numbers: the late source has more lines (loads in call delay slots)
+^func:nups2/ps2ctl/NuPs2ClosePad@\w+\+0x[0-9a-f]+ imm (132 -> 139|132 -> 142)$  # debug line numbers: the late source has more lines (loads in call delay slots)
+^func:gamelib/terrain/ReadTerrain@\w+\+0x34 imm 787 -> 790$  # debug line number (NuDebugMsgProlog, delay slot); NuWorld overrides ReadTerrain
+^func:gamelib/terrain/HitWallSpline@\w+ structure$  # register allocation: the late revision keeps the 64.0f bound and radsq in swapped float registers (f20/f21)
+^func:gamelib/saveload/saveloadAS(Format|Load|Save|Delete)@\w+\+0x[0-9a-f]+ imm (4 -> 5|5 -> 6|9 -> 10|25 -> 26)$  # memory-card state ids: the late card code inserts state 4, later ids shift by one; NuWorld drops gamelib/saveload
+^func:gamelib/saveload/saveloadASCallEachFrame@\w+ structure$  # the late card state machine: new state 4 (sceMcGetDir on a formatted PS2 card, sets a new save-found flag); NuWorld drops gamelib/saveload
+^func:gamelib/saveload/saveloadASCallEachFrame@\w+\+0x[0-9a-f]+ imm (31 -> 32|1 -> 2|6 -> 7|7 -> 8|8 -> 9|14 -> 15|10 -> 11|12 -> 13|13 -> 14|15 -> 16|16 -> 17|17 -> 18|18 -> 19|19 -> 20|20 -> 21|21 -> 22|22 -> 23|23 -> 24|24 -> 25|11 -> 12|26 -> 27|27 -> 28|28 -> 29|29 -> 30|30 -> 31|32 -> 33)$  # memory-card state ids shifted by the late state 4; NuWorld drops gamelib/saveload

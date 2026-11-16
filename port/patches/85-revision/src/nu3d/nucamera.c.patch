@@ -1,0 +1,51 @@
+--- a/src/nu3d/nucamera.c
++++ b/src/nu3d/nucamera.c
+@@ -48,6 +48,7 @@
+ #include "nu3d/nustream.h"
+ #include "nucore/nuerror.h"
+ #include "numath/numathtypes.h"
++#include "numath/nufloat.h"
+ #include "numath/numtx.h"
+ #include "numath/nutrig.h"
+ #include "numath/nuvec.h"
+@@ -234,8 +235,38 @@ void NuCameraSetEx(struct nucamera_s *cam, int keep) {
+         NuMtxMul(&vmtx, &vmtx, &caminv);
+     }
+     if (!keep) {
+-        NuCameraSetProjectionMtx(&pmtx, global_camera.fov, global_camera.aspect,
+-                                 global_camera.nearclip, global_camera.farclip);
++        if (NW_REV(0, 1)) {
++            struct numtx_s *m = &pmtx;
++            float fov = global_camera.fov;
++            float aspect = global_camera.aspect;
++            float nearclip = global_camera.nearclip;
++            float farclip = global_camera.farclip;
++            float depth = farclip - nearclip;
++            int angle;
++            float *sine;
++            float cot;
++            float q;
++
++            if (!(NuFabs(depth) > 0.01f)) {
++                NuErrorProlog("..\\nu2crash.ps2\\nu3d\\nucamera.c", 0xA0)("assert");
++            }
++            angle = (int)(fov * 0.5f * 10430.378f);
++            sine = &NuTrigTable[angle & 0xFFFF];
++            if (!(NuFabs(*sine) > 0.01f)) {
++                NuErrorProlog("..\\nu2crash.ps2\\nu3d\\nucamera.c", 0xA1)("assert");
++            }
++            q = farclip / depth;
++            cot = NuTrigTable[(angle + 0x4000) & 0xFFFF] / *sine;
++            memset(m, 0, sizeof(struct numtx_s));
++            m->_00 = aspect * cot;
++            m->_11 = cot;
++            m->_22 = q;
++            m->_23 = 1.0f;
++            m->_32 = -q * nearclip;
++        } else {
++            NuCameraSetProjectionMtx(&pmtx, global_camera.fov, global_camera.aspect,
++                                     global_camera.nearclip, global_camera.farclip);
++        }
+     }
+     NuCameraSetVPortClipMtx(&vpc_vport_mtx, &vmtx, &global_camera, keep);
+     NuCameraSetScissorClipMtx(&vpc_sci_mtx, &vmtx, &global_camera, keep);
