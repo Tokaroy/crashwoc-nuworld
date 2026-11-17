@@ -995,6 +995,8 @@ static void slide_spin(void)
     CHECK(near(loop_forward(0.11f, 0.072f), 0.11f - 0.0072f, 1e-5f));
 
     on.movement.crash.slide_spin_steer = 50;
+    on.movement.crash.slide_spin_lean = 0;
+    on.movement.crash.slide_spin_bank = 15;
     spin_slide(&on);
     c->slide = 0;
     c->crawl = 1;
@@ -1008,7 +1010,17 @@ static void slide_spin(void)
     CHECK(c->spin == 1 && c->crawl == 0);
     c->obj.thdg = 0x4000;
     loop_forward(0.11f, 0.072f);
-    CHECK(c->obj.thdg == 0x2000);
+    CHECK(c->obj.thdg > 0x800 && c->obj.thdg < 0x1000);
+    spin_move();
+    for (int i = 0; i < 4; i++) {
+        c->obj.thdg = 0x4000;
+        loop_forward(0.11f, 0.072f);
+        spin_move();
+    }
+    u16 turned = c->obj.thdg;
+    nw_slide_spin_lean(c, 1);
+    CHECK(turned > 0x1000 && turned < 0x4000 && c->obj.zrot > 0xF000 && c->obj.zrot < 0xFF00);
+    nw_slide_spin_unlean();
 
     spin_slide(&on);
     c->slide = 0;

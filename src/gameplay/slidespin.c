@@ -1,6 +1,7 @@
 #include "gameplay/slidespin.h"
 
 #include <math.h>
+#include <stddef.h>
 
 #include "game/creature.h"
 #include "game/gametypes.h"
@@ -26,7 +27,7 @@ static bool nw_ss_on;
 static float nw_ss_hold, nw_ss_jump;
 static u16 nw_ss_heading;
 static int nw_ss_ticks;
-static float nw_ss_tilt;
+static float nw_ss_ramp, nw_ss_bank;
 static bool nw_ss_tilted;
 static u16 nw_ss_xrot, nw_ss_zrot;
 
@@ -49,7 +50,7 @@ static void nw_ss_reset(void)
 {
     nw_ss_late = -1;
     nw_ss_on = false;
-    nw_ss_hold = nw_ss_jump = nw_ss_tilt = 0.0f;
+    nw_ss_hold = nw_ss_jump = nw_ss_ramp = nw_ss_bank = 0.0f;
 }
 
 void nw_slide_spin_before(struct creature_s *plr, const struct nupad_s *pad)
@@ -109,6 +110,7 @@ void nw_slide_spin_after(struct creature_s *plr)
         nw_ss_hold = nw_ss_slide_v * c->slide_spin_kept / 100.0f;
         nw_ss_heading = speed > 0.001f ? (u16)NuAtan2D(plr->obj.mom.x, plr->obj.mom.z) : plr->obj.hdg;
         nw_ss_ticks = 0;
+        nw_ss_bank = 0.0f;
         nw_ss_late = -1;
         nw_ss_jump = 0.0f;
     } else if (nw_ss_on) {
@@ -129,7 +131,7 @@ void nw_slide_spin_after(struct creature_s *plr)
         (off || plr->obj.ground || plr->jump == 0 || (plr->slam != 0 && plr->slam < 3))) {
         nw_ss_jump = 0.0f;
     }
-    nw_ss_tilt = nw_ss_on ? nw_ss_lean_at(plr) * c->slide_spin_lean : 0.0f;
+    nw_ss_ramp = nw_ss_on ? nw_ss_lean_at(plr) : 0.0f;
 }
 
 void nw_slide_spin_loop(const struct creature_s *plr, u16 *hdg)
@@ -138,11 +140,15 @@ void nw_slide_spin_loop(const struct creature_s *plr, u16 *hdg)
     if (!c->slide_spin || !nw_ss_continued()) {
         return;
     }
+    float bank = 0.0f;
     if (nw_ss_hold > 0.0f) {
         NW_DEVIATION(movement.crash.slide_spin);
         if (hdg) {
-            short turn = (short)(u16)(*hdg - nw_ss_heading);
-            *hdg = (u16)(nw_ss_heading + turn * c->slide_spin_steer / 100);
+            short off = plr->obj.pad_speed > 0.0f ? (short)(u16)(*hdg - nw_ss_heading) : 0;
+            float share = 1.0f - powf(0.75f, c->slide_spin_steer / 100.0f * NW_HZ(1.0f, 50.0f / 60.0f));
+            nw_ss_heading = (u16)(nw_ss_heading + (int)(off * share));
+            *hdg = nw_ss_heading;
+            bank = c->slide_spin_steer > 0 ? sinf(off * (6.2831855f / 65536.0f)) : 0.0f;
         }
         float a = (hdg ? *hdg : plr->obj.hdg) * (6.2831855f / 65536.0f);
         float forward = plr->obj.mom.x * sinf(a) + plr->obj.mom.z * cosf(a);
@@ -156,31 +162,44 @@ void nw_slide_spin_loop(const struct creature_s *plr, u16 *hdg)
         NW_DEVIATION(movement.crash.slide_spin);
         in_speed = in_speed < nw_ss_jump ? nw_ss_jump : in_speed;
     }
+    nw_ss_bank += (bank - nw_ss_bank) * (1.0f - powf(0.65f, NW_HZ(1.0f, 50.0f / 60.0f)));
+}
+
+static void nw_ss_flat(float v[3], const float up[3], const float *other)
+{
+    float d = v[0] * up[0] + v[1] * up[1] + v[2] * up[2];
+    float e = other ? v[0] * other[0] + v[1] * other[1] + v[2] * other[2] : 0.0f;
+    for (int i = 0; i < 3; i++) {
+        v[i] -= up[i] * d + (other ? other[i] * e : 0.0f);
+    }
+    float n = sqrtf(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
+    for (int i = 0; i < 3; i++) {
+        v[i] = n > 0.001f ? v[i] / n : 0.0f;
+    }
 }
 
 void nw_slide_spin_lean(struct creature_s *c, s32 count)
 {
+    const NwCrashMovement *m = &nw_profile.movement.crash;
     struct creature_s *plr = &Character[0];
     nw_ss_tilted = false;
-    if (!nw_profile.movement.crash.slide_spin || nw_ss_tilt <= 0.0f || plr < c || plr >= c + count ||
-        plr->obj.dead || !nw_ss_attack(plr)) {
+    if (!m->slide_spin || nw_ss_ramp <= 0.0f || plr < c || plr >= c + count || plr->obj.dead ||
+        !nw_ss_attack(plr)) {
         return;
     }
     NW_DEVIATION(movement.crash.slide_spin);
-    const float rad = 6.2831855f / 65536.0f;
+    const float rad = 6.2831855f / 65536.0f, deg = 3.1415927f / 180.0f;
     float x = plr->obj.xrot * rad, z = plr->obj.zrot * rad, h = nw_ss_heading * rad;
     float up[3] = { -sinf(z), cosf(z) * cosf(x), cosf(z) * sinf(x) };
     float fw[3] = { sinf(h), 0.0f, cosf(h) };
-    float d = fw[0] * up[0] + fw[1] * up[1] + fw[2] * up[2];
+    float side[3] = { cosf(h), 0.0f, -sinf(h) };
+    nw_ss_flat(fw, up, NULL);
+    nw_ss_flat(side, up, fw);
+    float tf = nw_ss_ramp * m->slide_spin_lean * deg, ts = nw_ss_ramp * nw_ss_bank * m->slide_spin_bank * deg;
+    float u[3];
     for (int i = 0; i < 3; i++) {
-        fw[i] -= up[i] * d;
+        u[i] = (up[i] * cosf(tf) + fw[i] * sinf(tf)) * cosf(ts) + side[i] * sinf(ts);
     }
-    float n = sqrtf(fw[0] * fw[0] + fw[1] * fw[1] + fw[2] * fw[2]);
-    if (n < 0.001f) {
-        return;
-    }
-    float t = nw_ss_tilt * (3.1415927f / 180.0f), ct = cosf(t), st = sinf(t) / n;
-    float u[3] = { up[0] * ct + fw[0] * st, up[1] * ct + fw[1] * st, up[2] * ct + fw[2] * st };
     float ux = u[0] < -1.0f ? -1.0f : u[0] > 1.0f ? 1.0f : u[0];
     nw_ss_xrot = plr->obj.xrot;
     nw_ss_zrot = plr->obj.zrot;
