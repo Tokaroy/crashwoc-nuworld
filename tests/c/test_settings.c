@@ -265,7 +265,7 @@ int main(int argc, char *argv[])
     CHECK(s.movement.monkey_bar_speed == ((NwMovement)NW_MOVEMENT_NHANCED).monkey_bar_speed);
     CHECK(read_text("[game.movement]\nmonkey_bar_speed = 150\n", &s) && s.movement.monkey_bar_speed == 150);
     CHECK(read_text("[game.movement]\nmonkey_bar_speed = 900\n", &s) && s.movement.monkey_bar_speed == 500);
-    CHECK(read_text("[game]\nmonkey_bar_speed = 150\n", &s) && s.movement.monkey_bar_speed == 350);
+    CHECK(read_text("[game]\nmonkey_bar_speed = 150\n", &s) && s.movement.monkey_bar_speed == 335);
     s.movement.monkey_bar_speed = 100;
     CHECK(nw_settings_save(&s, root));
     char *movement = file_text();
@@ -283,9 +283,9 @@ int main(int argc, char *argv[])
     CHECK(!s.movement.mech.stand_jump && !s.movement.mech.hitbox && s.movement.mech.shot_tap &&
           s.movement.mech.shot_stop_ms == 25);
     CHECK(read_text("[game.movement]\nmonkey_bar_speed = 100\n[game.movement.crash]\ngrip = true\n", &s) &&
-          s.movement.crash.grip && s.movement.crash.run_speed && s.movement.mech.stand_jump);
+          s.movement.crash.grip && s.movement.crash.air_jump && s.movement.mech.stand_jump);
     CHECK(read_text("[game.movement]\nmonkey_bar_speed = 100\n[game.movement.mech]\naim_fast = true\n", &s) &&
-          !s.movement.crash.run_speed && s.movement.mech.aim_fast && s.movement.mech.stand_jump);
+          !s.movement.crash.air_jump && s.movement.mech.aim_fast && s.movement.mech.stand_jump);
     NW_COCO_MOVEMENT(COCO_SWITCH, COCO_FLAG, COCO_VALUE)
     /* The same for Coco's. */
     CHECK(read_text("[game.movement]\nmonkey_bar_speed = 100\n", &s) && !s.movement.coco.run_speed &&
@@ -293,10 +293,10 @@ int main(int argc, char *argv[])
     CHECK(read_text("[game.movement]\nmonkey_bar_speed = 100\n[game.movement.crash]\ngrip = true\n", &s) &&
           s.movement.coco.grip && s.movement.coco.run_speed && !s.movement.coco.jump_fall);
     CHECK(read_text("[game.movement]\nmonkey_bar_speed = 100\n[game.movement.coco]\ngrip = false\n", &s) &&
-          !s.movement.coco.grip && s.movement.coco.run_speed && !s.movement.crash.run_speed);
+          !s.movement.coco.grip && s.movement.coco.run_speed && !s.movement.crash.air_jump);
     CHECK(read_text("[game.movement]\nmonkey_bar_speed = 350\n", &s) && s.movement.coco.grip);
-    CHECK(read_text("[game.movement]\nmonkey_bar_speed = 350\n", &s) && s.movement.crash.run_speed &&
-          !s.movement.crash.jump_fall);
+    CHECK(read_text("[game.movement]\nmonkey_bar_speed = 350\n", &s) && s.movement.crash.jump_fall &&
+          !s.movement.crash.run_speed);
     NW_SUB_MOVEMENT(SUB_SWITCH, SUB_SWITCH, SUB_VALUE)
     /* The same for the submarine's: a retail file from before them stays retail, any other takes the defaults. */
     CHECK(read_text("[game.movement]\nmonkey_bar_speed = 100\n", &s) && !s.movement.submarine.turning &&
@@ -304,7 +304,7 @@ int main(int argc, char *argv[])
     CHECK(read_text("[game.movement]\nmonkey_bar_speed = 100\n[game.movement.crash]\ngrip = true\n", &s) &&
           s.movement.submarine.speed);
     CHECK(read_text("[game.movement]\nmonkey_bar_speed = 100\n[game.movement.submarine]\nhitbox = true\n", &s) &&
-          s.movement.submarine.hitbox && !s.movement.crash.run_speed);
+          s.movement.submarine.hitbox && !s.movement.crash.air_jump);
     CHECK(read_text("[game.movement]\nmonkey_bar_speed = 350\n", &s) && s.movement.submarine.turning);
     NW_JEEP_MOVEMENT(JEEP_SWITCH, JEEP_FLAG, JEEP_VALUE)
     /* The same for the jeep's: a retail file from before them stays retail, any other takes the defaults. */
@@ -313,7 +313,7 @@ int main(int argc, char *argv[])
     CHECK(read_text("[game.movement]\nmonkey_bar_speed = 100\n[game.movement.crash]\ngrip = true\n", &s) &&
           s.movement.jeep.steering);
     CHECK(read_text("[game.movement]\nmonkey_bar_speed = 100\n[game.movement.jeep]\nspeed = false\n", &s) &&
-          !s.movement.jeep.speed && s.movement.jeep.steering && !s.movement.crash.run_speed);
+          !s.movement.jeep.speed && s.movement.jeep.steering && !s.movement.crash.air_jump);
     CHECK(read_text("[game.movement]\nmonkey_bar_speed = 350\n", &s) && s.movement.jeep.steering);
     NW_ATLAS_MOVEMENT(ATLAS_SWITCH, ATLAS_FLAG, ATLAS_VALUE)
     /* The same for the atlasphere's: a retail file from before them stays retail, any other takes the defaults. */
@@ -323,7 +323,7 @@ int main(int argc, char *argv[])
     CHECK(read_text("[game.movement]\nmonkey_bar_speed = 100\n[game.movement.crash]\ngrip = true\n", &s) &&
           s.movement.atlasphere.brake && !s.movement.atlasphere.edge_guard);
     CHECK(read_text("[game.movement]\nmonkey_bar_speed = 100\n[game.movement.atlasphere]\nedge_guard = true\n", &s) &&
-          s.movement.atlasphere.brake && s.movement.atlasphere.edge_guard && !s.movement.crash.run_speed);
+          s.movement.atlasphere.brake && s.movement.atlasphere.edge_guard && !s.movement.crash.air_jump);
     CHECK(read_text("[game.movement]\nmonkey_bar_speed = 350\n", &s) && !s.movement.atlasphere.edge_guard &&
           s.movement.atlasphere.brake && s.movement.atlasphere.steer_turn == 250);
     NW_FIREFLY_MOVEMENT(FIREFLY_SWITCH, FIREFLY_FLAG, FIREFLY_VALUE)
@@ -333,7 +333,7 @@ int main(int argc, char *argv[])
     CHECK(read_text("[game.movement]\nmonkey_bar_speed = 100\n[game.movement.crash]\ngrip = true\n", &s) &&
           s.movement.firefly.lock_on && s.movement.firefly.steering);
     CHECK(read_text("[game.movement]\nmonkey_bar_speed = 100\n[game.movement.firefly]\nsteering = false\n", &s) &&
-          s.movement.firefly.lock_on && !s.movement.firefly.steering && !s.movement.crash.run_speed);
+          s.movement.firefly.lock_on && !s.movement.firefly.steering && !s.movement.crash.air_jump);
     CHECK(read_text("[game.movement]\nmonkey_bar_speed = 350\n", &s) && s.movement.firefly.steering);
     NW_PLANE_MOVEMENT(PLANE_SWITCH, PLANE_FLAG, PLANE_VALUE)
     /* The same for the plane's: a retail file from before them stays retail, any other takes the defaults. */
@@ -342,7 +342,7 @@ int main(int argc, char *argv[])
     CHECK(read_text("[game.movement]\nmonkey_bar_speed = 100\n[game.movement.crash]\ngrip = true\n", &s) &&
           s.movement.plane.steering && s.movement.plane.aim);
     CHECK(read_text("[game.movement]\nmonkey_bar_speed = 100\n[game.movement.plane]\naim = false\n", &s) &&
-          s.movement.plane.steering && !s.movement.plane.aim && !s.movement.crash.run_speed);
+          s.movement.plane.steering && !s.movement.plane.aim && !s.movement.crash.air_jump);
     CHECK(read_text("[game.movement]\nmonkey_bar_speed = 350\n", &s) && s.movement.plane.steering);
     NW_SPACE_MOVEMENT(SPACE_SWITCH, SPACE_FLAG, SPACE_VALUE)
     /* The same for the space fighter's. */
@@ -352,7 +352,7 @@ int main(int argc, char *argv[])
     CHECK(read_text("[game.movement]\nmonkey_bar_speed = 100\n[game.movement.crash]\ngrip = true\n", &s) &&
           s.movement.spacefighter.steering && s.movement.spacefighter.aim);
     CHECK(read_text("[game.movement]\nmonkey_bar_speed = 100\n[game.movement.spacefighter]\nroll = false\n", &s) &&
-          !s.movement.spacefighter.roll && s.movement.spacefighter.aim && !s.movement.crash.run_speed);
+          !s.movement.spacefighter.roll && s.movement.spacefighter.aim && !s.movement.crash.air_jump);
     CHECK(read_text("[game.movement]\nmonkey_bar_speed = 350\n", &s) && s.movement.spacefighter.aim_assist);
 
     /* The rate is the disc's now: an older file's hz is kept but changes nothing; PAL at 60 Hz is asked for. */

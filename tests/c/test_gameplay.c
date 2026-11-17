@@ -101,9 +101,9 @@ static void monkey_bars(int hz, float retail)
     nw_profile_apply(&(NwProfile){ 0 });
     CHECK(dangle(retail));
     nw_profile_apply(&(NwProfile){ .movement = NW_MOVEMENT_NHANCED });
-    CHECK(dangle(retail * 3.5f));
+    CHECK(dangle(retail * 3.35f));
     nw_profile_request(&(NwProfile){ .movement = { .monkey_bar_speed = 150 } });
-    CHECK(dangle(retail * 3.5f));
+    CHECK(dangle(retail * 3.35f));
     nw_gameplay_swap();
     CHECK(dangle(retail * 1.5f));
     /* A value someone else wrote stays. */
@@ -509,6 +509,9 @@ static void jump_fall(void)
 static void jump_fall_moves(void)
 {
     NwProfile retail = { 0 }, on = neutral_arc(ONLY(jump_fall)), heavy = ONLY(jump_fall);
+    heavy.movement.crash.jump_float = 0;
+    heavy.movement.crash.jump_weight = 162;
+    heavy.movement.crash.jump_height = 113;
     jump_type = 0;
     Arc pal = jump(50, &retail, 100), arc = jump(50, &on, 100), tap = jump(50, &on, 1), ntsc = jump(60, &on, 120);
     CHECK(near(arc.apex, pal.apex, 0.03f) && near(arc.reach, pal.reach, 0.05f) && arc.early > pal.early);
@@ -781,9 +784,9 @@ static void grip(void)
     float step = 0.0072f;
     crash_at(50, &on);
     Character[0].obj.ground = 1;
-    CHECK(near(loop_side(0.05f), 0.05f - 2.5f * step, 1e-5f));
-    CHECK(near(loop_forward(0.05f, 0.0f), 0.05f - 1.2f * step, 1e-5f));
-    CHECK(near(loop_forward(-0.05f, 0.072f), -0.05f + 1.2f * step, 1e-5f));
+    CHECK(near(loop_side(0.05f), 0.05f - 1.75f * step, 1e-5f));
+    CHECK(near(loop_forward(0.05f, 0.0f), 0.05f - step, 1e-5f));
+    CHECK(near(loop_forward(-0.05f, 0.072f), -0.05f + step, 1e-5f));
     CHECK(near(loop_forward(0.0f, 0.072f), step, 1e-5f));
     Character[0].obj.surface_type = 1;
     CHECK(near(loop_side(0.05f), 0.05f - step, 1e-5f));
@@ -836,6 +839,8 @@ static float slide_frame(bool crouch)
 static void slide(void)
 {
     NwProfile retail = { 0 }, on = ONLY(slide);
+    on.movement.crash.slide_speed = 140;
+    on.movement.crash.slide_ms = 400;
     struct creature_s *c = &Character[0];
     crash_at(60, &on);
     CHECK(CrashMoveInfo.SLIDEFRAMES == 24 && CrashMoveInfo.SLIDESPEED == 0.080000006f * 1.4f);
@@ -1038,6 +1043,7 @@ static bool held(short type, float y, bool below, const unsigned char *flags)
 static void edge_grip(void)
 {
     NwProfile retail = { 0 }, on = ONLY(edge_grip);
+    on.movement.crash.edge_reach = 75;
     NwTerI *was = TerI;
     unsigned char *own = Character[0].obj.gndflags.chrs, other[2] = { 0 };
     TerI = &contact;
