@@ -44,7 +44,17 @@
          if (Jeep->WheelSpin != 0 && Accel < 1.0f) {
              Accel = (Accel + 1.0f) * 0.5f;
          }
-@@ -2501,7 +2504,7 @@ void ProcessJeepTrail(struct SIMWHEEL *Wheel, s32 TrailIndx) {
+@@ -1543,7 +1546,9 @@ void JeepCam(struct cammtx_s *Cam) {
+             NuVecAdd(&Obj, &Obj, &RailPoint);
+         }
+         NuVecScale(&Obj, &Obj, 1.0f / cRPosCOUNT);
++#if defined(NW_HOST) || !defined(NW_REV_LATEST)
+         Cam->vertical = 0;
++#endif
+         Pos = v000;
+         for (i = 0; i < cRPosCOUNT; i++) {
+             MoveRailPosition(&RailPoint, &cRPos[i], Dist, 0);
+@@ -2501,7 +2506,7 @@ void ProcessJeepTrail(struct SIMWHEEL *Wheel, s32 TrailIndx) {
          Wheel->SurfaceType = -1;
      }
      if (TrailOn != 0 &&
@@ -53,7 +63,7 @@
          TrailOn = 0;
      }
      if (TrailOn != 0) {
-@@ -3051,7 +3054,7 @@ void ProcessFireBoss(struct fireboss_s *Boss) {
+@@ -3051,7 +3056,7 @@ void ProcessFireBoss(struct fireboss_s *Boss) {
              f32 TempY = NuAtan2D(DestVel.x * 100.0f, DestVel.z * 100.0f) /
                          182.0444489f;
  

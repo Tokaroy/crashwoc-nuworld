@@ -43,3 +43,14 @@
      size = (obj->top - obj->bot) * obj->SCALE;
      if (obj->pos.y + (obj->bot + obj->top) * obj->SCALE * 0.5f <
          crate->pos.y + 0.25f) {
+@@ -1910,8 +1923,8 @@ s32 NewCrateAnimation(struct cratecube_s *crate, s32 type, s32 action,
+     } else if (model->fanmdata[action] != 0) {
+         i = 1;
+         crate->anim_duration = model->fanmdata[action]->time;
+-        crate->anim_cycle = model->fanimlist[action]->flags & 1;
+-        crate->anim_speed = model->fanimlist[action]->speed;
++        crate->anim_cycle = NW_REV(model->fanimlist, model->animlist)[action]->flags & 1;
++        crate->anim_speed = NW_REV(model->fanimlist, model->animlist)[action]->speed;
+     } else {
+         i = 0;
+     }

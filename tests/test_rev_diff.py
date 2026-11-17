@@ -37,19 +37,20 @@ class LineTest(unittest.TestCase):
 
 
 class ReportTest(unittest.TestCase):
-    def test_layout_known_and_left(self):
+    def test_known_and_left(self):
         a = code([0x8C820168, LI_V0_9])
         b = code([0x8C820160, LI_V0_3])
         d = tool.diff(a, b, set())
         d.unit, d.name = "game/x", "f"
         counts, out = Counter(), []
         self.assertTrue(tool.report(d, "usa101", Known([]), out, counts))
-        self.assertEqual(counts["layout"], 1)
-        self.assertEqual(out, ["game/x f@usa101:", "  +0x0004 imm 9 -> 3  review"])
+        self.assertEqual(out, ["game/x f@usa101:", "  +0x0000 off 360 -> 352  review",
+                               "  +0x0004 imm 9 -> 3  review"])
         counts, out = Counter(), []
         rules = [(r"^func:game/x/f@\w+\+0x4 imm 9 -> 3$", "a menu id")]
-        self.assertFalse(tool.report(d, "usa101", Known(rules), out, counts))
+        self.assertTrue(tool.report(d, "usa101", Known(rules), out, counts))
         self.assertEqual(counts["review known"], 1)
+        self.assertEqual(out, ["game/x f@usa101:", "  +0x0000 off 360 -> 352  review"])
         counts, out = Counter(), []
         self.assertTrue(tool.report(d, "pal201", Known(rules), out, counts))
         self.assertEqual(out, ["game/x f@pal201:", "  +0x0000 off 360 -> 352  review"])

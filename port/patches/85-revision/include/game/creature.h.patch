@@ -8,7 +8,22 @@
  #include "nu_types.h"
  #include "numath/numathtypes.h"
  #include "nu3d/nugscn.h"
-@@ -322,7 +323,7 @@ extern struct creature_s Character[9];
+@@ -80,9 +81,14 @@ struct CharacterData {
+ struct CharacterModel {
+     struct NUHGOBJ_s *obj;              /* 0x000 */
+     struct nuanimdata_s *anmdata[118];  /* 0x004 */
++#ifdef NW_REV_US101_LAYOUT
++    struct nuanimdata_s *fanmdata[118];
++    struct animlist *animlist[118];
++#else
+     struct animlist *animlist[118];     /* 0x1DC */
+     struct nuanimdata_s *fanmdata[118]; /* 0x3B4 */
+     struct animlist *fanimlist[118];    /* 0x58C */
++#endif
+     struct shadentry_s *shaddata[118];  /* 0x764 */
+     struct shaddata_s *shadhdr;         /* 0x93C */
+     struct shadentry_s *shaddatarest;   /* 0x940 */
+@@ -322,7 +328,7 @@ extern struct creature_s Character[9];
  extern struct creature_s *player;
  extern struct creature_s OppTubCreature;
  extern struct CharacterData CData[191];

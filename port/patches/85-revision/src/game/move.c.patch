@@ -88,7 +88,41 @@
          }
          obj.pos.x = plr->obj.pos.x - NuTrigTable[plr->obj.hdg] * 0.25f;
          obj.pos.z = plr->obj.pos.z - NuTrigTable[(plr->obj.hdg + 0x4000) & 0xFFFF] * 0.25f;
-@@ -2334,9 +2349,13 @@ void MoveMECH(struct creature_s *plr, struct nupad_s *pad) {
+@@ -2219,6 +2234,7 @@ void CheckRings(struct obj_s *obj, s32 *ring) {
+     RailPosition *rpos;
+     s32 is_player;
+     s32 i;
++    s32 next = 0;
+     f32 len;
+ 
+     if (RINGCOUNT == 0 || *ring == RINGCOUNT) {
+@@ -2260,17 +2276,23 @@ void CheckRings(struct obj_s *obj, s32 *ring) {
+     }
+     if (is_player && best_cRPos != 0) {
+         rpos = best_cRPos;
++        if (NW_REV(0, 1)) {
++            next = rpos->iALONG + 1;
++            if ((next == Rail[rpos->iRAIL].edges) && (Rail[rpos->iRAIL].circuit != 0)) {
++                next = 0;
++            }
++        }
+         p0 = (struct nuvec_s *)(Rail[rpos->iRAIL].pLEFT->pts +
+                                 rpos->iALONG * Rail[rpos->iRAIL].pLEFT->ptsize);
+         p1 = (struct nuvec_s *)(Rail[rpos->iRAIL].pLEFT->pts +
+-                                rpos->i1 * Rail[rpos->iRAIL].pLEFT->ptsize);
++                                NW_REV(rpos->i1, next) * Rail[rpos->iRAIL].pLEFT->ptsize);
+         left.x = (p0->x + p1->x) * 0.5f;
+         left.y = (p0->y + p1->y) * 0.5f;
+         left.z = (p0->z + p1->z) * 0.5f;
+         p0 = (struct nuvec_s *)(Rail[rpos->iRAIL].pRIGHT->pts +
+                                 rpos->iALONG * Rail[rpos->iRAIL].pRIGHT->ptsize);
+         p1 = (struct nuvec_s *)(Rail[rpos->iRAIL].pRIGHT->pts +
+-                                rpos->i1 * Rail[rpos->iRAIL].pRIGHT->ptsize);
++                                NW_REV(rpos->i1, next) * Rail[rpos->iRAIL].pRIGHT->ptsize);
+         right.x = (p0->x + p1->x) * 0.5f;
+         right.y = (p0->y + p1->y) * 0.5f;
+         right.z = (p0->z + p1->z) * 0.5f;
+@@ -2334,9 +2356,13 @@ void MoveMECH(struct creature_s *plr, struct nupad_s *pad) {
          fire_pressed = 0;
          jump_pressed = 0;
      }
@@ -104,7 +138,7 @@
      }
      if (plr->target == 2 && plr->fire == 0 && plr->fire_lock == 0 && plr->tap == 0) {
          plr->target = 1;
-@@ -2776,7 +2795,7 @@ void AnimateSWIMMING(struct creature_s *plr) {
+@@ -2776,7 +2802,7 @@ void AnimateSWIMMING(struct creature_s *plr) {
                  plr->spin_frames - plr->minfo->SPINRESETFRAMES)) {
          plr->obj.anim.newaction = 0x46;
      } else if ((plr->obj.pad_speed > 0.0f) || (plr->tap != 0) ||
@@ -113,7 +147,7 @@
          plr->obj.anim.newaction = 0x4C;
      } else {
          plr->obj.anim.newaction = 0x22;
-@@ -2998,6 +3017,18 @@ void CheckPlayerEvents(struct obj_s *obj) {
+@@ -2998,6 +3024,18 @@ void CheckPlayerEvents(struct obj_s *obj) {
      }
  }
  
@@ -132,7 +166,7 @@
  void ResetPlayerEvents(void) {
      struct plrevent_s *ev;
      s32 i;
-@@ -3007,10 +3038,17 @@ void ResetPlayerEvents(void) {
+@@ -3007,10 +3045,17 @@ void ResetPlayerEvents(void) {
          ev = PlrEvent;
          for (i = 0; i < 8; i++, ev++) {
              if ((ev->spl != 0) &&

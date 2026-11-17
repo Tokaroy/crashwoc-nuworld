@@ -20,11 +20,11 @@ import revmap  # noqa: E402
 ROOT = nd.ROOT
 OUT = ROOT / "build" / "rev_diff"
 KNOWN = ROOT / "tools" / "rev_diff_known.txt"
-MODES = {"plain": [], "late": ["-DNW_REV_LATEST"], "late_ntsc": ["-DNW_REV_LATEST", "-DNW_HZ_NTSC"]}
+MODES = {"plain": [], "late": ["-DNW_REV_LATEST"],
+         "late_ntsc": ["-DNW_REV_LATEST", "-DNW_HZ_NTSC", "-DNW_REV_US101_LAYOUT"]}
 BUILD_OF = {"pal201": "late", "usa101": "late_ntsc"}
 LINE_CALLS = re.compile(r"(NuErrorProlog|NuWarningProlog|NuDebugMsgProlog|NuMem(Alloc|ReAlloc|Free)Fn)$")
 R_MIPS_26 = 4
-LAYOUT = (8, 16)
 
 
 def elf_path(key: str, value: str | None = None) -> Path:
@@ -124,13 +124,6 @@ def listing_obj(obj: nd.Obj, f: dict) -> list[str]:
     return render(words, 0, names)
 
 
-def site_class(s: nd.Site, key: str) -> str:
-    if key == "usa101" and s.pal and s.ntsc and s.pal.kind == s.ntsc.kind and s.pal.kind in ("off", "imm"):
-        if s.pal.bits - s.ntsc.bits in LAYOUT:
-            return "layout"
-    return s.cls
-
-
 def report(d: nd.Diff, key: str, known: nd.Known, out: list[str], counts: Counter) -> bool:
     left, lines = False, []
     base = f"func:{d.unit}/{d.name}@{key}"
@@ -143,10 +136,10 @@ def report(d: nd.Diff, key: str, known: nd.Known, out: list[str], counts: Counte
     for s in d.sites:
         kind = s.pal.kind if s.pal else "?"
         text = f"{kind} {s.pal.show() if s.pal else '-'} -> {s.ntsc.show() if s.ntsc else '-'}"
-        cls = site_class(s, key)
+        cls = s.cls
         why = known.reason(f"{base}+0x{s.off:x} {text}")
         counts[f"{cls} known" if why else cls] += 1
-        if why or cls == "layout":
+        if why:
             continue
         left = True
         lines.append(f"  +0x{s.off:04x} {text}  {cls}")

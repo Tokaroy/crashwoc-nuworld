@@ -127,6 +127,15 @@
              sprintf(tbuf, "loading %s", CData[character].name);
              LoadScreen(tbuf);
              memset(model, 0, sizeof(struct CharacterModel));
+@@ -2304,7 +2345,7 @@ void LoadCharacterModels(void)
+                             NuStrCat(tbuf, ".bsa");
+                             model->fanmdata[anim->action] = InstAnimDataLoad(tbuf);
+                             if (model->fanmdata[anim->action] != 0) {
+-                                model->fanimlist[anim->action] = anim;
++                                NW_REV(model->fanimlist, model->animlist)[anim->action] = anim;
+                             }
+                         }
+                     }
 @@ -2371,6 +2412,9 @@ void ChangeCharacter(struct creature_s *c, s32 character)
              c->slam = 0;
              c->spin = 0;
