@@ -273,6 +273,8 @@ int main(int argc, char *argv[])
     nw_settings_defaults(&s);
     CHECK(s.hub_minigame);
     CHECK(read_text("[game]\nhub_minigame = false\n", &s) && !s.hub_minigame);
+    CHECK(s.first_boss_cut);
+    CHECK(read_text("[game]\nfirst_boss_cut = false\n", &s) && !s.first_boss_cut);
     CHECK(!s.long_time_names); /* the original's 3 letters unless asked */
     CHECK(read_text("[game]\nlong_time_names = true\n", &s) && s.long_time_names);
     nw_settings_defaults(&s);

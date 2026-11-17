@@ -11,6 +11,7 @@
 #include "game/vehicle.h"
 #include "gameplay/air.h"
 #include "gameplay/airindicator.h"
+#include "gameplay/bosscut.h"
 #include "gameplay/bosshealth.h"
 #include "gameplay/cheats.h"
 #include "gameplay/edges.h"
@@ -3299,6 +3300,50 @@ static void cheats(void)
     InvincibilityCHEAT = 0;
 }
 
+extern s32 gamecut, gamecut_newlevel;
+void GetSpaceCut(s32 last, s32 next);
+
+static bool boss_cut_plays(u16 before, u16 after, s32 last)
+{
+    Level = 0x15;
+    new_level = 0x25;
+    new_lev_flags = after;
+    nw_boss_cut_finish(before);
+    new_lev_flags = 0;
+    GetSpaceCut(last, 0x25);
+    CHECK(new_lev_flags == 0);
+    return gamecut == 5 && new_level == 0x28 && gamecut_newlevel == 0x25;
+}
+
+static void boss_cut(void)
+{
+    struct game_s game = Game;
+    NwProfile profile = nw_profile;
+    s32 level = Level, demo = Demo, next = new_level, cut = gamecut, cut_next = gamecut_newlevel;
+
+    Demo = 0;
+    Game.cutbits = 0;
+    nw_profile.first_boss_cut = false;
+    CHECK(!boss_cut_plays(0x800, 0, 0x15) && gamecut == -1 && new_level == 0x25 && Game.cutbits == 0);
+    nw_profile.first_boss_cut = true;
+    CHECK(boss_cut_plays(0x800, 0, 0x15) && Game.cutbits == 0x20);
+    CHECK(!boss_cut_plays(0x800, 0, 0x15) && gamecut == -1);
+    Game.cutbits = 0;
+    CHECK(!boss_cut_plays(0, 0, 0x15));
+    CHECK(!boss_cut_plays(0x800, 0x800, 0x15));
+    CHECK(!boss_cut_plays(0x800, 0, 0x28));
+    GetSpaceCut(0x15, 0x25);
+    CHECK(gamecut == -1 && Game.cutbits == 0);
+
+    Game = game;
+    nw_profile = profile;
+    Level = level;
+    Demo = demo;
+    new_level = next;
+    gamecut = cut;
+    gamecut_newlevel = cut_next;
+}
+
 int main(void)
 {
     NuTrigInit();
@@ -3351,6 +3396,7 @@ int main(void)
     presence_snapshot();
     hub_gem();
     cheats();
+    boss_cut();
 
     NwMovement m = NW_MOVEMENT_RETAIL;
     CHECK(nw_movement_profile(&(NwMovement){ 0 }) == NW_MOVEMENT_PROFILE_RETAIL);

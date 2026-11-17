@@ -257,6 +257,7 @@ typedef struct NwProfile {
     bool long_time_names; /* a time trial record's name takes up to 8 letters, not 3 (port/names.h) */
     int camera_stability; /* percent of a jump the game camera ignores, 0 retail */
     bool hub_gem;
+    bool first_boss_cut;
     bool hitboxes;      /* the debug menu's view of every collision shape, not saved */
 } NwProfile;
 
