@@ -9,7 +9,27 @@
      if ((c != -1) && (obj != 0)) {
          obj[0] = Font3DTab[c].obj.special;
      }
-@@ -1028,7 +1028,7 @@ void DrawPanel(void) {
+@@ -374,6 +374,9 @@ void DrawTimeTrialTimes(s32 level, float x, float y) {
+     float t;
+ 
+     i = -1;
++    if (NW_REV(0, 1)) {
++        t = 0.0f;
++    }
+     if (((Game.level[level].flags & 8) != 0) || (HubFromLevel(level) == 5)) {
+         if ((Game.level[level].flags & 1) == 0) {
+             i = 3;
+@@ -960,6 +963,9 @@ void DrawPanel(void) {
+     char txt[32];
+ 
+     plr = (PLAYERCOUNT != 0) ? player : 0;
++    if (NW_REV(0, 1)) {
++        f = 0.0f;
++    }
+ 
+     wobble_x = NuTrigTable[(((GlobalTimer.frame % 250) << 16) / 250) & 0xFFFF] *
+                2731.0f + 1820.0f;
+@@ -1028,7 +1034,7 @@ void DrawPanel(void) {
              if (hubleveltext_open != 0) {
                  if (hubleveltext_i == 2) {
                      xs = 0.0f;
@@ -18,7 +38,7 @@
                  } else {
                      ys = -0.7f;
                      if (hubleveltext_i > 2) {
-@@ -1040,7 +1040,7 @@ void DrawPanel(void) {
+@@ -1040,7 +1046,7 @@ void DrawPanel(void) {
                  DrawTimeTrialTimes(hubleveltext_level, xs, ys);
              } else if (Hub == 5) {
                  sprintf(tbuf, tRELICSREQUIRED[Game.language], (hubleveltext_i + 1) * 5);
@@ -27,7 +47,24 @@
                      AddSpacesIntoText(tbuf, 2);
                  }
                  Text3D(tbuf, 0.0f, f * 0.3f + 0.85f, 1.0f, 0.6f, 0.6f, 0.6f, 0, 3);
-@@ -1883,7 +1883,7 @@ void UpdatePlayerStats(struct creature_s *plr) {
+@@ -1073,14 +1079,14 @@ void DrawPanel(void) {
+                 f = (25 - paused) * (PAUSEVMUL / 25.0f);
+                 ys -= f;
+             }
+-            DrawPanel3DObject(99, 0.0f, ys, PAUSEPANELZ, 0.1f, 0.1f, f * 0.1f, 0, 0, 0,
++            DrawPanel3DObject(99, 0.0f, ys, PAUSEPANELZ, 0.1f, 0.1f, NW_REV(f * 0.1f, 0.1f), 0, 0, 0,
+                               ObjTab[99].obj.scene, ObjTab[99].obj.special, 1);
+             xs = 0.0f;
+             if (pause_dir != 0) {
+                 f = (25 - paused) * (PAUSEHMUL / 25.0f);
+                 xs += f;
+             }
+-            DrawPanel3DObject(98, xs, 0.0f, PAUSEPANELZ, 0.1f, 0.1f, f * 0.1f, 0, 0, 0,
++            DrawPanel3DObject(98, xs, 0.0f, PAUSEPANELZ, 0.1f, 0.1f, NW_REV(f * 0.1f, 0.1f), 0, 0, 0,
+                               ObjTab[98].obj.scene, ObjTab[98].obj.special, 1);
+             if (paused == 25) {
+                 Text3D(Game.name, PAUSEPANELX, PAUSENAMEY, 1.0f, 0.6f, 0.6f, 0.6f, 0, 0);
+@@ -1883,7 +1889,7 @@ void UpdatePlayerStats(struct creature_s *plr) {
          if (plr->obj.mask != 0) {
              NewMask(plr->obj.mask, &vNEWMASK);
              if (newmask_advise != 0) {

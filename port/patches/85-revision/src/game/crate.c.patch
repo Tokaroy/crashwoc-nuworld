@@ -23,7 +23,58 @@
      scale = scr.x - cV[1].x;
      if (scale < 0.0) {
          scale = 0.0 - scale;
-@@ -1694,6 +1701,8 @@ f32 CrateBottomAbove(struct nuvec_s *pos) {
+@@ -609,6 +616,9 @@ void ReadInCrateData(void) {
+     struct crate_s *cr;
+     struct crate_s *cr2;
+ 
++    if (NW_REV(0, 1)) {
++        first_crate = 0;
++    }
+     HeightSortCrateData();
+     num_crates_used = 0;
+     for (i = 0; i < CRATEGROUPCOUNT; i++) {
+@@ -818,6 +828,9 @@ s32 RayIntersectCuboid(struct nuvec_s *p0, struct nuvec_s *p1,
+     f32 dz;
+     s32 face;
+ 
++    if (NW_REV(0, 1)) {
++        ratio = 0.0f;
++    }
+     dx = p1->x - p0->x;
+     dy = p1->y - p0->y;
+     dz = p1->z - p0->z;
+@@ -913,6 +926,9 @@ s32 CrateRayCast(struct nuvec_s *p0, struct nuvec_s *p1) {
+     vMIN.z = (p0->z < p1->z) ? p0->z : p1->z;
+     vMAX.x = (p0->x > p1->x) ? p0->x : p1->x;
+     vMAX.z = (p0->z > p1->z) ? p0->z : p1->z;
++    if (NW_REV(0, 1)) {
++        face = 0;
++    }
+     group = CrateGroup;
+     for (i = 0; i < CRATEGROUPCOUNT; i++, group++) {
+         if (((vMAX.x >= group->minclip.x && vMIN.x <= group->maxclip.x) &&
+@@ -1030,6 +1046,9 @@ struct cratecube_s *InCrate(f32 x, f32 z, f32 ytop, f32 ybot, f32 radius) {
+     ymid = (ytop + ybot) * 0.5f;
+     temp_pGroup = 0;
+     temp_pCrate = 0;
++    if (NW_REV(0, 1)) {
++        dbest = 1000000.0f;
++    }
+     group = CrateGroup;
+     for (i = 0; i < CRATEGROUPCOUNT; i++, group++) {
+         if (((!(x < group->minclip.x - radius) &&
+@@ -1571,6 +1590,10 @@ s32 GotoCheckpoint(struct nuvec_s *pos, s32 direction) {
+     }
+     group = CrateGroup;
+     iRAIL = -1;
++    if (NW_REV(0, 1)) {
++        iALONG = -1;
++        fALONG = 0.0f;
++    }
+     for (i = 0; i < CRATEGROUPCOUNT; i++, group++) {
+         crate = &Crate[group->iCrate];
+         for (j = 0; j < group->nCrates; j++, crate++) {
+@@ -1694,6 +1717,8 @@ f32 CrateBottomAbove(struct nuvec_s *pos) {
      return y;
  }
  
@@ -32,7 +83,7 @@
  void CrateSafety(struct crategroup_s *group, struct cratecube_s *crate,
                   struct obj_s *obj) {
      struct cratecube_s *crate2;
-@@ -1701,6 +1710,10 @@ void CrateSafety(struct crategroup_s *group, struct cratecube_s *crate,
+@@ -1701,6 +1726,10 @@ void CrateSafety(struct crategroup_s *group, struct cratecube_s *crate,
      f32 size;
      s32 i;
  
@@ -43,7 +94,7 @@
      size = (obj->top - obj->bot) * obj->SCALE;
      if (obj->pos.y + (obj->bot + obj->top) * obj->SCALE * 0.5f <
          crate->pos.y + 0.25f) {
-@@ -1910,8 +1923,8 @@ s32 NewCrateAnimation(struct cratecube_s *crate, s32 type, s32 action,
+@@ -1910,8 +1939,8 @@ s32 NewCrateAnimation(struct cratecube_s *crate, s32 type, s32 action,
      } else if (model->fanmdata[action] != 0) {
          i = 1;
          crate->anim_duration = model->fanmdata[action]->time;
@@ -54,3 +105,77 @@
      } else {
          i = 0;
      }
+@@ -2195,8 +2224,14 @@ void UpdateCrates(void) {
+                 VEHICLECONTROL == 1) {
+                 y_adjust = NuTrigTable[angle] * 0.25f;
+                 angle += 0x1000;
++            } else if (NW_REV(0, 1)) {
++                y_adjust = 0.0f;
+             }
+             sfx = -1;
++            if (NW_REV(0, 1)) {
++                crate2 = crate;
++                type = -1;
++            }
+             if (crate->on != 0 || (TimeTrial == 0 && crate->type1 == 7)) {
+                 if (crate->action != -1) {
+                     if (crate->anim_time < crate->anim_duration) {
+@@ -2701,6 +2736,9 @@ void ResetCrates(void) {
+                 crate->surface_zrot = 0;
+                 surf = 0;
+                 esh = -1;
++                if (NW_REV(0, 1)) {
++                    eshady = 2000000;
++                }
+             }
+             if ((TerSurface[surf].flags & 4) != 0) {
+                 bits |= 0x200;
+@@ -2864,13 +2902,18 @@ void DrawCrates(void) {
+     } else {
+         range2 = (f32)(LDATA->farclip * LDATA->farclip);
+     }
++    if (NW_REV(0, 1)) {
++        shadowrange2 = NW_WIDE_SCALE(range2, nw_wide.draw2);
++    }
+     if (((DRAWCRATESHADOWS != 0) && (VEHICLECONTROL != 2) &&
+          !((VEHICLECONTROL == 1) && (player->obj.vehicle == 0x20))) &&
+         (((LDATA->flags & 0x1000) == 0) &&
+          !((((LDATA->flags & 0x200) != 0) || (Level == 0x1D)) &&
+            (VEHICLECONTROL == 1)) &&
+          (Level != 0xB))) {
+-        shadowrange2 = NW_WIDE_SCALE(range2, nw_wide.draw2);
++        if (NW_REV(1, 0)) {
++            shadowrange2 = NW_WIDE_SCALE(range2, nw_wide.draw2);
++        }
+         shadows = 1;
+     }
+     group = CrateGroup;
+@@ -2881,6 +2924,9 @@ void DrawCrates(void) {
+             NW_INTERP_KEY(crate);
+             crate->in_range = 0;
+             NW_WIDE_ONLY(wide_far = 0;)
++            if (NW_REV(0, 1)) {
++                type = -1;
++            }
+             if (editor_active != 0) {
+                 switch (edcrtDrawType) {
+                 case 0:
+@@ -2917,6 +2963,8 @@ void DrawCrates(void) {
+                     continue;
+                 }
+                 NW_WIDE_ONLY(wide_far = (editor_active == 0) && (range2 < dist2);)
++            } else if (NW_REV(0, 1)) {
++                dist2 = 0.0f;
+             }
+             v.y = crate->pos.y + 0.25f;
+             v.x = crate->pos.x;
+@@ -3057,6 +3105,9 @@ s32 RayIntersectCylinder(struct nuvec_s *p0, struct nuvec_s *p1, f32 x, f32 z,
+     s32 face;
+     struct nuvec_s v;
+ 
++    if (NW_REV(0, 1)) {
++        ratio = 0.0f;
++    }
+     r2 = radius * radius;
+     dx = p1->x - p0->x;
+     dy = p1->y - p0->y;

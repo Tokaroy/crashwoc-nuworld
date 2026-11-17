@@ -88,6 +88,17 @@
          }
          obj.pos.x = plr->obj.pos.x - NuTrigTable[plr->obj.hdg] * 0.25f;
          obj.pos.z = plr->obj.pos.z - NuTrigTable[(plr->obj.hdg + 0x4000) & 0xFFFF] * 0.25f;
+@@ -2166,8 +2181,8 @@ void ResetRings(void) {
+     RINGCOUNT = 0;
+     if (SplTab[64].spl != 0 && ObjTab[0x67].obj.special != 0 && ObjTab[0x68].obj.special != 0) {
+         RINGCOUNT = SplTab[64].spl->len / 2;
+-        if (RINGCOUNT > 0x30) {
+-            RINGCOUNT = 0x30;
++        if (RINGCOUNT > NW_REV(0x30, 0x28)) {
++            RINGCOUNT = NW_REV(0x30, 0x28);
+         }
+         pos = (struct nuvec_s *)SplTab[64].spl->pts;
+         GetALONG(pos, 0, -1, -1, 1);
 @@ -2219,6 +2234,7 @@ void CheckRings(struct obj_s *obj, s32 *ring) {
      RailPosition *rpos;
      s32 is_player;

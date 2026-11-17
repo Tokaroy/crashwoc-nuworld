@@ -143,7 +143,14 @@
  next_game_mode:
          NuSoundUpdate();
          if (((Cursor.menu != 0x11) && (game_music != LDATA->music[0])) && ((GameMode != 1 || (gamecut != 0)))) {
-@@ -2040,6 +2117,9 @@ next_game_mode:
+@@ -2036,10 +2113,16 @@ next_game_mode:
+         }
+         ResetGameSfx();
+         player_dying = 0;
++        if (NW_REV(0, 1)) {
++            skipped_frame_ticks = 0;
++        }
+         vtog_time = vtog_duration = 0;
          ResetGameCameras(GameCam, 1);
          in_finish_range = 0;
          ResetAwards();
@@ -153,7 +160,17 @@
          NuSoundUpdate();
          NuRndrSwapStreamBuffers();
          (void)nuvideo_global_vbcnt;
-@@ -2151,7 +2231,9 @@ next_game_mode:
+@@ -2052,6 +2135,9 @@ next_game_mode:
+         frameout_count = nuvideo_global_vbcnt;
+         half = 0.5f;
+         pause_frameout_grace = 0;
++        if (NW_REV(0, 1)) {
++            scene_started = 0;
++        }
+         frameout = 0;
+         while (((new_mode == -1) && (new_level == -1)) || fadeval < 0xff || (fadehack != 0)) {
+             tbslotBeginFn(app_tbset, 0);
+@@ -2151,7 +2237,9 @@ next_game_mode:
                          edobjUpdateObjects(1.0f);
                          edanimUpdateObjects(1.0f);
                          NuRndrWaterRippleUpdate(1);
@@ -164,7 +181,7 @@
                          NuWindUpdate(&Character[0].obj.pos.x);
                          if ((LDATA->flags & 8) != 0) {
                              TerrainPlatformNewUpdate();
-@@ -2185,6 +2267,9 @@ next_game_mode:
+@@ -2185,6 +2273,9 @@ next_game_mode:
                              tbslotBeginFn(app_tbset, 2);
                          }
                          ProcessVehicleLevel(Pad[0]);
@@ -174,7 +191,7 @@
                          if (FRAME == 0) {
                              tbslotEndFn(app_tbset, 2);
                          }
-@@ -2211,6 +2296,9 @@ next_game_mode:
+@@ -2211,6 +2302,9 @@ next_game_mode:
                          } else {
                              NuRndrSetSpecularLight(ldir, 0);
                          }
@@ -184,7 +201,7 @@
                          UpdateScreenWumpas();
                          if (PLAYERCOUNT != 0) {
                              UpdatePlayerStats(plr);
-@@ -2365,7 +2453,8 @@ next_game_mode:
+@@ -2365,7 +2459,8 @@ next_game_mode:
                          if ((LDATA->flags & 1) != 0) {
                              if (plr->used != 0 && plr->obj.mask != 0 &&
                                  plr->obj.mask->active != 0 && (LDATA->flags & 0xe00) == 0 &&
@@ -194,7 +211,7 @@
                                  DrawMask(plr->obj.mask);
                              }
                              DrawMaskFeathers();
-@@ -2453,6 +2542,12 @@ next_game_mode:
+@@ -2453,6 +2548,12 @@ next_game_mode:
                  if (player_dying != 0) {
                      DrawCreatures(&Character[0], 1, 1, 0);
                  }
@@ -207,7 +224,7 @@
                  DrawPanel();
                  if ((new_mode != -1) || (new_level != -1)) {
                      fade_rate = 10;
-@@ -2552,6 +2647,9 @@ next_game_mode:
+@@ -2552,6 +2653,9 @@ next_game_mode:
          }
  
          if (new_mode != -1) {
@@ -217,7 +234,7 @@
              NuSoundStopStream(4);
              NuSoundUpdate();
              GameMode = new_mode;
-@@ -2917,7 +3015,7 @@ void BGLoad(void)
+@@ -2917,7 +3021,7 @@ void BGLoad(void)
                          fall_speed[character] = fall_speed[character] + fallrate < maxfallspd
                              ? fall_speed[character] + fallrate : maxfallspd;
                          if (fadeval == 0xff) {
@@ -226,7 +243,7 @@
                          }
                          break;
                      }
-@@ -2937,6 +3035,9 @@ bgload_render_characters:
+@@ -2937,6 +3041,9 @@ bgload_render_characters:
                      MiniGameRender();
                  } else {
                      done = bgload_complete;
@@ -236,7 +253,7 @@
                  }
                  TimeTunnelRender();
                  pNuCam->mtx = numtx_identity;
-@@ -2999,10 +3100,16 @@ bgload_render_characters:
+@@ -2999,10 +3106,16 @@ bgload_render_characters:
      }
      BGLoadEnd();
      if (NuRndrBeginScene(-1) != 0) {
@@ -253,7 +270,7 @@
          NuRndrEndScene();
          NuRndrSwapScreen(-1);
      }
-@@ -3010,6 +3117,10 @@ bgload_render_characters:
+@@ -3010,6 +3123,10 @@ bgload_render_characters:
      fadeval = 0xff;
  }
  

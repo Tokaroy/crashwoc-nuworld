@@ -59,7 +59,36 @@
      dist = d;
      if (dist < 0.0) {
          dist = -dist;
-@@ -4486,11 +4499,15 @@ NW_HOST_LOOSE_CALLS void MoveCreature(struct creature_s *c)
+@@ -4077,6 +4090,9 @@ NW_HOST_LOOSE_CALLS void MoveCreature(struct creature_s *c)
+     plr = player;
+     GetTopBot(player);
+     NewTopBot(&plr->obj);
++    if (NW_REV(0, 1)) {
++        ai_type = AITab[c->i_aitab].ai_type;
++    }
+     switch (c->obj.dead) {
+     case 1:
+         NuVecAdd(&c->obj.pos, &c->obj.pos, &c->obj.mom);
+@@ -4092,9 +4108,17 @@ NW_HOST_LOOSE_CALLS void MoveCreature(struct creature_s *c)
+         mid.z = c->obj.pos.z;
+         c->obj.oldpos = c->obj.pos;
+         c->obj.anim.oldaction = c->obj.anim.action;
++        if (NW_REV(0, 1)) {
++            touchmask = 0;
++            ptype = -1;
++            ptarget = -1;
++            oldhdg = c->obj.hdg;
++        }
+         OldTopBot(&c->obj);
+         pos = AITab[c->i_aitab].pos;
+-        ai_type = AITab[c->i_aitab].ai_type;
++        if (NW_REV(1, 0)) {
++            ai_type = AITab[c->i_aitab].ai_type;
++        }
+         points = AIType[ai_type].points;
+         if (c->cmdcurr == 0) {
+             c->cmdcurr = c->cmdtable;
+@@ -4486,11 +4510,15 @@ NW_HOST_LOOSE_CALLS void MoveCreature(struct creature_s *c)
              case 0x56:
                  c->ai.rotflags = c->cmdcurr->i;
                  if (c->ai.rotflags & 1) {
@@ -79,7 +108,7 @@
                  }
                  break;
              case 0x33:
-@@ -4970,11 +4987,13 @@ label8c:
+@@ -4970,11 +4998,13 @@ label8c:
                  dz = pos[c->ai.i1].z - pos[c->ai.i0].z;
                  fb = (c->ai.speed * 0.02f) / NuFsqrt(dx * dx + dz * dz);
                  fa = RatioAlongLine(&plr->obj.pos, &pos[c->ai.i0], &pos[c->ai.i1]);
@@ -97,7 +126,7 @@
                      if (fa < c->ai.lateral) {
                          c->obj.anim.newaction = 0x39;
                          c->ai.lateral -= fb;
-@@ -5005,11 +5024,13 @@ label8c:
+@@ -5005,11 +5035,13 @@ label8c:
                      target = hi;
                  }
                  dy = target - own;

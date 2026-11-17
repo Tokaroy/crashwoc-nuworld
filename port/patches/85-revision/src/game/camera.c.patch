@@ -99,7 +99,19 @@
          Gamecam++;
          n--;
      }
-@@ -1205,18 +1226,25 @@ void MoveGameCamera(struct cammtx_s *GameCamera, struct obj_s *obj) {
+@@ -854,6 +875,11 @@ void MoveGameCamera(struct cammtx_s *GameCamera, struct obj_s *obj) {
+     /* --- pick the camera mode --- */
+     oldmode = GameCamera->mode;
+     c = NULL;
++    if (NW_REV(0, 1)) {
++        anim = NULL;
++        cam_angle = 0;
++        iSPL = 0;
++    }
+     GameCamera->mode = 0;
+     if (Level == 0x23) {
+         GameCamera->mode = 8;
+@@ -1205,18 +1231,25 @@ void MoveGameCamera(struct cammtx_s *GameCamera, struct obj_s *obj) {
      case 5:
          /* follow the camera rails */
          if ((best_cRPos != NULL) && (cRPosCOUNT != 0)) {
@@ -131,7 +143,7 @@
                          dist = LookUpDownRail(obj, best_cRPos->angle,
                                                  best_cRPos->mode);
                      } else {
-@@ -1237,13 +1265,15 @@ void MoveGameCamera(struct cammtx_s *GameCamera, struct obj_s *obj) {
+@@ -1237,13 +1270,15 @@ void MoveGameCamera(struct cammtx_s *GameCamera, struct obj_s *obj) {
              }
              pos = v000;
              for (i = 0; i < cRPosCOUNT; i++) {
@@ -150,7 +162,7 @@
                      tmp.y = obj->pos.y + obj->max.y * obj->SCALE;
                      p0 = (struct nuvec_s *)(Rail[cRPos[i].iRAIL].pCAM->pts +
                                              cRPos[i].i1 * Rail[cRPos[i].iRAIL].pCAM->ptsize);
-@@ -1255,6 +1285,7 @@ void MoveGameCamera(struct cammtx_s *GameCamera, struct obj_s *obj) {
+@@ -1255,6 +1290,7 @@ void MoveGameCamera(struct cammtx_s *GameCamera, struct obj_s *obj) {
                          tmp.y = p1->y;
                      }
                  }
@@ -158,7 +170,7 @@
                  NuVecAdd(&pos, &pos, &tmp);
              }
              f = 1.0f / cRPosCOUNT;
-@@ -1291,7 +1322,7 @@ void MoveGameCamera(struct cammtx_s *GameCamera, struct obj_s *obj) {
+@@ -1291,7 +1327,7 @@ void MoveGameCamera(struct cammtx_s *GameCamera, struct obj_s *obj) {
              } else {
                  dist = NuTrigTable[(RotDiff(obj->hdg, best_cRPos->angle) + 0x4000) & 0xFFFF];
              }
@@ -167,3 +179,12 @@
          }
          if (GameCamera->ahead > dist) {
              GameCamera->ahead -= f;
+@@ -1442,7 +1478,7 @@ void MoveGameCamera(struct cammtx_s *GameCamera, struct obj_s *obj) {
+         break;
+ 
+     case 0x18:
+-        f = anim->anim_time - 1.0f;
++        f = NW_REV(anim->anim_time - 1.0f, (anim != NULL) ? anim->anim_time - 1.0f : 1.0f);
+         if (f > 30.0f) {
+             f = 30.0f;
+         }

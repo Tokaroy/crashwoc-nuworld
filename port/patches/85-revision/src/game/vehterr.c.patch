@@ -13,7 +13,17 @@
  extern struct nuvec_s CrossProduct(struct nuvec_s *a, struct nuvec_s *b);
  extern f32 DotProduct(struct nuvec_s *a, struct nuvec_s *b);
  extern f32 NuFsqrt(f32 x);
-@@ -312,7 +315,6 @@ s32 MyCast(struct nuvec_s *pos, struct nuvec_s *target, struct nuvec_s *normals,
+@@ -61,6 +64,9 @@ s32 TryUnembeddPointDir(struct nuvec_s *pos, struct nuvec_s *dir1,
+     last = 0.0f;
+     step = 0.03f;
+     steps = 5;
++    if (NW_REV(0, 1)) {
++        dir = 0;
++    }
+     pass = 0;
+     while (pass++ < 5) {
+         for (i = 1; i <= steps; i++) {
+@@ -312,7 +318,6 @@ s32 MyCast(struct nuvec_s *pos, struct nuvec_s *target, struct nuvec_s *normals,
      s32 wall;
      s32 flip;
      s32 down;
@@ -21,7 +31,7 @@
      f32 d;
      f32 magcross;
      f32 magrel;
-@@ -347,12 +349,8 @@ s32 MyCast(struct nuvec_s *pos, struct nuvec_s *target, struct nuvec_s *normals,
+@@ -347,12 +352,8 @@ s32 MyCast(struct nuvec_s *pos, struct nuvec_s *target, struct nuvec_s *normals,
              wall = snorm.x * normals[1].x + snorm.y * normals[1].y + snorm.z * normals[1].z < 0.5f;
  
              if (wall == 0) {
