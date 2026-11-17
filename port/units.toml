@@ -101,7 +101,8 @@ schema = 1
 "nups2/clipping" = { treatment = "compile" }
 
 # gamelib
-"gamelib/terrain" = { treatment = "compile", override = ["ReadTerrain"], wrap = ["NewTerrainScaleY", "TerrainImpact"] }
+"gamelib/terrain" = { treatment = "compile", override = ["ReadTerrain"], wrap = ["NewTerrainScaleY", "TerrainImpact",
+    "HitWallSpline"] }
 "gamelib/debris" = { treatment = "compile", wrap = ["DebrisCollisionCheck"] }
 "gamelib/edptl" = { treatment = "editor", wrap = ["FileLoadSingleEffectType"], runtime = ["ParticleReset", "edppDestroyAll*",
     "edppRegisterPointerToGameCharLocation", "edppLoadEffects", "edppMergeEffects", "edppRestartAllEffectsInLevel",
@@ -143,15 +144,15 @@ schema = 1
 
 # game
 "game/main" = { treatment = "compile", rename = { main = "nw_game_main" }, wrap = ["MiniGameReset", "MiniGame",
-    "MiniGameRender", "MiniGameRenderScore"] }
+    "MiniGameRender", "MiniGameRenderScore", "DoInput"] }
 "game/particle" = { treatment = "compile" }
 "game/listman" = { treatment = "compile" }
 "game/creature" = { treatment = "compile", wrap = ["CloseCreatures", "DrawCreatures", "LoadCharacterModels",
     "MovePlayer"] }
 "game/inst" = { treatment = "compile" }
 "game/camera" = { treatment = "compile", wrap = ["MoveGameCamera"] }
-"game/game" = { treatment = "compile", wrap = ["CheckFinish", "DefaultTimeTrialNames", "DrawMenu", "GetMenuInfo", "HitWumpa", "InitObjectTable", "NewGame",
-    "NewLevelTime", "ProcMenu", "SeekRot"], expose = ["dme_sx"] }
+"game/game" = { treatment = "compile", wrap = ["CheckFinish", "DefaultTimeTrialNames", "DrawMenu", "DrawTransporters",
+    "GetMenuInfo", "HitWumpa", "InitObjectTable", "NewGame", "NewLevelTime", "ProcMenu", "SeekRot"], expose = ["dme_sx"] }
 "game/crate" = { treatment = "compile", override = ["AddQuad3DrotXYZ"] }
 "game/game_obj" = { treatment = "compile", wrap = ["MoveLoopXZ", "PlayerCreatureCollisions", "ObjectRotation",
     "UpdateProjectiles", "AddProjectile"] }
@@ -183,7 +184,7 @@ schema = 1
 "game/loadsave" = { treatment = "replace", drop = ["UpdateSaveSlots", "loadsaveCallEachFrame", "LoadGameSlots", "SaveGameSlots"] }
 "game/bgload" = { treatment = "compile" }
 "game/cut" = { treatment = "compile", expose = ["cutworldix", "CutInst", "ghg_insts", "ghg_inst_count"], wrap = [
-               "StartCutMovie", "SetCutMovieRate", "AppCutSceneCharacterRender"] }
+               "StartCutMovie", "SetCutMovieRate", "AppCutSceneCharacterRender", "GetSpaceCut"] }
 "game/bug" = { treatment = "compile" }
 "game/game_deb" = { treatment = "compile" }
 "game/credits" = { treatment = "compile" }

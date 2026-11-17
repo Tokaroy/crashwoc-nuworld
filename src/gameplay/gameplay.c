@@ -122,6 +122,7 @@ static void nw_profile_poll(void)
         nw_profile.hub_minigame = p.hub_minigame;
         nw_profile.long_time_names = p.long_time_names;
         nw_profile.camera_stability = p.camera_stability;
+        nw_profile.hub_gem = p.hub_gem;
         nw_profile.hitboxes = p.hitboxes;
         nw_monkey_bars_apply();
         nw_air_apply();

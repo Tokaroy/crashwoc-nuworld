@@ -30,6 +30,7 @@ typedef struct NwSettingKey {
     uint16_t (*source)(const char *name);
     const char *(*source_name)(uint16_t source);
     const char *help;
+    bool hidden;
 } NwSettingKey;
 
 #define NW_FIELD(f) .offset = offsetof(NwSettings, f), .size = sizeof(((NwSettings *)0)->f)
@@ -334,6 +335,7 @@ static const NwSettingKey nw_settings_keys[] = {
     { .table = "game", .name = "camera_stability", .kind = NW_SETTING_INT, NW_FIELD(camera_stability), .lo = 0,
       .hi = 100, .help = "0-100: how much of Crash's jump the camera ignores; 0 follows it as the PS2, 100 holds its "
                          "height until he lands" },
+    { .table = "game", .name = "hub_gem", .kind = NW_SETTING_BOOL, NW_FIELD(hub_gem), .hidden = true },
     { .table = "game", .sub = "movement", .name = "monkey_bar_speed", .kind = NW_SETTING_INT,
       NW_FIELD(movement.monkey_bar_speed), .lo = 100, .hi = 500,
       .help = "N. Hanced Movement: Crash's speed on the monkey bars, 100-500 percent of the PS2's; 350 is N. Hanced's" },
@@ -398,6 +400,7 @@ void nw_settings_defaults(NwSettings *s)
     s->hub_minigame = true;
     s->long_time_names = false;
     s->camera_stability = 100;
+    s->hub_gem = true;
     s->master_volume = 100;
     s->voice_volume = 100;
     s->discord = true;
@@ -658,6 +661,9 @@ static char *nw_settings_help(void)
     for (size_t i = 0; help && i < SDL_arraysize(nw_settings_keys); i++) {
         const NwSettingKey *k = &nw_settings_keys[i];
         char *more = NULL;
+        if (k->hidden) {
+            continue;
+        }
         if (SDL_asprintf(&more, "%s%s.%s%s%s%s%s: %s\n", help, k->table, k->sub ? k->sub : "", k->sub ? "." : "",
                          k->sub2 ? k->sub2 : "", k->sub2 ? "." : "", k->name, k->help) < 0) {
             more = NULL;
@@ -675,8 +681,19 @@ bool nw_settings_save(const NwSettings *s, const char *root)
     size_t size = 0;
     bool ok = path && help && SDL_asprintf(&tmp, "%s.tmp", path) >= 0 && nw_settings_doc(path, &doc) >= 0;
     if (ok) {
+        NwSettings def;
+        nw_settings_defaults(&def);
         for (size_t i = 0; ok && i < SDL_arraysize(nw_settings_keys); i++) {
-            ok = nw_settings_put(&doc, &nw_settings_keys[i], s);
+            const NwSettingKey *k = &nw_settings_keys[i];
+            if (k->hidden && SDL_memcmp((const char *)s + k->offset, (const char *)&def + k->offset, k->size) == 0) {
+                const char *header[3];
+                NwDocTable *t = nw_doc_table(&doc, header, nw_settings_header(k, header));
+                if (t) {
+                    nw_doc_unset(t, k->name);
+                }
+                continue;
+            }
+            ok = nw_settings_put(&doc, k, s);
         }
         text = ok ? nw_doc_write(&doc, help, &size) : NULL;
         nw_doc_free(&doc);

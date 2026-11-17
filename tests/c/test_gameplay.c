@@ -17,6 +17,7 @@
 #include "gameplay/gameplay.h"
 #include "gameplay/ground.h"
 #include "gameplay/hazards.h"
+#include "gameplay/hubgem.h"
 #include "gameplay/line2d.h"
 #include "gameplay/mech.h"
 #include "gameplay/monkeybars.h"
@@ -2922,6 +2923,130 @@ static void presence_snapshot(void)
     Game.percent = 0;
 }
 
+extern const unsigned char nw_hubgem_toml[];
+extern const size_t nw_hubgem_toml_size;
+extern s32 cutmovie, Demo, GameMode, Paused, new_level, new_mode, editor_active, PLAYERCOUNT, last_level;
+extern u16 new_lev_flags;
+extern f32 tumble_time, tumble_duration;
+
+static bool hub_gem_variant(const char *from, const char *to)
+{
+    static char text[4096], out[4096];
+    size_t n = nw_hubgem_toml_size < sizeof(text) - 1 ? nw_hubgem_toml_size : sizeof(text) - 1;
+    memcpy(text, nw_hubgem_toml, n);
+    text[n] = '\0';
+    char *at = strstr(text, from);
+    CHECK(at != NULL);
+    if (!at) {
+        return true;
+    }
+    snprintf(out, sizeof(out), "%.*s%s%s", (int)(at - text), text, to, at + strlen(from));
+    NwHubGemData d;
+    return nw_hubgem_parse(&d, out, strlen(out));
+}
+
+static void hub_gem(void)
+{
+    const NwHubGemData *d = nw_hubgem_data();
+    CHECK(d != NULL);
+    if (!d) {
+        return;
+    }
+    CHECK(d->level == 7 && d->flag == 0x100 && d->place_level == 0x25 && d->seen_bit == 0);
+    CHECK(d->file[0] && d->object[0] && d->buffer_kb >= 9216);
+    float dx = d->cam_pos[0] - d->pos[0], dy = d->cam_pos[1] - d->pos[1], dz = d->cam_pos[2] - d->pos[2];
+    CHECK(dx * dx + dy * dy + dz * dz < 13.0f * 13.0f);
+    CHECK(d->appear >= d->blend_in && d->hold > 0.0f);
+    CHECK(d->text[0] && d->text_range > 0.0f && d->text_scale > 0.0f);
+    CHECK(hub_gem_variant("seen_bit = 0", "seen_bit = 7"));
+    CHECK(!hub_gem_variant("seen_bit = 0", "seen_bit = 8"));
+    CHECK(!hub_gem_variant("buffer_kb = 12288", "buffer_kb = 'x'"));
+    CHECK(!hub_gem_variant("level = 7", "level = 40"));
+    CHECK(!hub_gem_variant("hide_hud = true", ""));
+
+    s32 level = Level, mode = GameMode, menu = Cursor.menu, count = PLAYERCOUNT, fade = fadeval, last = last_level;
+    u32 frame = GameTimer.frame;
+    struct creature_s *was = player;
+    char pad = Game.level[d->level].pad1;
+    u32 cutbits = Game.cutbits;
+    u16 flags = Game.level[d->level].flags;
+    static struct creature_s crash;
+    memset(&crash, 0, sizeof(crash));
+    crash.obj.pos.y = d->pos[1];
+    crash.obj.pos.z = 2.0f;
+    crash.obj.ground = 1;
+    player = &crash;
+    nw_profile_apply(&(NwProfile){ .hub_gem = true });
+    Level = d->place_level;
+    cutmovie = new_level = new_mode = -1;
+    Demo = GameMode = Paused = editor_active = fadeval = 0;
+    Cursor.menu = -1;
+    new_lev_flags = 0;
+    tumble_time = tumble_duration = 0.0f;
+    PLAYERCOUNT = 1;
+    GameTimer.frame = 100;
+    last_level = -1;
+    CHECK(nw_hubgem_idle(d));
+    Game.level[d->level].flags = 0;
+    Game.level[d->level].pad1 = 0;
+    CHECK(!nw_hubgem_due(d));
+    last_level = d->level;
+    new_lev_flags = (u16)d->flag;
+    CHECK(nw_hubgem_due(d) && nw_hubgem_idle(d));
+    new_lev_flags = 0;
+    last_level = -1;
+    Game.level[d->level].flags = (u16)d->flag;
+    CHECK(nw_hubgem_owned(d) && !nw_hubgem_seen(d) && nw_hubgem_due(d));
+    Game.cutbits = 0xFFFFFFFFu;
+    CHECK(!nw_hubgem_seen(d));
+    Game.level[d->level].pad1 = (char)(1 << d->seen_bit);
+    CHECK(nw_hubgem_seen(d) && !nw_hubgem_due(d));
+    Paused = 1;
+    CHECK(!nw_hubgem_idle(d));
+    Paused = 0;
+    Cursor.menu = 3;
+    CHECK(!nw_hubgem_idle(d));
+    Cursor.menu = -1;
+    GameTimer.frame = 10;
+    CHECK(!nw_hubgem_idle(d));
+    GameTimer.frame = 100;
+    tumble_duration = 1.0f;
+    CHECK(!nw_hubgem_idle(d));
+    tumble_duration = 0.0f;
+    crash.obj.pos.x = d->pos[0];
+    crash.obj.pos.z = d->pos[2];
+    CHECK(!nw_hubgem_idle(d));
+    crash.obj.pos.x = 0.0f;
+    crash.obj.pos.z = 2.0f;
+    crash.obj.ground = 0;
+    CHECK(!nw_hubgem_idle(d));
+    crash.obj.ground = 1;
+    Level = 0;
+    CHECK(!nw_hubgem_idle(d));
+    Level = d->place_level;
+    CHECK(nw_hubgem_idle(d));
+    nw_profile_apply(&(NwProfile){ 0 });
+    CHECK(!nw_hubgem_idle(d));
+
+    int x, y;
+    nw_hubgem_aim((const float[3]){ 0.0f, 0.0f, 0.0f }, (const float[3]){ 1.0f, 0.0f, 1.0f }, &x, &y);
+    CHECK(x == 0 && y == (NuAtan2D(1.0f, 1.0f) & 0xFFFF) && abs(y - 0x2000) <= 2);
+    nw_hubgem_aim((const float[3]){ 0.0f, 1.0f, 0.0f }, (const float[3]){ 0.0f, 0.0f, 1.0f }, &x, &y);
+    CHECK(x == (-NuAtan2D(-1.0f, 1.0f) & 0xFFFF) && x != 0 && y == 0);
+
+    Level = level;
+    GameMode = mode;
+    Cursor.menu = (signed char)menu;
+    PLAYERCOUNT = count;
+    fadeval = fade;
+    last_level = last;
+    GameTimer.frame = frame;
+    player = was;
+    Game.level[d->level].pad1 = pad;
+    Game.cutbits = cutbits;
+    Game.level[d->level].flags = flags;
+}
+
 int main(void)
 {
     NuTrigInit();
@@ -2971,6 +3096,7 @@ int main(void)
     space_sweep();
     space_assist();
     presence_snapshot();
+    hub_gem();
 
     NwMovement m = NW_MOVEMENT_RETAIL;
     CHECK(nw_movement_profile(&(NwMovement){ 0 }) == NW_MOVEMENT_PROFILE_RETAIL);

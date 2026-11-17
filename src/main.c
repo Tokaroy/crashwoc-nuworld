@@ -983,6 +983,7 @@ static void nw_boot_request(const NwSettings *s, bool hitboxes)
                                      .hub_minigame = s->hub_minigame,
                                      .long_time_names = s->long_time_names,
                                      .camera_stability = s->camera_stability,
+                                     .hub_gem = s->hub_gem,
                                      .hitboxes = hitboxes });
 }
 
@@ -1030,6 +1031,36 @@ static void nw_boot_levels(void *user)
     int pending = nw_level_pending();
     if (pending >= 0) {
         nw_debug_text("entering %s", nw_level_name(pending));
+    }
+}
+
+static void nw_boot_cutscenes(void *user)
+{
+    (void)user;
+    int current = nw_cutscene_current();
+    const char *shown = NULL;
+    nw_debug_list_begin("cutscenes", 16);
+    for (int i = 0; i < nw_cutscene_count(); i++) {
+        const char *group;
+        const char *name = nw_cutscene_name(i, &group);
+        if (!name) {
+            continue;
+        }
+        if (!shown || SDL_strcmp(shown, group) != 0) {
+            nw_debug_heading(group);
+            shown = group;
+        }
+        char label[64];
+        SDL_snprintf(label, sizeof(label), "%s##%d", name, i);
+        if (nw_debug_selectable(label, i == current)) {
+            nw_cutscene_play(i);
+        }
+    }
+    nw_debug_list_end();
+    const char *group;
+    const char *name = nw_cutscene_name(nw_cutscene_pending(), &group);
+    if (name) {
+        nw_debug_text("starting %s: %s", group, name);
     }
 }
 
@@ -1120,7 +1151,8 @@ static int nw_boot(const char *data_dir, int hardware_speed, float aspect, NwPla
                                        .wombat = settings.wombat,
                                        .hub_minigame = settings.hub_minigame,
                                        .long_time_names = settings.long_time_names,
-                                       .camera_stability = settings.camera_stability });
+                                       .camera_stability = settings.camera_stability,
+                                       .hub_gem = settings.hub_gem });
     }
     nw_wide_set(nw_video_start(&platform, &settings), settings.hud);
     nw_debug_panel("Settings", "Audio", nw_boot_audio, &settings, false);
@@ -1153,6 +1185,7 @@ static int nw_boot(const char *data_dir, int hardware_speed, float aspect, NwPla
     nw_debug_panel_key("N. Hanced Movement", "Plane", SDL_SCANCODE_F8, nw_boot_plane, &settings);
     nw_debug_panel_key("N. Hanced Movement", "Space Fighter", SDL_SCANCODE_F7, nw_boot_spacefighter, &settings);
     nw_debug_panel("Debug", "Load Level", nw_boot_levels, NULL, false);
+    nw_debug_panel("Debug", "Play Cutscene", nw_boot_cutscenes, NULL, false);
     bool hitboxes = false, hitboxes_shown = false;
     if (!nw_pad_script) {
         nw_debug_action("Debug", "Start Minigame", SDL_SCANCODE_UNKNOWN, nw_boot_minigame, NULL);
@@ -1224,7 +1257,8 @@ static int nw_boot(const char *data_dir, int hardware_speed, float aspect, NwPla
                                    settings.wombat != applied.wombat ||
                                    settings.hub_minigame != applied.hub_minigame ||
                                    settings.long_time_names != applied.long_time_names ||
-                                   settings.camera_stability != applied.camera_stability)) {
+                                   settings.camera_stability != applied.camera_stability ||
+                                   settings.hub_gem != applied.hub_gem)) {
                 nw_boot_request(&settings, hitboxes);
                 hitboxes_shown = hitboxes;
             }
