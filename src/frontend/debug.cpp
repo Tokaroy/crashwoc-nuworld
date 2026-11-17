@@ -212,6 +212,12 @@ void nw_debug_list_begin(const char *id, int rows)
     ImGui::BeginChild(id, ImVec2(ImGui::GetFontSize() * 20, height), ImGuiChildFlags_Borders);
 }
 
+void nw_debug_list_sized(const char *id, int rows, float width)
+{
+    float height = ImGui::GetFrameHeightWithSpacing() * (float)rows + ImGui::GetStyle().WindowPadding.y * 2;
+    ImGui::BeginChild(id, ImVec2(ImGui::GetFontSize() * width, height), ImGuiChildFlags_Borders);
+}
+
 void nw_debug_list_end(void)
 {
     ImGui::EndChild();
@@ -225,6 +231,36 @@ void nw_debug_heading(const char *text)
 bool nw_debug_selectable(const char *label, bool selected)
 {
     return ImGui::Selectable(label, selected);
+}
+
+bool nw_debug_tree(const char *label, const char *note, bool highlight, bool open)
+{
+    if (open) {
+        ImGui::SetNextItemOpen(true);
+        ImGui::SetScrollHereY();
+    }
+    float right = ImGui::GetCursorPosX() + ImGui::GetContentRegionAvail().x;
+    ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_SpanAvailWidth;
+    bool shown = ImGui::TreeNodeEx(label, highlight ? flags | ImGuiTreeNodeFlags_Selected : flags);
+    if (note && *note) {
+        ImGui::SameLine(right - ImGui::CalcTextSize(note).x);
+        ImGui::TextDisabled("%s", note);
+    }
+    return shown;
+}
+
+void nw_debug_tree_end(void)
+{
+    ImGui::TreePop();
+}
+
+void nw_debug_warning(const char *text)
+{
+    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.76f, 0.3f, 1.0f));
+    ImGui::PushTextWrapPos(ImGui::GetFontSize() * 24.0f);
+    ImGui::TextUnformatted(text);
+    ImGui::PopTextWrapPos();
+    ImGui::PopStyleColor();
 }
 
 /* menu is the path's first len characters or a submenu of it. */

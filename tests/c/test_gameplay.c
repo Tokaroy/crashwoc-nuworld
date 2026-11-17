@@ -12,6 +12,7 @@
 #include "gameplay/air.h"
 #include "gameplay/airindicator.h"
 #include "gameplay/bosshealth.h"
+#include "gameplay/cheats.h"
 #include "gameplay/edges.h"
 #include "gameplay/firefly.h"
 #include "gameplay/gameplay.h"
@@ -3188,6 +3189,116 @@ static void hub_gem(void)
     Game.level[d->level].flags = flags;
 }
 
+extern s32 InvincibilityCHEAT;
+extern u16 plr_items;
+s32 HubFromLevel(s32 level);
+
+static void cheats(void)
+{
+    struct game_s game = Game;
+    s32 level = Level, last = last_level;
+    int rooms[5], n = 0, boss = -1, secret = -1;
+    for (int l = 0; l < NW_CHEATS_LEVELS; l++) {
+        int room = HubFromLevel(l);
+        if (room == 0 && (LData[l].flags & 2)) {
+            boss = l;
+        } else if (room == 0 && n < 5) {
+            rooms[n++] = l;
+        } else if (room == 5) {
+            secret = l;
+        }
+    }
+    CHECK(n == 5 && boss >= 0 && secret >= 0);
+
+    NwCheatsView v;
+    memset(&Game, 0, sizeof(Game));
+    Game.hub[0].flags = 1;
+    Level = 0x25;
+    last_level = -1;
+    new_lev_flags = 0;
+    plr_items = 0;
+    nw_cheats_swap();
+    nw_cheats_view(&v);
+    CHECK(v.valid && v.level == -1 && !v.invincible && v.powers == 0);
+    CHECK(v.items[boss] == NW_CHEAT_BOSS &&
+          v.items[secret] == (NW_CHEAT_RELIC | NW_CHEAT_CRATE_GEM | NW_CHEAT_BONUS_GEM));
+    CHECK(v.items[7] == (NW_CHEAT_RELIC | NW_CHEAT_CRYSTAL | NW_CHEAT_CRATE_GEM | NW_CHEAT_BLUE_GEM));
+    int crystals = 0, gems = 0, relics = 0, bosses = 0;
+    for (int l = 0; l < NW_CHEATS_LEVELS; l++) {
+        crystals += (v.items[l] & NW_CHEAT_CRYSTAL) != 0;
+        relics += (v.items[l] & NW_CHEAT_RELIC) != 0;
+        bosses += (v.items[l] & NW_CHEAT_BOSS) != 0;
+        for (unsigned bit = NW_CHEAT_CRATE_GEM; bit <= NW_CHEAT_PURPLE_GEM; bit <<= 1) {
+            gems += (v.items[l] & bit) != 0;
+        }
+    }
+    CHECK(crystals == 25 && gems == 46 && relics == 30 && bosses == 5);
+
+    nw_cheats_invincible(true);
+    nw_cheats_powers(0x3F, 0x22);
+    nw_cheats_swap();
+    CHECK(InvincibilityCHEAT == 1 && Game.powerbits == 0x22);
+    nw_cheats_powers(0x20, 0);
+    nw_cheats_swap();
+    nw_cheats_view(&v);
+    CHECK(Game.powerbits == 2 && v.powers == 2 && v.invincible);
+
+    for (int i = 0; i < 5; i++) {
+        nw_cheats_level(rooms[i], NW_CHEAT_CRYSTAL, NW_CHEAT_CRYSTAL);
+    }
+    nw_cheats_swap();
+    CHECK(Game.crystals == 5 && Game.hub[0].crystals == 5 && Game.hub[0].flags == 3 && Game.percent == 5);
+    nw_cheats_level(rooms[2], NW_CHEAT_CRYSTAL | NW_CHEAT_RELIC, NW_CHEAT_GOLD);
+    nw_cheats_swap();
+    CHECK(Game.hub[0].crystals == 4 && Game.hub[0].flags == 1 && Game.relics == 1);
+    CHECK(Game.level[rooms[2]].flags == NW_CHEAT_GOLD);
+    nw_cheats_level(rooms[1], NW_CHEAT_BOSS, NW_CHEAT_BOSS);
+    nw_cheats_swap();
+    CHECK(!(Game.level[rooms[1]].flags & NW_CHEAT_BOSS));
+
+    nw_cheats_level(boss, NW_CHEAT_BOSS, NW_CHEAT_BOSS);
+    nw_cheats_swap();
+    CHECK(Game.hub[0].flags == 7 && (Game.hub[1].flags & 1) && Game.level[boss].flags == NW_CHEAT_BOSS);
+    nw_cheats_level(boss, NW_CHEAT_BOSS, 0);
+    nw_cheats_swap();
+    CHECK(Game.hub[0].flags == 1 && (Game.hub[1].flags & 1) && Game.level[boss].flags == 0);
+
+    Level = rooms[2];
+    new_lev_flags = NW_CHEAT_CRYSTAL;
+    Game.hub[0].crystals = 5;
+    Game.hub[0].flags |= 2;
+    nw_cheats_swap();
+    nw_cheats_view(&v);
+    CHECK(v.level == rooms[2] && v.flags[rooms[2]] == (NW_CHEAT_CRYSTAL | NW_CHEAT_GOLD));
+    nw_cheats_level(rooms[3], NW_CHEAT_CRATE_GEM, NW_CHEAT_CRATE_GEM);
+    nw_cheats_swap();
+    CHECK(Game.hub[0].crystals == 5 && (Game.hub[0].flags & 2) && Game.gems == 1);
+    nw_cheats_level(rooms[2], NW_CHEAT_CRYSTAL, 0);
+    nw_cheats_swap();
+    CHECK(new_lev_flags == 0 && Game.hub[0].crystals == 4 && !(Game.hub[0].flags & 2));
+
+    plr_items = 0x11;
+    nw_cheats_level(rooms[2], NW_CHEAT_CRYSTAL, NW_CHEAT_CRYSTAL);
+    nw_cheats_swap();
+    CHECK(plr_items == 0x10 && Game.hub[0].crystals == 5 && (Game.hub[0].flags & 2));
+
+    Demo = 1;
+    nw_cheats_powers(0x3F, 0x3F);
+    nw_cheats_swap();
+    nw_cheats_view(&v);
+    CHECK(!v.valid && Game.powerbits == 2);
+    Demo = 0;
+    nw_cheats_swap();
+    CHECK(Game.powerbits == 2);
+
+    Game = game;
+    Level = level;
+    last_level = last;
+    new_lev_flags = 0;
+    plr_items = 0;
+    InvincibilityCHEAT = 0;
+}
+
 int main(void)
 {
     NuTrigInit();
@@ -3239,6 +3350,7 @@ int main(void)
     space_assist();
     presence_snapshot();
     hub_gem();
+    cheats();
 
     NwMovement m = NW_MOVEMENT_RETAIL;
     CHECK(nw_movement_profile(&(NwMovement){ 0 }) == NW_MOVEMENT_PROFILE_RETAIL);

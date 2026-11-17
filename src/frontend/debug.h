@@ -60,10 +60,14 @@ bool nw_debug_filter(const char *hint, char *buf, size_t size);
 bool nw_debug_input(const char *label, char *buf, size_t size);
 /* A scrolling list rows lines high; always closed with nw_debug_list_end. */
 void nw_debug_list_begin(const char *id, int rows);
+void nw_debug_list_sized(const char *id, int rows, float width);
 void nw_debug_list_end(void);
 /* A labelled separator heading the items after it. */
 void nw_debug_heading(const char *text);
 bool nw_debug_selectable(const char *label, bool selected);
+bool nw_debug_tree(const char *label, const char *note, bool highlight, bool open);
+void nw_debug_tree_end(void);
+void nw_debug_warning(const char *text);
 
 #ifdef __cplusplus
 }
