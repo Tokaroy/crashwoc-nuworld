@@ -55,6 +55,47 @@ class ReportTest(unittest.TestCase):
         self.assertTrue(tool.report(d, "pal201", Known(rules), out, counts))
         self.assertEqual(out, ["game/x f@pal201:", "  +0x0000 off 360 -> 352  review"])
 
+    def test_sound_numbers(self):
+        a = code([0x240500D0])
+        b = code([0x240500B7])
+        d = tool.diff(a, b, set())
+        d.unit, d.name = "game/x", "f"
+        counts, out = Counter(), []
+        self.assertFalse(tool.report(d, "usa101", Known([]), out, counts, {(208, 183)}))
+        self.assertEqual((counts["sound"], out), (1, []))
+        counts, out = Counter(), []
+        self.assertTrue(tool.report(d, "usa101", Known([]), out, counts, {(208, 188)}))
+        self.assertEqual(out, ["game/x f@usa101:", "  +0x0000 imm 208 -> 183  review"])
+
+
+class SoundTest(unittest.TestCase):
+    def test_pairs_by_name(self):
+        def entry(name, number):
+            e = bytearray(nd.SOUND)
+            e[:len(name)] = name
+            e[0x22:0x24] = number.to_bytes(2, "little")
+            return bytes(e)
+
+        pal = {0x1000: entry(b"jump", 0) + entry(b"aku fre", 1) + entry(b"land", 2),
+               0x2000: entry(b"aku", 0) + entry(b"aku", 0) + entry(b"boom", 0)}
+        us = {0x5000: entry(b"jump", 0) + entry(b"land", 1), 0x6000: entry(b"aku", 0) + entry(b"boom", 0)}
+
+        class Ref:
+            objects = [(0x1000, 0x1000 + 3 * nd.SOUND, "SfxTabGLOBAL"), (0x2000, 0x2000 + 3 * nd.SOUND, "SfxTabX"),
+                       (0x3000, 0x3010, "Other")]
+
+            def read(self, addr, n):
+                return pal[addr][:n] if addr in pal else None
+
+        class Tgt:
+            data_ref = {0x1000: (0x5000, "SfxTabGLOBAL"), 0x2000: (0x6000, "SfxTabX"),
+                        0x3000: (0x6000 + 2 * nd.SOUND, "Other")}
+
+            def read(self, addr, n):
+                return us[addr][:n] if addr in us else None
+
+        self.assertEqual(tool.sound_ids(Ref(), Tgt()), {(2, 1), (3, 2), (4, 2), (5, 3)})
+
 
 if __name__ == "__main__":
     unittest.main()

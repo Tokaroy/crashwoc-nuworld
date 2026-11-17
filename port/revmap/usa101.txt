@@ -4602,6 +4602,7 @@ data 005ea650 005fc6a0 SfxTabASHES
 data 005ea9b0 005fca00 SfxTabDRAIN
 data 005eabc0 005fcc10 SfxTabPRESSURE
 data 005ead40 005fcd90 SfxTabCRUNCH
+data 005eae90 005fcee0 SfxTabOIDS
 data 005eb2b0 005fd210 SfxTabKNIGHT
 data 005eb340 005fd2a0 SfxTabTOWN
 data 005eb3d0 005fd330 SfxTabICE

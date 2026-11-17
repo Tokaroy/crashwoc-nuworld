@@ -124,7 +124,38 @@ def listing_obj(obj: nd.Obj, f: dict) -> list[str]:
     return render(words, 0, names)
 
 
-def report(d: nd.Diff, key: str, known: nd.Known, out: list[str], counts: Counter) -> bool:
+def sound_ids(ref: nd.Elf, tgt: Target) -> set[tuple[int, int]]:
+    """(PAL v1.03's number, the target's) of each sound both executables' tables name alike. A sound's number is
+    its row in SfxTabGLOBAL, or the global rows plus its row in its level's table; PAL's extra language rows give the
+    same sound another number."""
+    starts = sorted({b for b, _ in tgt.data_ref.values()})
+    tables = {}
+    for lo, hi, name in ref.objects:
+        if not name.startswith("SfxTab") or lo not in tgt.data_ref:
+            continue
+        b = tgt.data_ref[lo][0]
+        end = next((s for s in starts if s > b), b + hi - lo)
+        a, c = ref.read(lo, hi - lo), tgt.read(b, min(end - b, hi - lo))
+        if a is not None and c is not None:
+            tables[name] = [[t[off:off + 16].split(b"\0")[0] for off in range(0, len(t) - nd.SOUND + 1, nd.SOUND)]
+                            for t in (a, c)]
+    if "SfxTabGLOBAL" not in tables:
+        return set()
+    base = [len(rows) for rows in tables["SfxTabGLOBAL"]]
+    out = set()
+    for name, (ours, theirs) in tables.items():
+        first = {}
+        for row, sound in enumerate(theirs):
+            first.setdefault(sound, row)
+        add = (0, 0) if name == "SfxTabGLOBAL" else base
+        for row, sound in enumerate(ours):
+            if sound in first and row + add[0] != first[sound] + add[1]:
+                out.add((row + add[0], first[sound] + add[1]))
+    return out
+
+
+def report(d: nd.Diff, key: str, known: nd.Known, out: list[str], counts: Counter,
+           sounds: set[tuple[int, int]] = frozenset()) -> bool:
     left, lines = False, []
     base = f"func:{d.unit}/{d.name}@{key}"
     if d.unaligned:
@@ -137,9 +168,11 @@ def report(d: nd.Diff, key: str, known: nd.Known, out: list[str], counts: Counte
         kind = s.pal.kind if s.pal else "?"
         text = f"{kind} {s.pal.show() if s.pal else '-'} -> {s.ntsc.show() if s.ntsc else '-'}"
         cls = s.cls
+        if kind == "imm" and s.ntsc and (s.pal.bits, s.ntsc.bits) in sounds:
+            cls = "sound"
         why = known.reason(f"{base}+0x{s.off:x} {text}")
         counts[f"{cls} known" if why else cls] += 1
-        if why:
+        if why or cls == "sound":
             continue
         left = True
         lines.append(f"  +0x{s.off:04x} {text}  {cls}")
@@ -307,6 +340,7 @@ def cmd_check(args) -> int:
     decomp = nwunits.decomp_tree(args.decomp)
     units = nd.unit_of(decomp)
     tgts = targets(args, ref)
+    sounds = {key: sound_ids(ref, tgt) for key, tgt in tgts.items()}
     by_key = {(units.get(f["value"], ""), re.sub(r"__[0-9a-f]{8}$", "", f["name"])): f for f in ref.funcs}
     wanted = set(args.functions or [])
     todo = sorted(args.units or {units[f["value"]] for f in ref.funcs if f["name"] in wanted
@@ -346,7 +380,7 @@ def cmd_check(args) -> int:
                                                 revmap.ELFS[key][1], lineterm="", n=2)
                 counts["functions"] += 1
                 if d.sites or d.unaligned:
-                    left |= report(d, key, known, out, counts)
+                    left |= report(d, key, known, out, counts, sounds[key])
                 else:
                     counts["equal"] += 1
     print("\n".join(out))

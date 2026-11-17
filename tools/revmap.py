@@ -350,9 +350,15 @@ def data_pointers(ref: Image, tgt: Image, voted: list[tuple]) -> list[tuple]:
     return sorted(out)
 
 
+def named(body: bytes | None) -> bool:
+    head = (body or b"")[:16].split(b"\0")[0]
+    return len(head) >= 4 and all(32 <= c < 127 for c in head)
+
+
 def data_between(ref: Image, tgt: Image, voted: list[tuple]) -> list[tuple]:
     known = sorted((a, b) for a, b, _, _, _ in voted)
     have = {a for a, _ in known}
+    taken = {b for _, b in known}
     out = list(voted)
     for addr, size, name in ref.objects:
         if addr in have:
@@ -371,6 +377,9 @@ def data_between(ref: Image, tgt: Image, voted: list[tuple]) -> list[tuple]:
         best = max(((alike(body, tgt.read(addr + d, size)), d) for d in set(deltas)), default=(0.0, 0))
         if best[0] >= 0.75 and (len(set(deltas)) == 1 or best[0] == 1.0 or size >= 16):
             out.append((addr, addr + best[1], name, 0, 0))
+        elif i > 0 and i < len(known) and named(body) and addr + deltas[0] not in taken and \
+                addr + deltas[0] < known[i][1] and tgt.read(addr + deltas[0], 16) == body[:16]:
+            out.append((addr, addr + deltas[0], name, 0, 0))
     return sorted(out)
 
 

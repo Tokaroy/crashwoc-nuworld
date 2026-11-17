@@ -78,6 +78,20 @@ class AlignTest(unittest.TestCase):
         self.assertEqual(tool.lines(m)[-3:], ["data 00601000 00601200 X", "data 00601010 00601210 Y",
                                               "data 00601020 00601220 Z"])
 
+    def test_named_table_after_its_neighbour(self):
+        row = b"music left".ljust(16, b"\0")
+        ref_mem = bytes(16) + row + bytes(range(1, 0x51)) + bytes(16)
+        tgt_mem = bytes(16) + row + bytes(range(0x60, 0x80)) + bytes(16)
+        ref = image([], objects=[(0x601000, 16, "A"), (0x601010, 0x60, "T"), (0x601070, 16, "B")],
+                    memory=[(0x601000, ref_mem)])
+        tgt = image([], named=False, memory=[(0x602000, tgt_mem)])
+        voted = [(0x601000, 0x602000, "A", 0, 0), (0x601070, 0x602040, "B", 0, 0)]
+        placed = {name: b for _, b, name, _, _ in tool.data_between(ref, tgt, voted)}
+        self.assertEqual(placed["T"], 0x602010)
+        unnamed = image([], objects=[(0x601000, 16, "A"), (0x601010, 0x60, "T"), (0x601070, 16, "B")],
+                        memory=[(0x601000, bytes(16) + bytes(0x70))])
+        self.assertNotIn("T", {name for _, _, name, _, _ in tool.data_between(unnamed, tgt, voted)})
+
 
 class AddressesTest(unittest.TestCase):
     def test_names_and_translation(self):
