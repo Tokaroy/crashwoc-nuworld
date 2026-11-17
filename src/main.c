@@ -22,6 +22,7 @@
 #include "vfs/extract.h"
 #ifdef NW_WITH_GAME
 #include "data/image.h"
+#include "frontend/cheatpanel.h"
 #include "frontend/controlpanel.h"
 #include "frontend/debug.h"
 #include "frontend/profiles.h"
@@ -1178,6 +1179,9 @@ static int nw_boot(const char *data_dir, int hardware_speed, float aspect, NwPla
     nw_debug_toggle("Gameplay", "Boss health", &settings.boss_health);
     nw_debug_toggle("Gameplay", "Loading minigame in the hub", &settings.hub_minigame);
     nw_debug_toggle("Gameplay", "Time trial names of up to 8 letters", &settings.long_time_names);
+    if (!nw_pad_script) {
+        nw_cheat_panel_start();
+    }
     {
         char *root = nw_data_root(data_dir);
         char *saves = root ? nw_paths_dir(root, NW_PATHS_SAVES, false) : NULL;

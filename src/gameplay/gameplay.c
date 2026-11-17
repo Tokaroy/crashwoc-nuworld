@@ -5,6 +5,7 @@
 #include <SDL3/SDL.h>
 
 #include "gameplay/air.h"
+#include "gameplay/cheats.h"
 #include "gameplay/ground.h"
 #include "gameplay/jeep.h"
 #include "gameplay/monkeybars.h"
@@ -142,6 +143,7 @@ void nw_deviation_off(const char *sw)
 void nw_gameplay_swap(void)
 {
     nw_profile_poll();
+    nw_cheats_swap();
     nw_autosave_poll();
     nw_saves_import_poll();
 }
