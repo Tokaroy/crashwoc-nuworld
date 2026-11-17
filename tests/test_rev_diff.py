@@ -97,5 +97,13 @@ class SoundTest(unittest.TestCase):
         self.assertEqual(tool.sound_ids(Ref(), Tgt()), {(2, 1), (3, 2), (4, 2), (5, 3)})
 
 
+class DataTest(unittest.TestCase):
+    def test_english_slots(self):
+        self.assertEqual([tool.english([6], off) for off in (0, 4, 20)], [True, False, False])
+        self.assertEqual([tool.english([6, 7], off) for off in (0, 24, 28)], [True, True, False])
+        self.assertEqual([tool.english([44, 6], off) for off in (0, 4, 24)], [True, False, True])
+        self.assertTrue(tool.english(None, 12))
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -82,3 +82,6 @@
 ^func:game/vehsupp/(DrawSphere|DrawDeformedCross|DrawCross|DrawLine|DrawLineRel)@usa101 missing$  # debug drawing; US v1.01 drops it with its calls
 ^func:game/panel/NextLetter@usa101 missing$  # an inline no other unit calls; US v1.01 keeps only the inlined copies
 ^func:nu3d/nucamera/NuCameraSetProjectionMtx@\w+ missing$  # inlined into NuCameraSetEx in every build; the late builds drop the uncalled out-of-line copy
+^data:Font3DTab@\w+\+0x[0-9a-f]+ int4 \d+ -> -\d+$  # the late source keeps each glyph's character as a signed char in its int (48 -> -208 is 0xFFFFFF30); InitFont3D reads the low byte, the same character
+^data:LANGUAGEOPTION@usa101\+0x0 int1 1 -> 0$  # the disc decides it: NuWorld clears it at boot for the English-only US discs (src/main.c), PAL discs keep their language menu
+^data:FONT3D_JSCALEX@usa101\+0x0 f324 0.800000012 -> 1$  # port/revmap takes the 1.0f US v1.01 keeps beside it (its code loads 1.0f from .sdata where PAL v1.03 builds it inline); the one read next to the Japanese test is 0.8

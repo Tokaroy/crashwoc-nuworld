@@ -107,6 +107,15 @@ class AlignTest(unittest.TestCase):
         self.assertEqual((removed, new), ([], [(BASE + 0x1000, 8)]))
         self.assertEqual((placed[-1].func.name, placed[-1].addr, placed[-1].same), ("F", tf, True))
 
+    def test_one_object_per_address(self):
+        ref = image([], objects=[(0x601000, 4, "A"), (0x601004, 4, "B")],
+                    memory=[(0x601000, (55).to_bytes(4, "little") + (37).to_bytes(4, "little"))])
+        tgt = image([], named=False, memory=[(0x602000, (55).to_bytes(4, "little") + (37).to_bytes(4, "little"))])
+        voted = [(0x601000, 0x602004, "A", 1, 1), (0x601004, 0x602004, "B", 0, 0)]
+        self.assertEqual(tool.one_to_one(ref, tgt, voted), [(0x601004, 0x602004, "B", 0, 0)])
+        placed = tool.data_between(ref, tgt, tool.one_to_one(ref, tgt, voted))
+        self.assertEqual({name: b for _, b, name, _, _ in placed}, {"A": 0x602000, "B": 0x602004})
+
 
 class AddressesTest(unittest.TestCase):
     def test_names_and_translation(self):

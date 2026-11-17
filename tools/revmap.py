@@ -17,7 +17,8 @@ from declib.elf import code_refs, read_elf  # noqa: E402
 
 OUT = ROOT / "port" / "revmap"
 REPORTS = ROOT / "build" / "revmap"
-FUNC, OBJECT = 2, 1
+FUNC, OBJECT, NOTYPE = 2, 1, 0
+STATIC_SECTIONS = (".sbss", ".bss", ".sdata", ".data")
 JAL, LUI, JR_RA = 3, 0x0F, 0x03E00008
 KEY = 8
 SNAP = 6
@@ -65,12 +66,20 @@ class Image:
         words = list(struct.unpack(f"<{len(data) // 4}I", data))
         gp = struct.unpack_from("<I", by[".reginfo"]["data"], 20)[0]
         end = text["addr"] + len(data)
-        funcs, objects = {}, []
+        funcs, objects, unsized = {}, [], []
         for s in [] if stripped else symbols:
             if s["type"] == FUNC and s["size"] and text["addr"] <= s["value"] < end:
                 funcs.setdefault(s["value"], Func(s["name"], s["value"], s["size"]))
             elif s["type"] == OBJECT and s["size"]:
                 objects.append((s["value"], s["size"], s["name"]))
+            elif s["type"] in (NOTYPE, OBJECT) and not s["size"] and s["shndx"] < len(sections) and \
+                    sections[s["shndx"]]["name"] in STATIC_SECTIONS:
+                unsized.append((s["value"], sections[s["shndx"]], s["name"]))
+        if unsized:
+            marks = sorted({o[0] for o in objects} | {u[0] for u in unsized})
+            for addr, sec, name in unsized:
+                nxt = next((m for m in marks if m > addr), sec["addr"] + sec["size"])
+                objects.append((addr, min(nxt, sec["addr"] + sec["size"]) - addr, name))
         memory = sorted((s["addr"], s["data"]) for s in sections if s["flags"] & 2 and s["data"] and s["addr"])
         return cls(text["addr"], words, gp, [funcs[a] for a in sorted(funcs)], sorted(set(objects)), memory)
 
@@ -244,7 +253,7 @@ def align(ref: Image, tgt: Image) -> Mapping:
     removed, new = follow_calls(ref, tgt, placed, removed, new)
     data = data_votes(ref, tgt, placed, sorted(set(starts) | {p.addr for p in placed}))
     data = data_pointers(ref, tgt, data)
-    data = data_between(ref, tgt, data)
+    data = data_between(ref, tgt, one_to_one(ref, tgt, data_between(ref, tgt, data, free=True)))
     return Mapping(sorted(placed, key=lambda p: p.func.addr), removed, sorted(new), data)
 
 
@@ -387,15 +396,30 @@ def data_pointers(ref: Image, tgt: Image, voted: list[tuple]) -> list[tuple]:
     return sorted(out)
 
 
+def one_to_one(ref: Image, tgt: Image, data: list[tuple]) -> list[tuple]:
+    """One PAL object per target address: the one whose bytes the target holds there, then the most votes."""
+    sizes = {o[0]: o[1] for o in ref.objects}
+    claims = defaultdict(list)
+    for t in data:
+        claims[t[1]].append(t)
+
+    def fit(t: tuple) -> tuple:
+        size = sizes.get(t[0], 4)
+        return alike(ref.read(t[0], size), tgt.read(t[1], size)), t[3], -t[0]
+    return sorted(max(ts, key=fit) for ts in claims.values())
+
+
 def named(body: bytes | None) -> bool:
     head = (body or b"")[:16].split(b"\0")[0]
     return len(head) >= 4 and all(32 <= c < 127 for c in head)
 
 
-def data_between(ref: Image, tgt: Image, voted: list[tuple]) -> list[tuple]:
+def data_between(ref: Image, tgt: Image, voted: list[tuple], free: bool = False) -> list[tuple]:
+    """Objects next to placed ones at a neighbour's offset; with free, also onto taken addresses (for one_to_one)."""
     known = sorted((a, b) for a, b, _, _, _ in voted)
     have = {a for a, _ in known}
-    taken = {b for _, b in known}
+    taken = set() if free else {b for _, b in known}
+    claim = (lambda b: None) if free else taken.add
     out = list(voted)
     for addr, size, name in ref.objects:
         if addr in have:
@@ -408,15 +432,19 @@ def data_between(ref: Image, tgt: Image, voted: list[tuple]) -> list[tuple]:
             deltas.append(known[i][1] - known[i][0])
         body = ref.read(addr, size)
         if body is None:
-            if len(deltas) == 2 and deltas[0] == deltas[1]:
+            if len(deltas) == 2 and deltas[0] == deltas[1] and addr + deltas[0] not in taken:
                 out.append((addr, addr + deltas[0], name, 0, 0))
+                claim(addr + deltas[0])
             continue
-        best = max(((alike(body, tgt.read(addr + d, size)), d) for d in set(deltas)), default=(0.0, 0))
+        best = max(((alike(body, tgt.read(addr + d, size)), d) for d in set(deltas) if addr + d not in taken),
+                   default=(0.0, 0))
         if best[0] >= 0.75 and (len(set(deltas)) == 1 or best[0] == 1.0 or size >= 16):
             out.append((addr, addr + best[1], name, 0, 0))
+            claim(addr + best[1])
         elif i > 0 and i < len(known) and named(body) and addr + deltas[0] not in taken and \
                 addr + deltas[0] < known[i][1] and tgt.read(addr + deltas[0], 16) == body[:16]:
             out.append((addr, addr + deltas[0], name, 0, 0))
+            claim(addr + deltas[0])
     return sorted(out)
 
 

@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import difflib
+import math
 import os
 import re
 import struct
@@ -225,52 +226,187 @@ def cmd_functions(args) -> int:
     return rc
 
 
-def same_pointee(ref: nd.Elf, tgt: Target, x: int, y: int) -> bool:
-    if not ref.section_at(x) or not tgt.section_at(y):
+REV_VALUE = re.compile(r'\{ "[^"]+", (0x[0-9a-fA-F]+)u, (\d+), (\w+?)u, (\w+?)u, (\w+?)u \}')
+REV_STRINGS = re.compile(r'static const char \*const (\w+)\[\d+\] = \{([^}]*)\}')
+REV_STRING_USE = re.compile(r'(\w+)\[(\d+)\]\[i\] = \(char \*\)(\w+)\[i\];')
+TEXT_TABLE = re.compile(r'^char \*(\w+)((?:\[\d+\])+) =', re.M)
+CREDIT_ROW = re.compile(r'\{ (?:"([^"]*)"|0), (-?\d+), (-?\d+) \}')
+
+
+def text_tables(decomp: Path) -> dict[str, list[int]]:
+    """The dimensions of each language table in game/text."""
+    text = (decomp / "src" / "game" / "text.c").read_text(encoding="latin-1")
+    return {m[1]: [int(d) for d in re.findall(r"\d+", m[2])] for m in TEXT_TABLE.finditer(text)}
+
+
+def english(dims: list[int] | None, off: int) -> bool:
+    """Whether a table's pointer at off is its English text: the language is the last index when it has 6,
+    else the first."""
+    if not dims or 6 not in (dims[0], dims[-1]):
+        return True
+    i = off // 4
+    if dims[-1] == 6:
+        return i % 6 == 0
+    return i < math.prod(dims[1:])
+
+
+def data_units(decomp: Path) -> dict[str, str]:
+    """PAL v1.03's data symbols of the units NuWorld compiles, with their unit."""
+    import tomllib
+    compiled = {u.index: u.name for u in nwunits.load(decomp).units if u.treatment == "compile"}
+    doc = tomllib.loads((decomp / "config" / "pal103" / "data_symbols.toml").read_text(encoding="utf-8"))
+    return {s["name"]: compiled[s["unit"]] for s in doc["symbol"] if s.get("unit") in compiled}
+
+
+def credit_rows(decomp: Path) -> list[tuple[bytes | None, int, int]]:
+    """CreditLate, the late credits NuWorld shows (game/credits)."""
+    text = (decomp / "src" / "game" / "credits.c").read_text(encoding="latin-1")
+    if "CreditLate[" not in text:
+        return []
+    body = text[text.index("CreditLate["):]
+    body = body[:body.index("};")]
+    return [(m[1].encode("latin-1") if m[1] is not None else None, int(m[2]), int(m[3]))
+            for m in CREDIT_ROW.finditer(body)]
+
+
+class Late:
+    """PAL v1.03's data as NuWorld's late game holds it: src/port/rev.c's values and strings over it, and at
+    60 Hz the 60 Hz table (src/port/hz_table.inc)."""
+
+    def __init__(self, ref: nd.Elf, shapes: dict[str, list[int]], ntsc: bool):
+        self.ref = ref
+        self.patch: dict[int, int] = {}
+        self.strings: dict[int, bytes] = {}
+        text = (ROOT / "src" / "port" / "rev.c").read_text(encoding="utf-8")
+        for m in REV_VALUE.finditer(text):
+            addr, size, value = int(m[1], 16), int(m[2]), int(m[5 if ntsc else 4], 0)
+            for k in range(size):
+                self.patch[addr + k] = value >> 8 * k & 0xFF
+        if ntsc:
+            for _, addr, size, _, value in hz_rows(ROOT / "src" / "port" / "hz_table.inc"):
+                for k in range(size):
+                    self.patch[addr + k] = value[k]
+        arrays = {m[1]: re.findall(r'"([^"]*)"', m[2]) for m in REV_STRINGS.finditer(text)}
+        starts = {name: lo for lo, _, name in ref.objects}
+        for m in REV_STRING_USE.finditer(text):
+            row = 4 * (shapes.get(m[1], [0, 1])[-1])
+            for i, s in enumerate(arrays.get(m[3], [])):
+                self.strings[starts[m[1]] + int(m[2]) * row + 4 * i] = s.encode("latin-1")
+
+    def read(self, addr: int, n: int) -> bytes | None:
+        raw = self.ref.read(addr, n)
+        if raw is None:
+            return None
+        out = bytearray(raw)
+        for k in range(n):
+            if addr + k in self.patch:
+                out[k] = self.patch[addr + k]
+        return bytes(out)
+
+
+def same_text(ref: nd.Elf, tgt: Target, x: int, y: int) -> bool:
+    sx, sy = ref.section_at(x), tgt.section_at(y)
+    if not sx or not sy:
         return False
     a, b = nd.cstr(ref, x), nd.cstr(tgt, y)
-    return bool(a) and a == b
+    return a == b and (bool(a) or sx["name"] == sy["name"])
 
 
-def data_changes(ref: nd.Elf, tgt: Target) -> list[nd.Field]:
+def pointer(elf: nd.Elf, v: int) -> bool:
+    return elf.section_at(v) is not None or elf.target(v) is not None
+
+
+def pointer_class(late: Late, tgt: Target, name: str, addr: int, at: int, x: int, y: int,
+                  shapes: dict[str, list[int]]) -> str | None:
+    """None when both point at the same thing: the same symbol, equal text, or the late text NuWorld puts there."""
+    ours = late.strings.get(addr)
+    if ours is not None:
+        return None if ours == nd.cstr(tgt, y) else "review"
+    tx = late.ref.target(x)
+    if (tx is not None and tx == tgt.target(y)) or same_text(late.ref, tgt, x, y):
+        return None
+    if name in shapes and not english(shapes[name], at):
+        return "language"
+    return "review"
+
+
+def credit_changes(tgt: Target, at: int, rows: list[tuple]) -> list[tuple[nd.Field, str]]:
+    raw = tgt.read(at, 8 * len(rows)) or b""
+    out = []
+    for i, (txt, colour, size) in enumerate(rows):
+        if 8 * i + 8 > len(raw):
+            break
+        p, c, s = struct.unpack_from("<Ihh", raw, 8 * i)
+        theirs = nd.cstr(tgt, p) if p else None
+        if (theirs, c, s) != (txt, colour, size):
+            what = f"{txt!r} {colour} {size} -> {theirs!r} {c} {s}"
+            out.append((nd.Field("Credit", 8 * i, 8, "row", 0, 0, what, 0), "review"))
+    return out
+
+
+def data_changes(late: Late, tgt: Target, units: dict[str, str], shapes: dict[str, list[int]],
+                 credits: list[tuple], sounds: set[tuple[int, int]]) -> list[tuple[nd.Field, str]]:
+    """Each value of NuWorld's late data that differs from the target's, with its class: review, rate, sound
+    (the same sound under the target's number) or language (a text PAL keeps in its other languages)."""
+    ref = late.ref
+    starts = sorted({b for b, _ in tgt.data_ref.values()})
     out = []
     for lo, hi, name in ref.objects:
         sec = ref.section_at(lo)
-        if lo not in tgt.data_ref or not sec or sec["name"] not in nd.DATA_SECTIONS:
+        if name not in units or lo not in tgt.data_ref or not sec or sec["name"] not in nd.DATA_SECTIONS:
             continue
-        a, b = ref.read(lo, hi - lo), tgt.read(tgt.data_ref[lo][0], hi - lo)
-        if a is None or b is None or a == b:
+        at = tgt.data_ref[lo][0]
+        if name == "Credit" and credits:
+            out += credit_changes(tgt, at, credits)
             continue
-        for off in range(0, len(a) - len(a) % 4, 4):
-            x, y = int.from_bytes(a[off:off + 4], "little"), int.from_bytes(b[off:off + 4], "little")
-            if x == y:
-                continue
-            if ref.section_at(x) and tgt.section_at(y):
-                tx = ref.target(x)
-                if (tx is None or tx != tgt.target(y)) and not same_pointee(ref, tgt, x, y):
-                    text = f"{nd.cstr(ref, x)[:40]!r} -> {nd.cstr(tgt, y)[:40]!r}"
-                    out.append(nd.Field(name, off, 4, "ptr", x, y, text, lo))
-                continue
-            for f in nd.data_fields(name, a[off:off + 4], b[off:off + 4], ref, tgt):
-                f.off += off
-                f.addr = lo
-                out.append(f)
+        a = late.read(lo, hi - lo)
+        end = next((s for s in starts if s > at), at + hi - lo)
+        b = tgt.read(at, min(end - at, hi - lo))
+        if name.startswith("SfxTab"):
+            pairs = nd.sound_pairs(a, b) if a and b else []
+        else:
+            pairs = [(0, a[:len(b)], b)] if a and b else []
+        for base, ea, eb in pairs:
+            for off in range(0, len(ea) - len(ea) % 4, 4):
+                x, y = int.from_bytes(ea[off:off + 4], "little"), int.from_bytes(eb[off:off + 4], "little")
+                if (x == y and lo + base + off not in late.strings) or tgt.data_ref.get(x, (None,))[0] == y:
+                    continue
+                if pointer(ref, x) and pointer(tgt, y):
+                    cls = pointer_class(late, tgt, name, lo + base + off, base + off, x, y, shapes)
+                    if cls:
+                        ours = late.strings.get(lo + base + off, nd.cstr(ref, x))
+                        what = f"{ours[:40]!r} -> {nd.cstr(tgt, y)[:40]!r}"
+                        out.append((nd.Field(name, base + off, 4, "ptr", x, y, what, lo), cls))
+                    continue
+                for f in nd.data_fields(name, ea[off:off + 4], eb[off:off + 4], ref, tgt):
+                    f.off += base + off
+                    f.addr = lo
+                    out.append((f, "sound" if f.kind == "int" and (f.pal, f.ntsc) in sounds else f.cls))
     return out
 
 
 def cmd_data(args) -> int:
     ref = ref_elf(args)
-    tgts = targets(args, ref)
-    for key, tgt in tgts.items():
-        fields = data_changes(ref, tgt)
-        for f in fields:
-            what = f.cls if f.kind == "ptr" else f"{f.show(f.pal)} -> {f.show(f.ntsc)}"
-            print(f"{key} {f.symbol}+0x{f.off:x} {f.kind}{f.size} {what}")
-        print(f"{revmap.ELFS[key][1]}: {len(fields)} values differ")
-    return 0
+    decomp = nwunits.decomp_tree(args.decomp)
+    units, shapes, credits = data_units(decomp), text_tables(decomp), credit_rows(decomp)
+    known, counts, out, left = nd.Known(args.known), Counter(), [], False
+    for key, tgt in targets(args, ref).items():
+        late = Late(ref, shapes, BUILD_OF[key] == "late_ntsc")
+        for f, cls in data_changes(late, tgt, units, shapes, credits, sound_ids(ref, tgt)):
+            what = f.cls if f.kind in ("ptr", "row") else f"{f.show(f.pal)} -> {f.show(f.ntsc)}"
+            line = f"{f.symbol}@{key}+0x{f.off:x} {f.kind}{f.size} {what}"
+            why = known.reason(f"data:{line}")
+            counts[f"{cls} known" if why else cls] += 1
+            if why or cls in ("sound", "language"):
+                continue
+            out.append(f"  {line}  {cls}")
+            left = True
+    print("\n".join(out))
+    print(", ".join(f"{n} {k}" for k, n in sorted(counts.items())) or "nothing differs")
+    return 1 if left else 0
 
 
-HZ_ROW = re.compile(r'NW_HZ_(INT|F32)\("([^"]+)", 0x([0-9a-f]+), (?:(\d+), (-?\d+), (-?\d+)|([-0-9.e]+)f, ([-0-9.e]+)f)\)')
+HZ_ROW = re.compile(r'NW_HZ_(INT|F32)\("([^"]+)", 0x([0-9a-f]+), (?:(\d+), (-?\d+), (-?\d+)|([-+0-9.e]+)f, ([-+0-9.e]+)f)\)')
 
 
 def hz_rows(path: Path) -> list[tuple[str, int, int, bytes, bytes]]:
