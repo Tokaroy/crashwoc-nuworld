@@ -842,6 +842,8 @@ static void slide(void)
     NwProfile retail = { 0 }, on = ONLY(slide);
     on.movement.crash.slide_speed = 140;
     on.movement.crash.slide_ms = 400;
+    on.movement.crash.slide_keep = true;
+    on.movement.crash.slide_cancel = true;
     struct creature_s *c = &Character[0];
     crash_at(60, &on);
     CHECK(CrashMoveInfo.SLIDEFRAMES == 24 && CrashMoveInfo.SLIDESPEED == 0.080000006f * 1.4f);
@@ -959,6 +961,10 @@ static void slide_spin(void)
 {
     NwProfile retail = { 0 }, on = ONLY(slide_spin);
     struct creature_s *c = &Character[0];
+    on.movement.crash.slide_spin_kept = 100;
+    on.movement.crash.slide_spin_late_ms = 150;
+    on.movement.crash.slide_spin_steer = 0;
+    on.movement.crash.slide_spin_lean = 25;
     spin_slide(&on);
     pad.paddata = 0x80;
     GameTimer.frame++;
