@@ -35,10 +35,10 @@
     SW(slide_spin, "Crash slide spin", true, "a spin out of a slide keeps its speed and leans forward") \
     VAL(slide_spin_kept, "Spin speed %", 110, 50, 150, "% of the slide's speed, held while the spin lasts") \
     VAL(slide_spin_late_ms, "Late spin ms", 10, 0, 300, "how long after the slide a spin still counts") \
-    VAL(slide_spin_steer, "Steering %", 10, 0, 100, "turn speed, % of his normal turning") \
+    VAL(slide_spin_steer, "Steering %", 2, 0, 100, "turn speed, % of his normal turning") \
     VAL(slide_spin_jump, "Jump speed kept %", 0, 0, 100, "share of its speed kept when jumping out of it") \
     VAL(slide_spin_lean, "Lean deg", 35, 0, 45, "forward tilt while spinning") \
-    VAL(slide_spin_bank, "Bank deg", 15, 0, 45, "sideways tilt into a turn while steering") \
+    VAL(slide_spin_bank, "Bank deg", 10, 0, 45, "sideways tilt into a turn while steering") \
     SW(edge_grip, "Edge grip", true, "no sliding off beveled platform edges") \
     VAL(edge_reach, "Edge reach %", 55, 45, 90, "how far past an edge he can stand, % of his radius; PS2: 45") \
     SW(line_2d, "Hold 2D line", false, "stays on the entry line in side-on sections") \
