@@ -2,8 +2,11 @@
 #include "nu_types.h"
 #include "gamelib/gcutscn.h"
 #include "game/cut.retail.h"
+#include "gameplay/bosscut.h"
 #include "gameplay/titlemenu.h"
 #include "port/level.h"
+
+extern u16 new_lev_flags;
 
 void StartCutMovie(void)
 {
@@ -16,9 +19,12 @@ void StartCutMovie(void)
 
 void GetSpaceCut(s32 last, s32 next)
 {
+    u16 flags = new_lev_flags;
+    new_lev_flags |= nw_boss_cut_flags(last, next);
     if (!nw_cutscene_route(next)) {
         GetSpaceCut__retail(last, next);
     }
+    new_lev_flags = flags;
 }
 
 void SetCutMovieRate(void)
