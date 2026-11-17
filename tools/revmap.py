@@ -241,10 +241,47 @@ def align(ref: Image, tgt: Image) -> Mapping:
         same = rtoks[k] == tgt.tokens(addr, end - addr)[0]
         placed.append(Placed(funcs[k], addr, end - addr, ratio[k], same))
     removed = [f for k, f in enumerate(funcs) if k not in ranges]
+    removed, new = follow_calls(ref, tgt, placed, removed, new)
     data = data_votes(ref, tgt, placed, sorted(set(starts) | {p.addr for p in placed}))
     data = data_pointers(ref, tgt, data)
     data = data_between(ref, tgt, data)
     return Mapping(sorted(placed, key=lambda p: p.func.addr), removed, sorted(new), data)
+
+
+def calls(img: Image, addr: int, size: int) -> list[int]:
+    base = (addr - img.base) // 4
+    return [(w & 0x3FFFFFF) << 2 | addr & 0xF0000000 for w in img.words[base:base + size // 4] if w >> 26 == 3]
+
+
+def follow_calls(ref: Image, tgt: Image, placed: list[Placed], removed: list[Func],
+                 new: list[tuple[int, int]]) -> tuple[list[Func], list[tuple[int, int]]]:
+    """A function the aligner left out: an unclaimed target function that a placed caller calls at the same site,
+    the site found between the caller's calls that agree with the map."""
+    lost = {f.addr: f for f in removed}
+    free = dict(new)
+    mapped = {p.func.addr: p.addr for p in placed}
+    grew = True
+    while grew and lost:
+        grew = False
+        for p in list(placed):
+            rc, tc = calls(ref, p.func.addr, p.func.size), calls(tgt, p.addr, p.size)
+            keys = [mapped.get(a, -1 - i) for i, a in enumerate(rc)]
+            sites = []
+            for tag, i1, i2, j1, j2 in difflib.SequenceMatcher(None, keys, tc, autojunk=False).get_opcodes():
+                if tag == "replace" and i2 - i1 == j2 - j1:
+                    sites += zip(rc[i1:i2], tc[j1:j2])
+            for a, b in sites:
+                f = lost.get(a)
+                if f is None or b not in free:
+                    continue
+                size = free.pop(b)
+                rt, tt = ref.tokens(f.addr, f.size)[0], tgt.tokens(b, size)[0]
+                placed.append(Placed(f, b, size, difflib.SequenceMatcher(None, rt, tt, autojunk=False).ratio(),
+                                     rt == tt))
+                mapped[a] = b
+                del lost[a]
+                grew = True
+    return [f for f in removed if f.addr in lost], sorted(free.items())
 
 
 def regions(placed_at: list[tuple[int, int, int]], starts: list[int], top: int):

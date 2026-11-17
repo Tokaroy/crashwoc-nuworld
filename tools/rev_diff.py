@@ -335,10 +335,19 @@ def compile_units(decomp: Path, units: list[str]) -> None:
         sys.exit("error: the EE compile failed")
 
 
+def not_run(decomp: Path) -> set[tuple[str, str]]:
+    """(unit, function) of the retail code NuWorld never runs: a NuWorld definition, a stub or nothing takes its
+    calls (port/units.toml); a wrapped function's retail body still runs."""
+    model = nwunits.load(decomp)
+    return {(u.name, re.sub(r"__[0-9a-f]{8}$", "", f.name)) for u in model.units for f in u.functions
+            if f.provider != "decomp" and not f.wrapped}
+
+
 def cmd_check(args) -> int:
     ref = ref_elf(args)
     decomp = nwunits.decomp_tree(args.decomp)
     units = nd.unit_of(decomp)
+    skip = not_run(decomp)
     tgts = targets(args, ref)
     sounds = {key: sound_ids(ref, tgt) for key, tgt in tgts.items()}
     by_key = {(units.get(f["value"], ""), re.sub(r"__[0-9a-f]{8}$", "", f["name"])): f for f in ref.funcs}
@@ -356,7 +365,7 @@ def cmd_check(args) -> int:
         for f in objs["plain"].funcs:
             code = objs["plain"].code(f)
             r = by_key.get((unit, code.name))
-            if r is None or (wanted and code.name not in wanted):
+            if r is None or (wanted and code.name not in wanted) or (unit, code.name) in skip:
                 continue
             d = diff(code, ref.code(r), line_loads(code, callees_obj(objs["plain"], f)))
             if d.sites or d.unaligned:
@@ -370,9 +379,16 @@ def cmd_check(args) -> int:
                 r = by_key.get((unit, code.name))
                 if r is None or (wanted and code.name not in wanted):
                     continue
+                if (unit, code.name) in skip:
+                    counts["not run"] += 1
+                    continue
                 g = tgt.by_ref.get(r["value"])
                 if g is None:
-                    out.append(f"{unit} {code.name}: not in {revmap.ELFS[key][1]}")
+                    why = known.reason(f"func:{unit}/{code.name}@{key} missing")
+                    counts["missing known" if why else "missing"] += 1
+                    if not why:
+                        out.append(f"{unit} {code.name}: not in {revmap.ELFS[key][1]}")
+                        left = True
                     continue
                 d = diff(code, tgt.code(g), line_loads(code, callees_obj(obj, f)))
                 if args.disasm and (d.sites or d.unaligned):

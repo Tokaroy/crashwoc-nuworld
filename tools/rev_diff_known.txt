@@ -69,9 +69,6 @@
 ^func:game/font3d/InitFont3D@\w+\+0x[0-9a-f]+ imm (255 -> 510|-1 -> -2)$  # Font3DRemap is s16[256] late (512 bytes), NuWorld keeps s8[256]: the clear loop's end offset and step
 ^func:game/font3d/InitFont3D@\w+ structure$  # type widths only: Font3DRemap's s16 elements late (values are glyph indices below 60 and -1, so s8 holds them) and Font3DTab's ascii read as a byte (the same low byte of the s32)
 ^func:game/panel/(Draw3DCheckpointLetters|NextLetter)@\w+ structure$  # type width only: Font3DRemap's s16 elements late (lh and the doubled index), NuWorld keeps s8[256]; the index is the same unsigned byte
-^func:game/font3d/Text3D@\w+[ +]  # NuWorld replaces Text3D (src/port/font3d.c), which carries the late index fix
-^func:game/(edai|edlight)/\w+@\w+[ +]  # the level editor's input and drawing; NuWorld's game does not run it
-^func:game/loadsave/UpdateSaveSlots@\w+[ +]  # NuWorld replaces the memory card saves (port/units.toml)
 ^func:game/camera/BestRailPosition@pal201( structure|\+0x[0-9a-f]+ (frame|off|imm) -?\d+ -> -?\d+)$  # US v1.01 only, taken as canonical: no vertical rails (RailPosition.vertical, i1, i2 gone), dbest and use set before the search
 ^func:game/camera/ComplexRailPosition@pal201( structure|\+0x[0-9a-f]+ (frame|off|imm) -?\d+ -> -?\d+)$  # US v1.01 only, taken as canonical: bonus, death, gempath and the best distance set before the search
 ^func:game/camera/ResetGameCameras@pal201( structure|\+0x[0-9a-f]+ (frame|off|imm) -?\d+ -> -?\d+)$  # US v1.01 only, taken as canonical: no vertical rails (cammtx_s.vertical gone)
@@ -80,3 +77,8 @@
 ^func:game/creature/LoadCharacterModels@pal201( structure|\+0x[0-9a-f]+ (frame|off|imm) -?\d+ -> -?\d+)$  # US v1.01 only, taken as canonical: a .bsa animation's entry goes into animlist (CharacterModel.fanimlist gone)
 ^func:game/jeep/JeepCam@pal201( structure|\+0x[0-9a-f]+ (frame|off|imm) -?\d+ -> -?\d+)$  # US v1.01 only, taken as canonical: no vertical rails (cammtx_s.vertical gone); US v1.01 drops JeepCam
 ^func:game/move/CheckRings@pal201( structure|\+0x[0-9a-f]+ (frame|off|imm) -?\d+ -> -?\d+)$  # US v1.01 only, taken as canonical: the rail's next point from iALONG (RailPosition.i1 gone), the same index
+^func:game/(jeep|vehterr)/\w+@usa101 missing$  # US v1.01 drops the jeep, which no level drives: MovePlayerJeep, DriveJeep, the jeep cameras and their terrain helpers
+^func:game/particle/\w+@usa101 missing$  # US v1.01 drops the particle unit: no build initialises or draws it, only main's exit calls CloseParticles
+^func:game/vehsupp/(DrawSphere|DrawDeformedCross|DrawCross|DrawLine|DrawLineRel)@usa101 missing$  # debug drawing; US v1.01 drops it with its calls
+^func:game/panel/NextLetter@usa101 missing$  # an inline no other unit calls; US v1.01 keeps only the inlined copies
+^func:nu3d/nucamera/NuCameraSetProjectionMtx@\w+ missing$  # inlined into NuCameraSetEx in every build; the late builds drop the uncalled out-of-line copy

@@ -1197,6 +1197,7 @@ func 00170190 00170258 b38 terraininit
 func 00170ca8 00170d90 218 ReadTerrainPickup
 func 00170ec0 00170fa8 380 terrainpickupinit
 func 00171220 00171328 f0 TerrainPlatformOldUpdate
+func 00171310 00171418 240 TerrainPlatformNewUpdate
 func 00171630 00171658 3a0 TerrDraw
 func 001719e8 001719f8 330 TerrDrawSitu
 func 00171d28 00171d28 568 TerrDrawPlat
@@ -1205,6 +1206,7 @@ func 001724f8 001724f0 110 RotateVec
 func 00172608 00172600 1f8 RotateTerrain
 func 00172808 001727f8 3b0 DeRotateTerrain
 func 00172bb8 00172ba8 108 DeRotatePoint
+func 00172cc0 00172cb0 4e0 InsidePolLines
 func 00173308 00173190 a78 NewScan
 func 00173d80 00173c08 10d8 NewScanRot
 func 00174e60 00174ce0 c58 NewCast
@@ -2481,6 +2483,7 @@ func 00214400 00212f40 180 ProcessWBBolts
 func 00214588 002130c0 400 WeatherBossReset
 func 00214980 002134c0 148 DrawWeatherBossLevelExtra
 func 00214ac8 00213608 198 ProcessWeatherBossLevel
+func 00214c68 002137a0 140 ProcessWBIntro
 func 00214de8 002138e0 158 ProcessVehicleLevel
 func 00214f40 00213a38 200 DrawExtraCreatures
 func 00215140 00213c38 1c0 GetCurrentLevelObjectives
@@ -2811,6 +2814,7 @@ func 002361c0 0022f4c8 58 edwmpRender
 func 00236218 0022f520 40 edwmpcbSaveWumpaData
 func 00236258 0022f560 8 edwmpCbCancelOptMenu
 func 00236260 0022f568 168 edaiHIGHLIGHT
+func 002363c0 0022f6d0 1c0 AdjustPosY
 func 00236570 0022f9e8 f0 edaiJUMP
 func 00236660 0022fad8 1a0 edaiDrawInfo
 func 00236800 0022fc78 3c0 DrawCube
@@ -2866,6 +2870,7 @@ func 00240958 00239ca8 38 ResetPanelDebris
 func 002409e8 00239ce0 1a0 NewLanguage
 func 00240b88 00239e80 c0 AddSpacesIntoText
 func 00240c48 00239f40 e0 JStrLen
+func 00240d28 0023a070 378 InsideLight
 func 002411a8 0023a3e8 4b0 edlightDrawInfo
 func 00241658 0023a898 248 edlightDrawLightAxis
 func 002418a0 0023aae0 138 edlightHighlight
@@ -2994,6 +2999,7 @@ func 00257570 00250098 190 CheckGates
 func 00257700 00250228 180 ResetRings
 func 00257880 002503a8 500 CheckRings
 func 00257d70 002508a8 110 DrawRings
+func 00257e80 002509b8 c8 AnimateSWIMMING
 func 00257f88 00250a80 98 AnimateSCOOTER
 func 00258020 00250b18 d8 AnimateOFFROADER
 func 002580f8 00250bf0 60 AnimateSUBMARINE
@@ -3084,6 +3090,7 @@ func 00261c50 0025a7a0 88 sceGsSetHalfOffset
 func 00261cd8 0025a828 88 sceGsSetHalfOffset2
 func 00261d60 0025a8b0 2e8 sceGsSetDefDBuffDc
 func 00262048 0025ab98 60 sceGsSwapDBuffDc
+func 002620a8 0025aca8 378 sceGsSetDefDispEnv
 func 00262318 0025b020 c0 sceGsPutDispEnv
 func 002623d8 0025b0e0 c8 sceGszbufaddr
 func 002624a0 0025b1a8 1e8 sceGsSetDefDrawEnv
@@ -3143,6 +3150,7 @@ func 002642c0 0025cd40 50 sceDevVif1Sync
 func 00264310 0025cd90 1d8 sceDevVif1GetCnd
 func 002644e8 0025cf68 60 sceDevVif1PutFifo
 func 00264548 0025cfc8 60 sceDevVif1GetFifo
+func 002645a8 0025d028 118 _send_to_iop
 func 002646d8 0025d140 140 scePadInit
 func 00264818 0025d280 a0 scePadInit2
 func 002648b8 0025d320 80 scePadEnd
@@ -3524,6 +3532,7 @@ func 002790e0 00271e60 10 PSMode
 func 002790f0 00271e70 10 MachineType
 func 00279100 00271e80 10 GetMemorySize
 func 00279110 00271ea0 10 sceResetttyinit
+func 00279120 00271eb0 90 VSync
 func 00279160 00271f40 a8 VSync2
 func 002791c0 00271fe8 80 write
 func 00279240 00272068 78 read
@@ -3552,7 +3561,10 @@ func 00279868 002726a0 20 iEnableIntc
 func 00279888 002726c0 20 iDisableIntc
 func 002798a8 002726e0 20 iEnableDmac
 func 002798c8 00272700 20 iDisableDmac
+func 002798e8 0027a2d8 10 setup
+func 002798f8 0027a2e8 10 Copy
 func 00279908 00279ca8 38 kCopy
+func 00279940 0027a330 10 GetEntryAddress
 func 00279950 0027a340 d8 InitAlarm
 func 00279a28 00272720 d8 topThread
 func 00279b00 002727f8 d8 InitThread

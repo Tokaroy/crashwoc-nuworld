@@ -1197,6 +1197,7 @@ func 00170190 00170540 b18 terraininit
 func 00170ca8 00171058 218 ReadTerrainPickup
 func 00170ec0 00171270 360 terrainpickupinit
 func 00171220 001715d0 f0 TerrainPlatformOldUpdate
+func 00171310 001716c0 240 TerrainPlatformNewUpdate
 func 00171630 00171900 3b8 TerrDraw
 func 001719e8 00171cb8 340 TerrDrawSitu
 func 00171d28 00171ff8 570 TerrDrawPlat
@@ -1205,6 +1206,7 @@ func 001724f8 001727c8 110 RotateVec
 func 00172608 001728d8 200 RotateTerrain
 func 00172808 00172ad8 3b0 DeRotateTerrain
 func 00172bb8 00172e88 108 DeRotatePoint
+func 00172cc0 00172f90 500 InsidePolLines
 func 00173308 00173490 a78 NewScan
 func 00173d80 00173f08 10e0 NewScanRot
 func 00174e60 00174fe8 cb0 NewCast
@@ -2487,6 +2489,7 @@ func 00214400 002145c8 188 ProcessWBBolts
 func 00214588 00214750 3f8 WeatherBossReset
 func 00214980 00214b48 148 DrawWeatherBossLevelExtra
 func 00214ac8 00214c90 1a0 ProcessWeatherBossLevel
+func 00214c68 00214e30 140 ProcessWBIntro
 func 00214de8 00214f70 158 ProcessVehicleLevel
 func 00214f40 002150c8 200 DrawExtraCreatures
 func 00215140 002152c8 1b8 GetCurrentLevelObjectives
@@ -2840,6 +2843,7 @@ func 002361c0 00235ed8 58 edwmpRender
 func 00236218 00235f30 40 edwmpcbSaveWumpaData
 func 00236258 00235f70 8 edwmpCbCancelOptMenu
 func 00236260 00235f78 160 edaiHIGHLIGHT
+func 002363c0 002360d8 1c0 AdjustPosY
 func 00236570 002363f0 f0 edaiJUMP
 func 00236660 002364e0 1a0 edaiDrawInfo
 func 00236800 00236680 3c0 DrawCube
@@ -2896,6 +2900,7 @@ func 00240980 002406b0 68 NextLetter
 func 002409e8 00240718 1a0 NewLanguage
 func 00240b88 002408b8 c0 AddSpacesIntoText
 func 00240c48 00240978 e0 JStrLen
+func 00240d28 00240a58 378 InsideLight
 func 002411a8 00240dd0 4b0 edlightDrawInfo
 func 00241658 00241280 248 edlightDrawLightAxis
 func 002418a0 002414c8 138 edlightHighlight
@@ -3024,6 +3029,7 @@ func 00257570 00257088 190 CheckGates
 func 00257700 00257218 180 ResetRings
 func 00257880 00257398 4f0 CheckRings
 func 00257d70 00257888 110 DrawRings
+func 00257e80 00257998 c8 AnimateSWIMMING
 func 00257f88 00257a60 98 AnimateSCOOTER
 func 00258020 00257af8 d8 AnimateOFFROADER
 func 002580f8 00257bd0 60 AnimateSUBMARINE

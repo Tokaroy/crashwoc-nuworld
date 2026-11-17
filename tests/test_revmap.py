@@ -92,6 +92,21 @@ class AlignTest(unittest.TestCase):
                         memory=[(0x601000, bytes(16) + bytes(0x70))])
         self.assertNotIn("T", {name for _, _, name, _, _ in tool.data_between(unnamed, tgt, voted)})
 
+    def test_callee_from_its_caller(self):
+        def jal(addr):
+            return 0x0C000000 | (addr >> 2 & 0x3FFFFFF)
+
+        g, f = BASE + 4 * 6, BASE + 4 * 19
+        ref = image([("C", [0x27BDFFF0, jal(g), NOP, jal(f), NOP, JR_RA]), ("G", fn(2)), ("F", fn(3))])
+        tg, tf = BASE + 4 * 7, BASE + 4 * 20
+        tgt = image([("C", [0x27BDFFF0, jal(tg), NOP, NOP, jal(tf), NOP, JR_RA]), ("G", fn(2)), ("F", fn(3))],
+                    named=False)
+        c, gg, ff = ref.funcs
+        placed = [tool.Placed(c, BASE, 28, 0.9, False), tool.Placed(gg, tg, gg.size, 1.0, True)]
+        removed, new = tool.follow_calls(ref, tgt, placed, [ff], [(tf, ff.size), (BASE + 0x1000, 8)])
+        self.assertEqual((removed, new), ([], [(BASE + 0x1000, 8)]))
+        self.assertEqual((placed[-1].func.name, placed[-1].addr, placed[-1].same), ("F", tf, True))
+
 
 class AddressesTest(unittest.TestCase):
     def test_names_and_translation(self):
