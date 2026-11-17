@@ -6,6 +6,7 @@
 #include "gameplay/crash.h"
 #include "gameplay/ground.h"
 #include "gameplay/hazards.h"
+#include "gameplay/hubgem.h"
 #include "gameplay/line2d.h"
 #include "gameplay/mech.h"
 #include "gameplay/submarine.h"
@@ -51,6 +52,7 @@ void PlayerCreatureCollisions(struct obj_s *obj)
     PlayerCreatureCollisions__retail(obj);
     nw_sub_restore();
     nw_hazards_restore();
+    nw_hubgem_collide(obj);
 }
 
 void ObjectRotation(struct obj_s *obj, s32 mode, s32 blend)

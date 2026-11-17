@@ -5,6 +5,7 @@
 #include "game/creature.h"
 #include "game/game.retail.h"
 #include "gameplay/gems.h"
+#include "gameplay/hubgem.h"
 #include "gameplay/jeep.h"
 #include "gameplay/submarine.h"
 #include "nups2/ps2ctl.h"
@@ -35,6 +36,13 @@ void InitObjectTable(void)
 {
     InitObjectTable__retail();
     nw_gems_objects();
+    nw_hubgem_level();
+}
+
+void DrawTransporters(void)
+{
+    DrawTransporters__retail();
+    nw_hubgem_draw();
 }
 
 u16 SeekRot(u16 a, u16 b, s32 shift)

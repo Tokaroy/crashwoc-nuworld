@@ -6,6 +6,7 @@
 #include "gameplay/gems.h"
 #include "gameplay/ground.h"
 #include "gameplay/hubcrunch.h"
+#include "gameplay/hubgem.h"
 #include "gameplay/hitboxes.h"
 #include "gameplay/mech.h"
 #include "gameplay/submarine.h"
@@ -24,6 +25,7 @@ void MovePlayer(struct creature_s *c, struct nupad_s *pad)
 void CloseCreatures(void)
 {
     nw_crunch_close();
+    nw_hubgem_close();
     CloseCreatures__retail();
 }
 

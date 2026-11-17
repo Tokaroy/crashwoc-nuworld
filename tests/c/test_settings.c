@@ -513,6 +513,27 @@ int main(int argc, char *argv[])
           SDL_strstr(text, "[mods.example]\nenabled = true\n") && SDL_strstr(text, "[audio]\n"));
     SDL_free(text);
 
+    NwSettings h;
+    nw_settings_defaults(&h);
+    CHECK(h.hub_gem && nw_settings_save(&h, root));
+    text = file_text();
+    CHECK(text && !SDL_strstr(text, "hub_gem"));
+    SDL_free(text);
+    h.hub_gem = false;
+    CHECK(nw_settings_save(&h, root));
+    text = file_text();
+    CHECK(text && SDL_strstr(text, "hub_gem = false\n") && !SDL_strstr(text, "game.hub_gem"));
+    SDL_free(text);
+    NwSettings back;
+    nw_settings_defaults(&back);
+    CHECK(nw_settings_load(&back, root) && !back.hub_gem && nw_settings_equal(&h, &back));
+    h.hub_gem = true;
+    CHECK(nw_settings_save(&h, root));
+    text = file_text();
+    CHECK(text && !SDL_strstr(text, "hub_gem"));
+    SDL_free(text);
+    CHECK(read_text("[game]\nhub_gem = false\n", &back) && !back.hub_gem);
+
     if (failures) {
         fprintf(stderr, "settings: %d checks failed\n", failures);
         return 1;

@@ -25,6 +25,7 @@ typedef struct NwSettings {
     bool hub_minigame;   /* Crunch on the warp room's top floor starts the loading minigame */
     bool long_time_names; /* time trial records take names of up to 8 letters instead of 3 */
     int camera_stability; /* percent of a jump the game camera ignores, 0 the PS2's */
+    bool hub_gem;
     int master_volume;   /* [audio], 0-100 over the game's own volumes: everything */
     int voice_volume;    /* the voice stream (cutscenes, hints) */
     bool discord;        /* [discord]: Rich Presence on the player's profile */

@@ -983,6 +983,7 @@ static void nw_boot_request(const NwSettings *s, bool hitboxes)
                                      .hub_minigame = s->hub_minigame,
                                      .long_time_names = s->long_time_names,
                                      .camera_stability = s->camera_stability,
+                                     .hub_gem = s->hub_gem,
                                      .hitboxes = hitboxes });
 }
 
@@ -1150,7 +1151,8 @@ static int nw_boot(const char *data_dir, int hardware_speed, float aspect, NwPla
                                        .wombat = settings.wombat,
                                        .hub_minigame = settings.hub_minigame,
                                        .long_time_names = settings.long_time_names,
-                                       .camera_stability = settings.camera_stability });
+                                       .camera_stability = settings.camera_stability,
+                                       .hub_gem = settings.hub_gem });
     }
     nw_wide_set(nw_video_start(&platform, &settings), settings.hud);
     nw_debug_panel("Settings", "Audio", nw_boot_audio, &settings, false);
@@ -1255,7 +1257,8 @@ static int nw_boot(const char *data_dir, int hardware_speed, float aspect, NwPla
                                    settings.wombat != applied.wombat ||
                                    settings.hub_minigame != applied.hub_minigame ||
                                    settings.long_time_names != applied.long_time_names ||
-                                   settings.camera_stability != applied.camera_stability)) {
+                                   settings.camera_stability != applied.camera_stability ||
+                                   settings.hub_gem != applied.hub_gem)) {
                 nw_boot_request(&settings, hitboxes);
                 hitboxes_shown = hitboxes;
             }

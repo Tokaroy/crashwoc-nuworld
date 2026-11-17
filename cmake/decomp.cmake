@@ -165,7 +165,7 @@ set(nw_game_sources ${nw_dataimage} src/gfx/dma.c src/gfx/fx2.c src/gfx/nulight.
   src/gameplay/camera.c src/gameplay/chase.c src/gameplay/crash.c src/gameplay/creature.c src/gameplay/cut.c src/gameplay/debris.c
   src/gameplay/edbits.c src/gameplay/edges.c src/gameplay/firefly.c
   src/gameplay/game.c src/gameplay/game_obj.c src/gameplay/gems.c src/gameplay/gameplay.c src/gameplay/gcutscn.c src/gameplay/ground.c src/gameplay/hazards.c
-  src/gameplay/hitboxes.c src/gameplay/hubcrunch.c src/gameplay/jeep.c src/gameplay/line2d.c src/gameplay/mech.c src/gameplay/minigame.c src/gameplay/monkeybars.c
+  src/gameplay/hitboxes.c src/gameplay/hubcrunch.c src/gameplay/hubgem.c src/gameplay/jeep.c src/gameplay/line2d.c src/gameplay/mech.c src/gameplay/minigame.c src/gameplay/monkeybars.c
   src/gameplay/move.c src/gameplay/numtl.c src/gameplay/panel.c src/gameplay/plane.c src/gameplay/spacefighter.c
   src/gameplay/steadycam.c src/gameplay/submarine.c
   src/gameplay/terrain.c src/gameplay/titlemenu.c src/gameplay/vehicle.c
@@ -176,6 +176,7 @@ set(nw_game_sources ${nw_dataimage} src/gfx/dma.c src/gfx/fx2.c src/gfx/nulight.
 list(FILTER nw_game_sources INCLUDE REGEX "\\.c$")
 add_library(nuworld_game STATIC $<TARGET_OBJECTS:nuworld_decomp> ${nw_game_sources})
 nw_embed_dir(nuworld_game nw_prompt_icons ${CMAKE_CURRENT_SOURCE_DIR}/assets/prompts)
+nw_embed(nuworld_game nw_hubgem_toml ${CMAKE_CURRENT_SOURCE_DIR}/assets/hubgem.toml)
 # The title menu's NuWorld mark.
 set(nw_title_logo ${nw_gen}/nw_title_logo.ghg)
 add_custom_command(OUTPUT ${nw_title_logo}
