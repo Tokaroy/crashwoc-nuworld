@@ -239,4 +239,14 @@ float nw_names_scale(float scale, const char *text, __SIZE_TYPE__ fit);
 #define NW_NAME_SCALE(scale, text, fit) (scale)
 #endif
 
+#ifdef NW_HOST
+unsigned short nw_relic_spin(unsigned short still, unsigned short turning);
+float nw_relic_glow(float scale, unsigned short turning);
+#define NW_RELIC_SPIN(still, turning) nw_relic_spin((still), (turning))
+#define NW_RELIC_GLOW(scale, turning) nw_relic_glow((scale), (turning))
+#else
+#define NW_RELIC_SPIN(still, turning) (still)
+#define NW_RELIC_GLOW(scale, turning) (scale)
+#endif
+
 #endif /* NU_PORT_H */

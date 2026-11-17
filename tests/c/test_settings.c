@@ -229,6 +229,9 @@ int main(int argc, char *argv[])
     CHECK(!s.long_time_names); /* the original's 3 letters unless asked */
     CHECK(read_text("[game]\nlong_time_names = true\n", &s) && s.long_time_names);
     nw_settings_defaults(&s);
+    CHECK(s.relic_spin);
+    CHECK(read_text("[game]\nrelic_spin = false\n", &s) && !s.relic_spin);
+    nw_settings_defaults(&s);
     CHECK(s.discord);
     CHECK(read_text("[discord]\nenabled = false\n", &s) && !s.discord);
     CHECK(nw_settings_save(&s, root));

@@ -330,6 +330,9 @@ static const NwSettingKey nw_settings_keys[] = {
               "minigame" },
     { .table = "game", .name = "long_time_names", .kind = NW_SETTING_BOOL, NW_FIELD(long_time_names),
       .help = "true lets a time trial record take a name of up to 8 letters, false keeps the original's 3" },
+    { .table = "game", .name = "relic_spin", .kind = NW_SETTING_BOOL, NW_FIELD(relic_spin),
+      .help = "true turns the relic next to a new time trial record, and the glow behind a turning relic widens "
+              "and narrows with it" },
     { .table = "game", .name = "camera_stability", .kind = NW_SETTING_INT, NW_FIELD(camera_stability), .lo = 0,
       .hi = 100, .help = "0-100: how much of Crash's jump the camera ignores; 0 follows it as the PS2, 100 holds its "
                          "height until he lands" },
@@ -396,6 +399,7 @@ void nw_settings_defaults(NwSettings *s)
     s->wombat = true;
     s->hub_minigame = true;
     s->long_time_names = false;
+    s->relic_spin = true;
     s->camera_stability = 100;
     s->master_volume = 100;
     s->voice_volume = 100;
