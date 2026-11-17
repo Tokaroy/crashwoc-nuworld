@@ -12,6 +12,7 @@
   <a href="#download">Download</a> ·
   <a href="#first-startup">First startup</a> ·
   <a href="#settings">Settings</a> ·
+  <a href="#movement-beta">Movement Beta</a> ·
   <a href="#building">Building</a> ·
   <a href="https://discord.gg/kmCPpW4KvJ">Discord</a> ·
   <a href="https://github.com/denzi-gh/crashwoc-decomp-ps2">Decompilation</a>
@@ -38,7 +39,8 @@ need your own copy of the game, PAL v1.03 (SLES-50386) or USA v1.00 (SLUS-20238)
 
 ## Features
 
-- N. Hanced Movement for Crash, Coco and every vehicle, tunable in the game, or the original movement
+- N. Hanced Movement for Crash, Coco and every vehicle, tunable in the game, or the original movement; profiles to
+  save and share your tuning
 - 50 or 60 Hz, any aspect ratio, frame interpolation, draw distance up to 400 %
 - Window, fullscreen and borderless, resolution scale, MSAA, enhanced gems and relics
 - Remappable gamepad and keyboard, rumble, button prompts
@@ -79,11 +81,30 @@ Settings (`settings.toml`), saves, screenshots and the log (`nuworld.log`) are k
 | F2 | Crash's movement (F3 to F10: Coco and the vehicles) |
 | F11 | Fullscreen |
 | F12 | Screenshot |
+| Ctrl+V | Apply a copied movement profile |
 
 Changes are saved to `settings.toml`.
 
 > [!NOTE]
 > The settings menu is a debug menu. Proper in-game settings screens come with v1.0.
+
+## Movement Beta
+
+Tune your movement and share it as a profile: F1 > N. Hanced Movement > Profiles.
+
+<p align="center">
+  <img src="docs/images/movement-profiles.png" width="600" alt="The Profiles window">
+</p>
+
+- **Save** and **Load** your own profiles, **Copy** or **Export** them to share.
+- **Copy** on a movement panel copies only that character.
+- **Ctrl+V** in the game applies a copied profile. A Coco profile changes only Coco.
+- **Drop** a profile file onto the window to import it.
+
+<p align="center">
+  <img src="docs/images/movement-profiles-apply.png" width="373" alt="Apply a copied profile">
+  <img src="docs/images/movement-profiles-import.png" width="404" alt="Import a dropped profile">
+</p>
 
 ## Feedback
 

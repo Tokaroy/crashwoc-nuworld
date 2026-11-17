@@ -24,6 +24,7 @@
 #include "data/image.h"
 #include "frontend/controlpanel.h"
 #include "frontend/debug.h"
+#include "frontend/profiles.h"
 #include "frontend/saveexport.h"
 #include "frontend/saveimport.h"
 #include "frontend/settings.h"
@@ -835,8 +836,11 @@ static void nw_boot_value(const char *label, const char *help, int *value, int l
     nw_debug_indent(false);
 }
 
+static uint64_t nw_boot_copied;
+static unsigned nw_boot_copied_parts;
+
 /* The profile and its buttons, the same on every movement panel. */
-static void nw_boot_profile(NwSettings *s)
+static void nw_boot_profile(NwSettings *s, unsigned parts)
 {
     nw_debug_label(nw_movement_profiles[nw_movement_profile(&s->movement)]);
     nw_debug_same_line(6.0f);
@@ -847,6 +851,13 @@ static void nw_boot_profile(NwSettings *s)
     if (nw_debug_button("N. Hanced")) {
         s->movement = (NwMovement)NW_MOVEMENT_NHANCED;
     }
+    nw_debug_same_line(0.0f);
+    bool copied = nw_boot_copied_parts == parts && SDL_GetTicks() - nw_boot_copied < 1500;
+    if (nw_debug_button(copied ? "Copied###copy" : "Copy###copy") && nw_profiles_copy(parts)) {
+        nw_boot_copied = SDL_GetTicks();
+        nw_boot_copied_parts = parts;
+    }
+    nw_debug_tooltip("copy this panel's settings to the clipboard for sharing");
 }
 
 /* A switch's values show only while it is on. */
@@ -860,7 +871,7 @@ static void nw_boot_movement(void *user)
     NwCrashMovement *c = &s->movement.crash;
     bool on = true;
 
-    nw_boot_profile(s);
+    nw_boot_profile(s, 1u << NW_PART_CRASH);
     NW_CRASH_MOVEMENT(NW_BOOT_SWITCH_ITEM, NW_BOOT_FLAG_ITEM, NW_BOOT_VALUE_ITEM)
     nw_debug_slider_int("Monkey Bar Speed %", &s->movement.monkey_bar_speed, 100, 500);
     if (nw_pad_script) {
@@ -874,7 +885,7 @@ static void nw_boot_coco(void *user)
     NwCocoMovement *c = &s->movement.coco;
     bool on = true;
 
-    nw_boot_profile(s);
+    nw_boot_profile(s, 1u << NW_PART_COCO);
     NW_COCO_MOVEMENT(NW_BOOT_SWITCH_ITEM, NW_BOOT_FLAG_ITEM, NW_BOOT_VALUE_ITEM)
 }
 
@@ -884,7 +895,7 @@ static void nw_boot_mech(void *user)
     NwMechMovement *c = &s->movement.mech;
     bool on = true;
 
-    nw_boot_profile(s);
+    nw_boot_profile(s, 1u << NW_PART_MECH);
     NW_MECH_MOVEMENT(NW_BOOT_SWITCH_ITEM, NW_BOOT_FLAG_ITEM, NW_BOOT_VALUE_ITEM)
     if (nw_pad_script) {
         nw_debug_text("--pad-script plays retail: changes take effect at the next start");
@@ -897,7 +908,7 @@ static void nw_boot_submarine(void *user)
     NwSubMovement *c = &s->movement.submarine;
     bool on = true;
 
-    nw_boot_profile(s);
+    nw_boot_profile(s, 1u << NW_PART_SUBMARINE);
     NW_SUB_MOVEMENT(NW_BOOT_SWITCH_ITEM, NW_BOOT_FLAG_ITEM, NW_BOOT_VALUE_ITEM)
     if (nw_pad_script) {
         nw_debug_text("--pad-script plays retail: changes take effect at the next start");
@@ -910,7 +921,7 @@ static void nw_boot_jeep(void *user)
     NwJeepMovement *c = &s->movement.jeep;
     bool on = true;
 
-    nw_boot_profile(s);
+    nw_boot_profile(s, 1u << NW_PART_JEEP);
     NW_JEEP_MOVEMENT(NW_BOOT_SWITCH_ITEM, NW_BOOT_FLAG_ITEM, NW_BOOT_VALUE_ITEM)
     if (nw_pad_script) {
         nw_debug_text("--pad-script plays retail: changes take effect at the next start");
@@ -923,7 +934,7 @@ static void nw_boot_atlas(void *user)
     NwAtlasMovement *c = &s->movement.atlasphere;
     bool on = true;
 
-    nw_boot_profile(s);
+    nw_boot_profile(s, 1u << NW_PART_ATLASPHERE);
     NW_ATLAS_MOVEMENT(NW_BOOT_SWITCH_ITEM, NW_BOOT_FLAG_ITEM, NW_BOOT_VALUE_ITEM)
     if (nw_pad_script) {
         nw_debug_text("--pad-script plays retail: changes take effect at the next start");
@@ -936,7 +947,7 @@ static void nw_boot_firefly(void *user)
     NwFireflyMovement *c = &s->movement.firefly;
     bool on = true;
 
-    nw_boot_profile(s);
+    nw_boot_profile(s, 1u << NW_PART_FIREFLY);
     NW_FIREFLY_MOVEMENT(NW_BOOT_SWITCH_ITEM, NW_BOOT_FLAG_ITEM, NW_BOOT_VALUE_ITEM)
     if (nw_pad_script) {
         nw_debug_text("--pad-script plays retail: changes take effect at the next start");
@@ -949,7 +960,7 @@ static void nw_boot_plane(void *user)
     NwPlaneMovement *c = &s->movement.plane;
     bool on = true;
 
-    nw_boot_profile(s);
+    nw_boot_profile(s, 1u << NW_PART_PLANE);
     NW_PLANE_MOVEMENT(NW_BOOT_SWITCH_ITEM, NW_BOOT_FLAG_ITEM, NW_BOOT_VALUE_ITEM)
     if (nw_pad_script) {
         nw_debug_text("--pad-script plays retail: changes take effect at the next start");
@@ -962,7 +973,7 @@ static void nw_boot_spacefighter(void *user)
     NwSpaceMovement *c = &s->movement.spacefighter;
     bool on = true;
 
-    nw_boot_profile(s);
+    nw_boot_profile(s, 1u << NW_PART_SPACEFIGHTER);
     NW_SPACE_MOVEMENT(NW_BOOT_SWITCH_ITEM, NW_BOOT_FLAG_ITEM, NW_BOOT_VALUE_ITEM)
     if (nw_pad_script) {
         nw_debug_text("--pad-script plays retail: changes take effect at the next start");
@@ -1184,6 +1195,11 @@ static int nw_boot(const char *data_dir, int hardware_speed, float aspect, NwPla
     nw_debug_panel_key("N. Hanced Movement", "Firefly", SDL_SCANCODE_F9, nw_boot_firefly, &settings);
     nw_debug_panel_key("N. Hanced Movement", "Plane", SDL_SCANCODE_F8, nw_boot_plane, &settings);
     nw_debug_panel_key("N. Hanced Movement", "Space Fighter", SDL_SCANCODE_F7, nw_boot_spacefighter, &settings);
+    {
+        char *root = nw_data_root(data_dir);
+        nw_profiles_start(platform.window, root, &settings.movement);
+        SDL_free(root);
+    }
     nw_debug_panel("Debug", "Load Level", nw_boot_levels, NULL, false);
     nw_debug_panel("Debug", "Play Cutscene", nw_boot_cutscenes, NULL, false);
     bool hitboxes = false, hitboxes_shown = false;
@@ -1235,6 +1251,7 @@ static int nw_boot(const char *data_dir, int hardware_speed, float aspect, NwPla
             }
             nw_input_event(&event);
             nw_video_event(&event);
+            nw_profiles_event(&event);
         }
         nw_input_poll(!nw_debug_wants_keyboard());
         if (nw_game_state() == NW_GAME_FATAL) {
@@ -1305,6 +1322,7 @@ static int nw_boot(const char *data_dir, int hardware_speed, float aspect, NwPla
     nw_audio_close();
     nw_saveimport_stop();
     nw_saveexport_stop();
+    nw_profiles_stop();
     nw_help_stop();
     nw_window_close(&platform);
     return nw_boot_exit(state == NW_GAME_FATAL ? 1 : 0, parked);

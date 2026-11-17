@@ -708,3 +708,146 @@ bool nw_settings_save(const NwSettings *s, const char *root)
     SDL_free(path);
     return ok;
 }
+
+static const char *const nw_settings_parts[NW_MOVEMENT_PARTS] = { "crash", "coco", "mech", "submarine", "jeep",
+                                                                  "atlasphere", "firefly", "plane", "spacefighter" };
+
+static int nw_settings_part(const NwSettingKey *k)
+{
+    if (!k->sub || SDL_strcmp(k->sub, "movement") != 0) {
+        return -1;
+    }
+    if (!k->sub2) {
+        return NW_PART_CRASH;
+    }
+    for (int p = 0; p < NW_MOVEMENT_PARTS; p++) {
+        if (SDL_strcmp(k->sub2, nw_settings_parts[p]) == 0) {
+            return p;
+        }
+    }
+    return -1;
+}
+
+void nw_settings_profile_name(char *name)
+{
+    size_t n = 0;
+    for (const char *c = name; *c; c++) {
+        if (*c >= 0x20 && *c < 0x7F && !SDL_strchr("<>:\"/\\|?*", *c) && (n || *c != ' ')) {
+            name[n++] = *c;
+        }
+    }
+    while (n && (name[n - 1] == ' ' || name[n - 1] == '.')) {
+        n--;
+    }
+    name[n] = '\0';
+}
+
+char *nw_settings_profile_text(const NwMovement *m, unsigned parts, const char *name, size_t *size)
+{
+    NwSettings s = { .movement = *m };
+    const char *profile[] = { "profile" };
+    NwDoc doc;
+    NwDocValue v;
+    if (!nw_doc_init(&doc)) {
+        return NULL;
+    }
+    NwDocTable *t = nw_doc_add_table(&doc, profile, 1);
+    bool ok = t && nw_doc_str(&v, name, SDL_strlen(name)) && nw_doc_set(&doc, t, "name", &v);
+    for (size_t i = 0; ok && i < SDL_arraysize(nw_settings_keys); i++) {
+        int p = nw_settings_part(&nw_settings_keys[i]);
+        if (p >= 0 && (parts & (1u << p))) {
+            ok = nw_settings_put(&doc, &nw_settings_keys[i], &s);
+        }
+    }
+    char *text = ok ? nw_doc_write(&doc, NW_APP_NAME " movement profile", size) : NULL;
+    nw_doc_free(&doc);
+    return text;
+}
+
+void nw_settings_profile_apply(NwMovement *to, const NwMovement *from, unsigned parts)
+{
+    if (parts & (1u << NW_PART_CRASH)) {
+        to->monkey_bar_speed = from->monkey_bar_speed;
+        to->crash = from->crash;
+    }
+    if (parts & (1u << NW_PART_COCO)) {
+        to->coco = from->coco;
+    }
+    if (parts & (1u << NW_PART_MECH)) {
+        to->mech = from->mech;
+    }
+    if (parts & (1u << NW_PART_SUBMARINE)) {
+        to->submarine = from->submarine;
+    }
+    if (parts & (1u << NW_PART_JEEP)) {
+        to->jeep = from->jeep;
+    }
+    if (parts & (1u << NW_PART_ATLASPHERE)) {
+        to->atlasphere = from->atlasphere;
+    }
+    if (parts & (1u << NW_PART_FIREFLY)) {
+        to->firefly = from->firefly;
+    }
+    if (parts & (1u << NW_PART_PLANE)) {
+        to->plane = from->plane;
+    }
+    if (parts & (1u << NW_PART_SPACEFIGHTER)) {
+        to->spacefighter = from->spacefighter;
+    }
+}
+
+unsigned nw_settings_profile_read(const char *text, size_t size, NwMovement *m, char *name, size_t name_size)
+{
+    static const NwMovement nhanced = NW_MOVEMENT_NHANCED;
+    const char *path[] = { "game", "movement", NULL }, *profile[] = { "profile" };
+    unsigned parts = 0;
+    NwDoc doc;
+    if (name_size) {
+        name[0] = '\0';
+    }
+    if (!nw_doc_init(&doc)) {
+        return 0;
+    }
+    if (!nw_doc_parse(&doc, text, size)) {
+        nw_doc_free(&doc);
+        return 0;
+    }
+    for (int p = 0; p < NW_MOVEMENT_PARTS; p++) {
+        path[2] = nw_settings_parts[p];
+        if (nw_doc_table(&doc, path, 3)) {
+            parts |= 1u << p;
+        }
+    }
+    const NwDocTable *movement = nw_doc_table(&doc, path, 2);
+    if (movement && nw_doc_get(movement, "monkey_bar_speed")) {
+        parts |= 1u << NW_PART_CRASH;
+    }
+    NwSettings s = { .movement = *m };
+    nw_settings_profile_apply(&s.movement, &nhanced, parts);
+    for (size_t i = 0; i < SDL_arraysize(nw_settings_keys); i++) {
+        const NwSettingKey *k = &nw_settings_keys[i];
+        int p = nw_settings_part(k);
+        if (p < 0 || !(parts & (1u << p))) {
+            continue;
+        }
+        const char *header[3];
+        const NwDocTable *t = nw_doc_table(&doc, header, nw_settings_header(k, header));
+        const NwDocValue *v = t ? nw_doc_get(t, k->name) : NULL;
+        if (v) {
+            nw_settings_take(k, v, &s);
+        }
+    }
+    const NwDocTable *t = nw_doc_table(&doc, profile, 1);
+    const NwDocValue *v = t ? nw_doc_get(t, "name") : NULL;
+    if (parts && v && v->type == NW_DOC_STR && name_size) {
+        size_t n = SDL_min(v->len, name_size - 1);
+        SDL_memcpy(name, v->bytes, n);
+        name[n] = '\0';
+        nw_settings_profile_name(name);
+    }
+    nw_doc_free(&doc);
+    if (parts) {
+        *m = s.movement;
+    }
+    return parts;
+}

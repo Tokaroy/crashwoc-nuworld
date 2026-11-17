@@ -91,6 +91,7 @@ add_executable(crashwoc-nuworld
   src/platform/audio.c
   src/platform/crash.c
   src/platform/display.c
+  src/platform/droptarget.c
   src/platform/gpu.c
   src/platform/log.c
   src/platform/platform.c
@@ -113,6 +114,7 @@ if(WIN32)
   target_sources(crashwoc-nuworld PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/gen/nuworld.rc)
   # No console window; --console opens one (src/platform/log.c).
   set_target_properties(crashwoc-nuworld PROPERTIES WIN32_EXECUTABLE ON)
+  target_link_libraries(crashwoc-nuworld PRIVATE ole32 shell32)
 else()
   nw_embed(crashwoc-nuworld nw_icon_png ${CMAKE_CURRENT_SOURCE_DIR}/assets/branding/nuworld-icon-256.png)
 endif()
