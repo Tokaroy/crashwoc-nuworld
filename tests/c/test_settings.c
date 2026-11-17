@@ -147,6 +147,53 @@ static int read_volumes(const char *text)
     return read_text(text, &s) ? s.master_volume * 1000 + s.voice_volume : -1;
 }
 
+static void profiles(void)
+{
+    const NwMovement nhanced = NW_MOVEMENT_NHANCED, retail = NW_MOVEMENT_RETAIL;
+    NwMovement m = retail;
+    char name[NW_PROFILE_NAME];
+    size_t size = 0;
+    char *text = nw_settings_profile_text(&nhanced, NW_PARTS_ALL, "Mine", &size);
+    CHECK(text && SDL_strstr(text, "name = \"Mine\"") && SDL_strstr(text, "[game.movement.spacefighter]"));
+    CHECK(text && nw_settings_profile_read(text, size, &m, name, sizeof(name)) == NW_PARTS_ALL);
+    CHECK(SDL_strcmp(name, "Mine") == 0 && m.monkey_bar_speed == nhanced.monkey_bar_speed && m.crash.jump_fall &&
+          m.crash.slide_ms == nhanced.crash.slide_ms && m.coco.grip && m.spacefighter.aim_assist);
+    SDL_free(text);
+
+    NwMovement coco = nhanced;
+    coco.coco.run_top = 130;
+    text = nw_settings_profile_text(&coco, 1u << NW_PART_COCO, "Coco", &size);
+    CHECK(text && !SDL_strstr(text, "[game.movement.crash]") && !SDL_strstr(text, "monkey_bar_speed"));
+    m = retail;
+    CHECK(text && nw_settings_profile_read(text, size, &m, name, sizeof(name)) == 1u << NW_PART_COCO);
+    CHECK(m.coco.run_top == 130 && m.coco.run_speed && !m.crash.jump_fall && m.monkey_bar_speed == 100);
+    SDL_free(text);
+
+    const char *bars = "[game.movement]\nmonkey_bar_speed = 200\n";
+    m = retail;
+    CHECK(nw_settings_profile_read(bars, SDL_strlen(bars), &m, name, sizeof(name)) == 1u << NW_PART_CRASH);
+    CHECK(m.monkey_bar_speed == 200 && m.crash.jump_fall && !name[0]);
+
+    const char *one = "[profile]\nname = \" a/b:c?. \"\n[game.movement.crash]\njump_height = 999\ngrip = false\n";
+    m = retail;
+    CHECK(nw_settings_profile_read(one, SDL_strlen(one), &m, name, sizeof(name)) == 1u << NW_PART_CRASH);
+    CHECK(m.crash.jump_height == 130 && !m.crash.grip && m.crash.slide && SDL_strcmp(name, "abc") == 0 &&
+          m.monkey_bar_speed == nhanced.monkey_bar_speed && !m.jeep.steering);
+
+    const char *none = "[game]\nwombat = true\n", *bad = "not toml [";
+    m = retail;
+    CHECK(nw_settings_profile_read(none, SDL_strlen(none), &m, name, sizeof(name)) == 0);
+    CHECK(nw_settings_profile_read(bad, SDL_strlen(bad), &m, name, sizeof(name)) == 0 && m.monkey_bar_speed == 100);
+
+    m = retail;
+    nw_settings_profile_apply(&m, &nhanced, (1u << NW_PART_CRASH) | (1u << NW_PART_JEEP));
+    CHECK(m.monkey_bar_speed == nhanced.monkey_bar_speed && m.crash.jump_fall && m.jeep.steering && !m.coco.run_speed);
+
+    char messy[] = "  Fast\tRun..  ";
+    nw_settings_profile_name(messy);
+    CHECK(SDL_strcmp(messy, "FastRun") == 0);
+}
+
 int main(int argc, char *argv[])
 {
     if (argc != 2) {
@@ -533,6 +580,8 @@ int main(int argc, char *argv[])
     CHECK(text && !SDL_strstr(text, "hub_gem"));
     SDL_free(text);
     CHECK(read_text("[game]\nhub_gem = false\n", &back) && !back.hub_gem);
+
+    profiles();
 
     if (failures) {
         fprintf(stderr, "settings: %d checks failed\n", failures);
