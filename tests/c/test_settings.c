@@ -295,19 +295,34 @@ int main(int argc, char *argv[])
           SDL_strstr(log, "# log.level: "));
     SDL_free(log);
     nw_settings_defaults(&s);
-    CHECK(s.camera_stability == 100);
+    CHECK(s.camera_stability == 50);
     CHECK(read_text("[game]\ncamera_stability = 40\n", &s) && s.camera_stability == 40);
-    CHECK(read_text("[game]\ncamera_stability = 300\n", &s) && s.camera_stability == 100);
+    CHECK(read_text("version = 2\n[game]\ncamera_stability = 300\n", &s) && s.camera_stability == 100);
     nw_settings_defaults(&s);
     CHECK(s.draw_distance == 400);
     CHECK(read_text("[video]\ndraw_distance = 250\n", &s) && s.draw_distance == 250);
     CHECK(read_text("[video]\ndraw_distance = 50\n", &s) && s.draw_distance == 100);
     CHECK(read_text("[video]\ndraw_distance = 900\n", &s) && s.draw_distance == NW_DRAW_DISTANCE_MAX);
     nw_settings_defaults(&s);
-    CHECK(s.fog == 100 && s.blur && s.haze); /* the PS2's unless asked */
-    CHECK(read_text("[video]\nfog = 40\nblur = false\nhaze = false\n", &s) && s.fog == 40 && !s.blur && !s.haze);
+    CHECK(s.fog == 40 && !s.blur && !s.haze);
+    CHECK(read_text("version = 2\n[video]\nfog = 100\nblur = true\nhaze = true\n", &s) && s.fog == 100 && s.blur &&
+          s.haze);
     CHECK(read_text("[video]\nfog = -5\n", &s) && s.fog == 0);
-    CHECK(read_text("[video]\nfog = 250\n", &s) && s.fog == 100);
+    CHECK(read_text("version = 2\n[video]\nfog = 250\n", &s) && s.fog == 100);
+    /* A file from before version 2 on the old defaults takes the new ones; other values stay. */
+    CHECK(read_text("[game]\ncamera_stability = 100\n[video]\nfog = 100\nblur = true\nhaze = true\n", &s) &&
+          s.camera_stability == 50 && s.fog == 40 && !s.blur && !s.haze);
+    CHECK(read_text("[game]\ncamera_stability = 0\n[video]\nfog = 70\n", &s) && s.camera_stability == 0 &&
+          s.fog == 70);
+    s.camera_stability = 100;
+    s.fog = 100;
+    s.blur = true;
+    CHECK(nw_settings_save(&s, root));
+    char *versioned = file_text();
+    CHECK(versioned && SDL_strstr(versioned, "\nversion = 2\n") && SDL_strstr(versioned, "# version: "));
+    SDL_free(versioned);
+    nw_settings_defaults(&s);
+    CHECK(nw_settings_load(&s, root) && s.camera_stability == 100 && s.fog == 100 && s.blur);
     nw_settings_defaults(&s);
     CHECK(s.movement.monkey_bar_speed == ((NwMovement)NW_MOVEMENT_NHANCED).monkey_bar_speed);
     CHECK(read_text("[game.movement]\nmonkey_bar_speed = 150\n", &s) && s.movement.monkey_bar_speed == 150);

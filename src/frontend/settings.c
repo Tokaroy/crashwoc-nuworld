@@ -33,6 +33,9 @@ typedef struct NwSettingKey {
     bool hidden;
 } NwSettingKey;
 
+/* Raised when a default changes for files that already hold the old value; nw_settings_load moves them over. */
+#define NW_SETTINGS_VERSION 2
+
 #define NW_FIELD(f) .offset = offsetof(NwSettings, f), .size = sizeof(((NwSettings *)0)->f)
 
 /* k's table as a path; returns its depth. */
@@ -395,7 +398,7 @@ void nw_settings_defaults(NwSettings *s)
     s->wombat = true;
     s->hub_minigame = true;
     s->long_time_names = false;
-    s->camera_stability = 100;
+    s->camera_stability = 50;
     s->hub_gem = true;
     s->master_volume = 100;
     s->voice_volume = 100;
@@ -417,9 +420,9 @@ void nw_settings_defaults(NwSettings *s)
     s->filter = NW_FILTER_RETAIL;
     s->gems = true;
     s->draw_distance = 400;
-    s->fog = 100;
-    s->blur = true;
-    s->haze = true;
+    s->fog = 40;
+    s->blur = false;
+    s->haze = false;
     SDL_zero(s->gpu);
     SDL_strlcpy(s->gpu, "auto", sizeof(s->gpu));
     nw_controls_defaults(&s->controls);
@@ -592,6 +595,19 @@ bool nw_settings_load(NwSettings *s, const char *root)
     if (retail && !nw_doc_table(&doc, spacefighter, 3)) {
         s->movement.spacefighter = ((NwMovement)NW_MOVEMENT_RETAIL).spacefighter;
     }
+    /* Version 2 changed these defaults: an older file still on the old ones takes the new ones, until a save marks
+       it. */
+    const NwDocValue *version = nw_doc_get(doc.tables[0], "version");
+    if (doc.count > 1 && !(version && version->type == NW_DOC_INT && version->i >= 2)) {
+        if (s->camera_stability == 100) {
+            s->camera_stability = 50;
+        }
+        if (s->fog == 100) {
+            s->fog = 40;
+        }
+        s->blur = false;
+        s->haze = false;
+    }
     nw_doc_free(&doc);
     return got > 0;
 }
@@ -653,7 +669,8 @@ static bool nw_settings_put(NwDoc *doc, const NwSettingKey *k, const NwSettings 
 /* The file's header: what each key takes. */
 static char *nw_settings_help(void)
 {
-    char *help = SDL_strdup(NW_APP_NAME " settings. Keys this version does not know are kept.\n\n");
+    char *help = SDL_strdup(NW_APP_NAME " settings. Keys this version does not know are kept.\n\n"
+                            "version: the defaults this file has taken, set by " NW_APP_NAME "\n");
     for (size_t i = 0; help && i < SDL_arraysize(nw_settings_keys); i++) {
         const NwSettingKey *k = &nw_settings_keys[i];
         char *more = NULL;
@@ -677,6 +694,8 @@ bool nw_settings_save(const NwSettings *s, const char *root)
     size_t size = 0;
     bool ok = path && help && SDL_asprintf(&tmp, "%s.tmp", path) >= 0 && nw_settings_doc(path, &doc) >= 0;
     if (ok) {
+        NwDocValue version = nw_doc_int(NW_SETTINGS_VERSION, 0);
+        ok = nw_doc_set(&doc, doc.tables[0], "version", &version);
         NwSettings def;
         nw_settings_defaults(&def);
         for (size_t i = 0; ok && i < SDL_arraysize(nw_settings_keys); i++) {
