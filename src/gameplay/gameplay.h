@@ -23,15 +23,22 @@
     SW(grip, "Grip", true, "less sliding on stops and turns, except on ice") \
     VAL(grip_turn, "Turn grip %", 175, 100, 500, "% of PS2") \
     VAL(grip_brake, "Braking %", 100, 100, 400, "% of PS2") \
-    SW(long_spin, "Longer spin", false, "longer spin attack") \
+    SW(long_spin, "Longer spin", true, "longer spin attack") \
     VAL(spin_ms, "Spin length ms", 400, 320, 600, "PS2: 320") \
-    SW(slide, "Crash 2 slide", true, "faster slide when out of running") \
+    SW(slide, "Crash slide", true, "faster slide when out of running") \
     VAL(slide_speed, "Slide speed %", 115, 100, 150, "% of PS2") \
-    VAL(slide_ms, "Slide length ms", 496, 300, 600, "PS2: 467") \
-    FLAG(slide_keep, "Keep speed after it", true, "slide speed carries on instead of stopping") \
-    FLAG(slide_cancel, "Let go to stand up", true, "releasing crouch ends the slide") \
+    VAL(slide_ms, "Slide length ms", 310, 300, 600, "PS2: 467") \
+    FLAG(slide_keep, "Keep speed after it", false, "slide speed carries on instead of stopping") \
+    FLAG(slide_cancel, "Let go to stand up", false, "releasing crouch ends the slide") \
     VAL(slide_min_ms, "Shortest slide ms", 300, 0, 400, "minimum length when crouch is released") \
     VAL(slide_jump, "Slide jump speed kept %", 0, 0, 100, "share of slide speed kept when jumping out of it") \
+    SW(slide_spin, "Crash slide spin", true, "a spin out of a slide keeps its speed and leans forward") \
+    VAL(slide_spin_kept, "Spin speed %", 110, 50, 150, "% of the slide's speed, held while the spin lasts") \
+    VAL(slide_spin_late_ms, "Late spin ms", 10, 0, 300, "how long after the slide a spin still counts") \
+    VAL(slide_spin_steer, "Steering %", 2, 0, 100, "turn speed, % of his normal turning") \
+    VAL(slide_spin_jump, "Jump speed kept %", 0, 0, 100, "share of its speed kept when jumping out of it") \
+    VAL(slide_spin_lean, "Lean deg", 35, 0, 45, "forward tilt while spinning") \
+    VAL(slide_spin_bank, "Bank deg", 10, 0, 45, "sideways tilt into a turn while steering") \
     SW(edge_grip, "Edge grip", true, "no sliding off beveled platform edges") \
     VAL(edge_reach, "Edge reach %", 55, 45, 90, "how far past an edge he can stand, % of his radius; PS2: 45") \
     SW(line_2d, "Hold 2D line", false, "stays on the entry line in side-on sections") \

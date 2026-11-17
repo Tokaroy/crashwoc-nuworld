@@ -9,6 +9,7 @@
 #include "gameplay/hubgem.h"
 #include "gameplay/hitboxes.h"
 #include "gameplay/mech.h"
+#include "gameplay/slidespin.h"
 #include "gameplay/submarine.h"
 #include "nups2/ps2ctl.h"
 
@@ -38,7 +39,9 @@ void LoadCharacterModels(void)
 
 void DrawCreatures(struct creature_s *c, s32 count, s32 render, s32 shadow)
 {
+    nw_slide_spin_lean(c, count);
     DrawCreatures__retail(c, count, render, shadow);
+    nw_slide_spin_unlean();
     if (c == &Character[0] && count == 1 && render && shadow) {
         nw_air_indicator_draw(c);
         nw_crunch_draw();

@@ -22,6 +22,7 @@
 #include "gameplay/mech.h"
 #include "gameplay/monkeybars.h"
 #include "gameplay/plane.h"
+#include "gameplay/slidespin.h"
 #include "gameplay/steadycam.h"
 #include "gameplay/submarine.h"
 #include "nu3d/nugscn.h"
@@ -841,6 +842,8 @@ static void slide(void)
     NwProfile retail = { 0 }, on = ONLY(slide);
     on.movement.crash.slide_speed = 140;
     on.movement.crash.slide_ms = 400;
+    on.movement.crash.slide_keep = true;
+    on.movement.crash.slide_cancel = true;
     struct creature_s *c = &Character[0];
     crash_at(60, &on);
     CHECK(CrashMoveInfo.SLIDEFRAMES == 24 && CrashMoveInfo.SLIDESPEED == 0.080000006f * 1.4f);
@@ -925,6 +928,138 @@ static void slide(void)
         nw_air_move(c, &pad);
         CHECK(near(loop_forward(0.12f, 0.072f), 0.1128f, 1e-4f));
     }
+}
+
+static void spin_move(void)
+{
+    struct creature_s *c = &Character[0];
+    nw_slide_spin_before(c, &pad);
+    if (c->spin && c->spin_frame < c->spin_frames) {
+        c->spin_frame++;
+    }
+    if (!c->spin && (pad.paddata & 0x80) && !c->slide && !c->crawl) {
+        c->spin = 1;
+        c->spin_frame = 0;
+        c->spin_frames = CrashMoveInfo.SPINFRAMES + CrashMoveInfo.SPINRESETFRAMES;
+    }
+    nw_slide_spin_after(c);
+}
+
+static void spin_slide(const NwProfile *p)
+{
+    struct creature_s *c = &Character[0];
+    crash_at(50, p);
+    c->obj.ground = 1;
+    c->slide = 10;
+    c->obj.mom.z = 0.11f;
+    pad.paddata = 0;
+    GameTimer.frame++;
+    spin_move();
+}
+
+static void slide_spin(void)
+{
+    NwProfile retail = { 0 }, on = ONLY(slide_spin);
+    struct creature_s *c = &Character[0];
+    on.movement.crash.slide_spin_kept = 100;
+    on.movement.crash.slide_spin_late_ms = 150;
+    on.movement.crash.slide_spin_steer = 0;
+    on.movement.crash.slide_spin_lean = 25;
+    spin_slide(&on);
+    pad.paddata = 0x80;
+    GameTimer.frame++;
+    spin_move();
+    CHECK(c->slide == 0 && c->spin == 1 && c->spin_frame == 0);
+    CHECK(near(loop_forward(0.11f, 0.072f), 0.11f, 1e-5f));
+    spin_move();
+    CHECK(near(loop_forward(0.08f, 0.072f), 0.1016f, 1e-5f));
+    spin_move();
+    c->obj.thdg = 0x4000;
+    loop_forward(0.11f, 0.072f);
+    CHECK(c->obj.thdg == 0);
+    spin_move();
+    for (int i = 0; i < 4; i++) {
+        loop_forward(0.11f, 0.072f);
+        spin_move();
+    }
+    nw_slide_spin_lean(c, 1);
+    CHECK(c->obj.xrot == 4551 && c->obj.zrot == 0);
+    nw_slide_spin_unlean();
+    CHECK(c->obj.xrot == 0 && c->obj.zrot == 0);
+    while (c->spin_frame < CrashMoveInfo.SPINFRAMES) {
+        loop_forward(0.11f, 0.072f);
+        spin_move();
+    }
+    nw_slide_spin_lean(c, 1);
+    CHECK(c->obj.xrot == 0);
+    CHECK(near(loop_forward(0.11f, 0.072f), 0.11f - 0.0072f, 1e-5f));
+
+    on.movement.crash.slide_spin_steer = 50;
+    on.movement.crash.slide_spin_lean = 0;
+    on.movement.crash.slide_spin_bank = 15;
+    spin_slide(&on);
+    c->slide = 0;
+    c->crawl = 1;
+    for (int i = 0; i < 3; i++) {
+        GameTimer.frame++;
+        spin_move();
+    }
+    pad.paddata = 0x80;
+    GameTimer.frame++;
+    spin_move();
+    CHECK(c->spin == 1 && c->crawl == 0);
+    c->obj.thdg = 0x4000;
+    loop_forward(0.11f, 0.072f);
+    CHECK(c->obj.thdg > 0x800 && c->obj.thdg < 0x1000);
+    spin_move();
+    for (int i = 0; i < 4; i++) {
+        c->obj.thdg = 0x4000;
+        loop_forward(0.11f, 0.072f);
+        spin_move();
+    }
+    u16 turned = c->obj.thdg;
+    nw_slide_spin_lean(c, 1);
+    CHECK(turned > 0x1000 && turned < 0x4000 && c->obj.zrot > 0xF000 && c->obj.zrot < 0xFF00);
+    nw_slide_spin_unlean();
+
+    spin_slide(&on);
+    c->slide = 0;
+    c->crawl = 1;
+    for (int i = 0; i < 9; i++) {
+        GameTimer.frame++;
+        spin_move();
+    }
+    pad.paddata = 0x80;
+    GameTimer.frame++;
+    spin_move();
+    CHECK(c->spin == 0 && c->crawl == 1);
+
+    on.movement.crash.slide_spin_jump = 100;
+    spin_slide(&on);
+    pad.paddata = 0x80;
+    GameTimer.frame++;
+    spin_move();
+    loop_forward(0.11f, 0.072f);
+    c->jump = 1;
+    c->jump_frame = 0;
+    spin_move();
+    c->obj.ground = 0;
+    c->jump_frame = 1;
+    CHECK(near(loop_forward(0.09f, 0.072f), 0.0972f, 1e-5f));
+    spin_move();
+    CHECK(near(loop_forward(0.0f, 0.0f), 0.0f, 1e-5f));
+    spin_move();
+    c->obj.ground = 1;
+    spin_move();
+    c->obj.ground = 0;
+    CHECK(near(loop_forward(0.09f, 0.072f), 0.0828f, 1e-5f));
+
+    spin_slide(&retail);
+    pad.paddata = 0x80;
+    GameTimer.frame++;
+    spin_move();
+    CHECK(c->slide == 10 && c->spin == 0);
+    pad.paddata = 0;
 }
 
 static void coco_jump(void)
@@ -3071,6 +3206,7 @@ int main(void)
     grip();
     long_spin();
     slide();
+    slide_spin();
     edge_grip();
     line_2d();
     hazard_hitboxes();

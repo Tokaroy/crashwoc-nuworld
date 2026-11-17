@@ -9,6 +9,7 @@
 #include "gameplay/hubgem.h"
 #include "gameplay/line2d.h"
 #include "gameplay/mech.h"
+#include "gameplay/slidespin.h"
 #include "gameplay/submarine.h"
 
 /* Declared by no header. */
@@ -31,6 +32,9 @@ void MoveLoopXZ(struct obj_s *obj, u16 *hdg)
     if (obj != &Character[0].obj || !(crash || nw_coco_on_foot(&Character[0]))) {
         MoveLoopXZ__retail(obj, hdg);
         return;
+    }
+    if (crash) {
+        nw_slide_spin_loop(&Character[0], hdg);
     }
     struct nuvec_s v;
     NuVecRotateY(&v, &obj->mom, -(hdg ? *hdg : obj->hdg));
