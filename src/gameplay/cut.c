@@ -3,6 +3,7 @@
 #include "gamelib/gcutscn.h"
 #include "game/cut.retail.h"
 #include "gameplay/titlemenu.h"
+#include "port/level.h"
 
 void StartCutMovie(void)
 {
@@ -10,6 +11,13 @@ void StartCutMovie(void)
     StartCutMovie__retail();
     if (menu) {
         nw_title_menu_started();
+    }
+}
+
+void GetSpaceCut(s32 last, s32 next)
+{
+    if (!nw_cutscene_route(next)) {
+        GetSpaceCut__retail(last, next);
     }
 }
 

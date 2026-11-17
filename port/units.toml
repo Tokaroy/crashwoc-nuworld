@@ -183,7 +183,7 @@ schema = 1
 "game/loadsave" = { treatment = "replace", drop = ["UpdateSaveSlots", "loadsaveCallEachFrame", "LoadGameSlots", "SaveGameSlots"] }
 "game/bgload" = { treatment = "compile" }
 "game/cut" = { treatment = "compile", expose = ["cutworldix", "CutInst", "ghg_insts", "ghg_inst_count"], wrap = [
-               "StartCutMovie", "SetCutMovieRate", "AppCutSceneCharacterRender"] }
+               "StartCutMovie", "SetCutMovieRate", "AppCutSceneCharacterRender", "GetSpaceCut"] }
 "game/bug" = { treatment = "compile" }
 "game/game_deb" = { treatment = "compile" }
 "game/credits" = { treatment = "compile" }

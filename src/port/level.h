@@ -17,6 +17,13 @@ int nw_level_current(void);
 int nw_level_pending(void);
 void nw_level_load(int level);
 
+int nw_cutscene_count(void);
+const char *nw_cutscene_name(int i, const char **group);
+int nw_cutscene_current(void);
+int nw_cutscene_pending(void);
+void nw_cutscene_play(int i);
+bool nw_cutscene_route(int next);
+
 /* --level: LData indices or file names ("farm"), comma-separated as a route ("intro" first is NEW GAME), each asked for
    once the one before runs; false when the disc lacks one. The trace numbers vblanks from the last. */
 bool nw_level_start(const char *names);
