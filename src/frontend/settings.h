@@ -4,6 +4,7 @@
 #define NUWORLD_FRONTEND_SETTINGS_H
 
 #include <stdbool.h>
+#include <stddef.h>
 
 #include "gameplay/gameplay.h"
 #include "gfx/backend.h"
@@ -13,6 +14,22 @@
 
 #define NW_FPS_MAX 1000
 #define NW_DRAW_DISTANCE_MAX 400
+#define NW_PROFILE_NAME 48
+
+typedef enum NwMovementPart {
+    NW_PART_CRASH,
+    NW_PART_COCO,
+    NW_PART_MECH,
+    NW_PART_SUBMARINE,
+    NW_PART_JEEP,
+    NW_PART_ATLASPHERE,
+    NW_PART_FIREFLY,
+    NW_PART_PLANE,
+    NW_PART_SPACEFIGHTER,
+    NW_MOVEMENT_PARTS,
+} NwMovementPart;
+
+#define NW_PARTS_ALL ((1u << NW_MOVEMENT_PARTS) - 1)
 
 typedef struct NwSettings {
     bool hardware_speed; /* [game]: the PS2's disc and sound load times instead of instant loads */
@@ -26,6 +43,8 @@ typedef struct NwSettings {
     bool long_time_names; /* time trial records take names of up to 8 letters instead of 3 */
     bool relic_spin;
     int camera_stability; /* percent of a jump the game camera ignores, 0 the PS2's */
+    bool hub_gem;
+    bool first_boss_cut;
     int master_volume;   /* [audio], 0-100 over the game's own volumes: everything */
     int voice_volume;    /* the voice stream (cutscenes, hints) */
     bool discord;        /* [discord]: Rich Presence on the player's profile */
@@ -71,5 +90,10 @@ const char *nw_settings_resolution_name(NwResolution res, char *buf, int size);
 bool nw_settings_load(NwSettings *s, const char *root);
 /* s merged into root's settings.toml through a .tmp file; false with an SDL error. */
 bool nw_settings_save(const NwSettings *s, const char *root);
+
+void nw_settings_profile_name(char *name);
+char *nw_settings_profile_text(const NwMovement *m, unsigned parts, const char *name, size_t *size);
+unsigned nw_settings_profile_read(const char *text, size_t size, NwMovement *m, char *name, size_t name_size);
+void nw_settings_profile_apply(NwMovement *to, const NwMovement *from, unsigned parts);
 
 #endif

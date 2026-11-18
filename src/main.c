@@ -22,8 +22,10 @@
 #include "vfs/extract.h"
 #ifdef NW_WITH_GAME
 #include "data/image.h"
+#include "frontend/cheatpanel.h"
 #include "frontend/controlpanel.h"
 #include "frontend/debug.h"
+#include "frontend/profiles.h"
 #include "frontend/saveexport.h"
 #include "frontend/saveimport.h"
 #include "frontend/settings.h"
@@ -899,8 +901,11 @@ static void nw_boot_value(const char *label, const char *help, int *value, int l
     nw_debug_indent(false);
 }
 
+static uint64_t nw_boot_copied;
+static unsigned nw_boot_copied_parts;
+
 /* The profile and its buttons, the same on every movement panel. */
-static void nw_boot_profile(NwSettings *s)
+static void nw_boot_profile(NwSettings *s, unsigned parts)
 {
     nw_debug_label(nw_movement_profiles[nw_movement_profile(&s->movement)]);
     nw_debug_same_line(6.0f);
@@ -911,6 +916,13 @@ static void nw_boot_profile(NwSettings *s)
     if (nw_debug_button("N. Hanced")) {
         s->movement = (NwMovement)NW_MOVEMENT_NHANCED;
     }
+    nw_debug_same_line(0.0f);
+    bool copied = nw_boot_copied_parts == parts && SDL_GetTicks() - nw_boot_copied < 1500;
+    if (nw_debug_button(copied ? "Copied###copy" : "Copy###copy") && nw_profiles_copy(parts)) {
+        nw_boot_copied = SDL_GetTicks();
+        nw_boot_copied_parts = parts;
+    }
+    nw_debug_tooltip("copy this panel's settings to the clipboard for sharing");
 }
 
 /* A switch's values show only while it is on. */
@@ -924,7 +936,7 @@ static void nw_boot_movement(void *user)
     NwCrashMovement *c = &s->movement.crash;
     bool on = true;
 
-    nw_boot_profile(s);
+    nw_boot_profile(s, 1u << NW_PART_CRASH);
     NW_CRASH_MOVEMENT(NW_BOOT_SWITCH_ITEM, NW_BOOT_FLAG_ITEM, NW_BOOT_VALUE_ITEM)
     nw_debug_slider_int("Monkey Bar Speed %", &s->movement.monkey_bar_speed, 100, 500);
     if (nw_pad_script) {
@@ -938,7 +950,7 @@ static void nw_boot_coco(void *user)
     NwCocoMovement *c = &s->movement.coco;
     bool on = true;
 
-    nw_boot_profile(s);
+    nw_boot_profile(s, 1u << NW_PART_COCO);
     NW_COCO_MOVEMENT(NW_BOOT_SWITCH_ITEM, NW_BOOT_FLAG_ITEM, NW_BOOT_VALUE_ITEM)
 }
 
@@ -948,7 +960,7 @@ static void nw_boot_mech(void *user)
     NwMechMovement *c = &s->movement.mech;
     bool on = true;
 
-    nw_boot_profile(s);
+    nw_boot_profile(s, 1u << NW_PART_MECH);
     NW_MECH_MOVEMENT(NW_BOOT_SWITCH_ITEM, NW_BOOT_FLAG_ITEM, NW_BOOT_VALUE_ITEM)
     if (nw_pad_script) {
         nw_debug_text("--pad-script plays retail: changes take effect at the next start");
@@ -961,7 +973,7 @@ static void nw_boot_submarine(void *user)
     NwSubMovement *c = &s->movement.submarine;
     bool on = true;
 
-    nw_boot_profile(s);
+    nw_boot_profile(s, 1u << NW_PART_SUBMARINE);
     NW_SUB_MOVEMENT(NW_BOOT_SWITCH_ITEM, NW_BOOT_FLAG_ITEM, NW_BOOT_VALUE_ITEM)
     if (nw_pad_script) {
         nw_debug_text("--pad-script plays retail: changes take effect at the next start");
@@ -974,7 +986,7 @@ static void nw_boot_jeep(void *user)
     NwJeepMovement *c = &s->movement.jeep;
     bool on = true;
 
-    nw_boot_profile(s);
+    nw_boot_profile(s, 1u << NW_PART_JEEP);
     NW_JEEP_MOVEMENT(NW_BOOT_SWITCH_ITEM, NW_BOOT_FLAG_ITEM, NW_BOOT_VALUE_ITEM)
     if (nw_pad_script) {
         nw_debug_text("--pad-script plays retail: changes take effect at the next start");
@@ -987,7 +999,7 @@ static void nw_boot_atlas(void *user)
     NwAtlasMovement *c = &s->movement.atlasphere;
     bool on = true;
 
-    nw_boot_profile(s);
+    nw_boot_profile(s, 1u << NW_PART_ATLASPHERE);
     NW_ATLAS_MOVEMENT(NW_BOOT_SWITCH_ITEM, NW_BOOT_FLAG_ITEM, NW_BOOT_VALUE_ITEM)
     if (nw_pad_script) {
         nw_debug_text("--pad-script plays retail: changes take effect at the next start");
@@ -1000,7 +1012,7 @@ static void nw_boot_firefly(void *user)
     NwFireflyMovement *c = &s->movement.firefly;
     bool on = true;
 
-    nw_boot_profile(s);
+    nw_boot_profile(s, 1u << NW_PART_FIREFLY);
     NW_FIREFLY_MOVEMENT(NW_BOOT_SWITCH_ITEM, NW_BOOT_FLAG_ITEM, NW_BOOT_VALUE_ITEM)
     if (nw_pad_script) {
         nw_debug_text("--pad-script plays retail: changes take effect at the next start");
@@ -1013,7 +1025,7 @@ static void nw_boot_plane(void *user)
     NwPlaneMovement *c = &s->movement.plane;
     bool on = true;
 
-    nw_boot_profile(s);
+    nw_boot_profile(s, 1u << NW_PART_PLANE);
     NW_PLANE_MOVEMENT(NW_BOOT_SWITCH_ITEM, NW_BOOT_FLAG_ITEM, NW_BOOT_VALUE_ITEM)
     if (nw_pad_script) {
         nw_debug_text("--pad-script plays retail: changes take effect at the next start");
@@ -1026,7 +1038,7 @@ static void nw_boot_spacefighter(void *user)
     NwSpaceMovement *c = &s->movement.spacefighter;
     bool on = true;
 
-    nw_boot_profile(s);
+    nw_boot_profile(s, 1u << NW_PART_SPACEFIGHTER);
     NW_SPACE_MOVEMENT(NW_BOOT_SWITCH_ITEM, NW_BOOT_FLAG_ITEM, NW_BOOT_VALUE_ITEM)
     if (nw_pad_script) {
         nw_debug_text("--pad-script plays retail: changes take effect at the next start");
@@ -1048,6 +1060,8 @@ static void nw_boot_request(const NwSettings *s, bool hitboxes)
                                      .long_time_names = s->long_time_names,
                                      .relic_spin = s->relic_spin,
                                      .camera_stability = s->camera_stability,
+                                     .hub_gem = s->hub_gem,
+                                     .first_boss_cut = s->first_boss_cut,
                                      .hitboxes = hitboxes });
 }
 
@@ -1095,6 +1109,36 @@ static void nw_boot_levels(void *user)
     int pending = nw_level_pending();
     if (pending >= 0) {
         nw_debug_text("entering %s", nw_level_name(pending));
+    }
+}
+
+static void nw_boot_cutscenes(void *user)
+{
+    (void)user;
+    int current = nw_cutscene_current();
+    const char *shown = NULL;
+    nw_debug_list_begin("cutscenes", 16);
+    for (int i = 0; i < nw_cutscene_count(); i++) {
+        const char *group;
+        const char *name = nw_cutscene_name(i, &group);
+        if (!name) {
+            continue;
+        }
+        if (!shown || SDL_strcmp(shown, group) != 0) {
+            nw_debug_heading(group);
+            shown = group;
+        }
+        char label[64];
+        SDL_snprintf(label, sizeof(label), "%s##%d", name, i);
+        if (nw_debug_selectable(label, i == current)) {
+            nw_cutscene_play(i);
+        }
+    }
+    nw_debug_list_end();
+    const char *group;
+    const char *name = nw_cutscene_name(nw_cutscene_pending(), &group);
+    if (name) {
+        nw_debug_text("starting %s: %s", group, name);
     }
 }
 
@@ -1148,6 +1192,8 @@ static int nw_boot(const char *data_dir, int hardware_speed, float aspect, NwPla
     if (!settings.minidump) {
         nw_crash_dumps(NULL);
     }
+    nw_crash_arm();
+    nw_update_cleanup(SDL_GetBasePath());
     nw_platform_gl_debug(settings.gl_debug || nw_gl_debug_arg);
     if (SDL_strcmp(settings.gpu, "auto") != 0) {
         nw_gpu_prefer(settings.gpu);
@@ -1186,7 +1232,9 @@ static int nw_boot(const char *data_dir, int hardware_speed, float aspect, NwPla
                                        .hub_minigame = settings.hub_minigame,
                                        .long_time_names = settings.long_time_names,
                                        .relic_spin = settings.relic_spin,
-                                       .camera_stability = settings.camera_stability });
+                                       .camera_stability = settings.camera_stability,
+                                       .hub_gem = settings.hub_gem,
+                                       .first_boss_cut = settings.first_boss_cut });
     }
     nw_wide_set(nw_video_start(&platform, &settings), settings.hud);
     nw_debug_panel("Settings", "Audio", nw_boot_audio, &settings, false);
@@ -1202,6 +1250,10 @@ static int nw_boot(const char *data_dir, int hardware_speed, float aspect, NwPla
     nw_debug_toggle("Gameplay", "Loading minigame in the hub", &settings.hub_minigame);
     nw_debug_toggle("Gameplay", "Time trial names of up to 8 letters", &settings.long_time_names);
     nw_debug_toggle("Gameplay", "Turning relic on time trial records", &settings.relic_spin);
+    nw_debug_toggle("Gameplay", "Aku Aku after the first boss", &settings.first_boss_cut);
+    if (!nw_pad_script) {
+        nw_cheat_panel_start();
+    }
     {
         char *root = nw_data_root(data_dir);
         char *saves = root ? nw_paths_dir(root, NW_PATHS_SAVES, false) : NULL;
@@ -1219,7 +1271,13 @@ static int nw_boot(const char *data_dir, int hardware_speed, float aspect, NwPla
     nw_debug_panel_key("N. Hanced Movement", "Firefly", SDL_SCANCODE_F9, nw_boot_firefly, &settings);
     nw_debug_panel_key("N. Hanced Movement", "Plane", SDL_SCANCODE_F8, nw_boot_plane, &settings);
     nw_debug_panel_key("N. Hanced Movement", "Space Fighter", SDL_SCANCODE_F7, nw_boot_spacefighter, &settings);
+    {
+        char *root = nw_data_root(data_dir);
+        nw_profiles_start(platform.window, root, &settings.movement);
+        SDL_free(root);
+    }
     nw_debug_panel("Debug", "Load Level", nw_boot_levels, NULL, false);
+    nw_debug_panel("Debug", "Play Cutscene", nw_boot_cutscenes, NULL, false);
     bool hitboxes = false, hitboxes_shown = false;
     if (!nw_pad_script) {
         nw_debug_action("Debug", "Start Minigame", SDL_SCANCODE_UNKNOWN, nw_boot_minigame, NULL);
@@ -1269,6 +1327,7 @@ static int nw_boot(const char *data_dir, int hardware_speed, float aspect, NwPla
             }
             nw_input_event(&event);
             nw_video_event(&event);
+            nw_profiles_event(&event);
         }
         nw_input_poll(!nw_debug_wants_keyboard());
         if (nw_game_state() == NW_GAME_FATAL) {
@@ -1292,7 +1351,9 @@ static int nw_boot(const char *data_dir, int hardware_speed, float aspect, NwPla
                                    settings.hub_minigame != applied.hub_minigame ||
                                    settings.long_time_names != applied.long_time_names ||
                                    settings.relic_spin != applied.relic_spin ||
-                                   settings.camera_stability != applied.camera_stability)) {
+                                   settings.camera_stability != applied.camera_stability ||
+                                   settings.hub_gem != applied.hub_gem ||
+                                   settings.first_boss_cut != applied.first_boss_cut)) {
                 nw_boot_request(&settings, hitboxes);
                 hitboxes_shown = hitboxes;
             }
@@ -1317,7 +1378,9 @@ static int nw_boot(const char *data_dir, int hardware_speed, float aspect, NwPla
             nw_discord_set(&activity);
             presented = SDL_GetTicks();
         }
-        nw_update_poll(platform.window);
+        if (nw_update_poll(platform.window)) {
+            running = false;
+        }
         int width, height;
         nw_display_size(platform.window, &width, &height);
         nw_backend_frame(width, height, settings.interpolation ? nw_game_edge_time() : -1.0);
@@ -1339,6 +1402,7 @@ static int nw_boot(const char *data_dir, int hardware_speed, float aspect, NwPla
     nw_audio_close();
     nw_saveimport_stop();
     nw_saveexport_stop();
+    nw_profiles_stop();
     nw_help_stop();
     nw_window_close(&platform);
     return nw_boot_exit(state == NW_GAME_FATAL ? 1 : 0, parked);
@@ -1682,6 +1746,7 @@ int main(int argc, char *argv[])
     const char *crash_test = NULL;
 
     nw_log_init(argc, argv);
+    nw_update_args(argc, argv);
     for (int i = 1; i < argc; i++) {
         if (strcmp(argv[i], "--version") == 0) {
             printf(NW_APP_NAME " %s\n", nw_build_id);
@@ -1825,6 +1890,7 @@ int main(int argc, char *argv[])
             nw_log_open(root);
         }
         SDL_free(root);
+        nw_crash_arm();
         nw_crash_test(crash_test);
     }
     /* The checks, tests and comparisons read the retail disc. */

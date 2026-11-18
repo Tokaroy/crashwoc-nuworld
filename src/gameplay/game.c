@@ -4,7 +4,9 @@
 #include "game/gametypes.h"
 #include "game/creature.h"
 #include "game/game.retail.h"
+#include "gameplay/bosscut.h"
 #include "gameplay/gems.h"
+#include "gameplay/hubgem.h"
 #include "gameplay/jeep.h"
 #include "gameplay/submarine.h"
 #include "nups2/ps2ctl.h"
@@ -15,6 +17,7 @@
 
 /* Declared by no header. */
 extern s32 new_level;
+extern u16 new_lev_flags;
 
 void NewGame(void)
 {
@@ -25,7 +28,9 @@ void NewGame(void)
 void CheckFinish(struct obj_s *obj)
 {
     int before = new_level;
+    u16 flags = new_lev_flags;
     CheckFinish__retail(obj);
+    nw_boss_cut_finish(flags);
     if (obj->finished == 1 && new_level != -1 && new_level != before) {
         nw_autosave_checkpoint(true);
     }
@@ -35,6 +40,13 @@ void InitObjectTable(void)
 {
     InitObjectTable__retail();
     nw_gems_objects();
+    nw_hubgem_level();
+}
+
+void DrawTransporters(void)
+{
+    DrawTransporters__retail();
+    nw_hubgem_draw();
 }
 
 u16 SeekRot(u16 a, u16 b, s32 shift)

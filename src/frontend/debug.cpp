@@ -38,6 +38,10 @@ static struct {
     NwDebugItem items[NW_DEBUG_ITEMS];
     uint32_t nitems;
     uint32_t placed; /* panels opened so far, the next one's cascade slot */
+    const char *prompt_title;
+    NwDebugPromptFn prompt;
+    void *prompt_user;
+    uint32_t prompts;
 } nw_debug;
 
 static NwDebugItem *nw_debug_add(NwDebugKind kind, const char *menu, const char *label)
@@ -86,6 +90,21 @@ void nw_debug_action(const char *menu, const char *label, SDL_Scancode key, NwDe
         item->fn = run;
         item->user = user;
         item->key = key;
+    }
+}
+
+void nw_debug_prompt(const char *title, NwDebugPromptFn draw, void *user)
+{
+    if (!nw_debug.init) {
+        return;
+    }
+    nw_debug.prompt_title = title;
+    nw_debug.prompt = draw;
+    nw_debug.prompt_user = user;
+    nw_debug.prompts++;
+    if (!nw_debug.shown) {
+        ImGui::GetIO().ClearInputKeys();
+        ImGui::GetIO().ClearInputMouse();
     }
 }
 
@@ -182,10 +201,21 @@ bool nw_debug_filter(const char *hint, char *buf, size_t size)
     return changed;
 }
 
+bool nw_debug_input(const char *label, char *buf, size_t size)
+{
+    return ImGui::InputText(label, buf, size);
+}
+
 void nw_debug_list_begin(const char *id, int rows)
 {
     float height = ImGui::GetTextLineHeightWithSpacing() * (float)rows + ImGui::GetStyle().WindowPadding.y * 2;
     ImGui::BeginChild(id, ImVec2(ImGui::GetFontSize() * 20, height), ImGuiChildFlags_Borders);
+}
+
+void nw_debug_list_sized(const char *id, int rows, float width)
+{
+    float height = ImGui::GetFrameHeightWithSpacing() * (float)rows + ImGui::GetStyle().WindowPadding.y * 2;
+    ImGui::BeginChild(id, ImVec2(ImGui::GetFontSize() * width, height), ImGuiChildFlags_Borders);
 }
 
 void nw_debug_list_end(void)
@@ -201,6 +231,36 @@ void nw_debug_heading(const char *text)
 bool nw_debug_selectable(const char *label, bool selected)
 {
     return ImGui::Selectable(label, selected);
+}
+
+bool nw_debug_tree(const char *label, const char *note, bool highlight, bool open)
+{
+    if (open) {
+        ImGui::SetNextItemOpen(true);
+        ImGui::SetScrollHereY();
+    }
+    float right = ImGui::GetCursorPosX() + ImGui::GetContentRegionAvail().x;
+    ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_SpanAvailWidth;
+    bool shown = ImGui::TreeNodeEx(label, highlight ? flags | ImGuiTreeNodeFlags_Selected : flags);
+    if (note && *note) {
+        ImGui::SameLine(right - ImGui::CalcTextSize(note).x);
+        ImGui::TextDisabled("%s", note);
+    }
+    return shown;
+}
+
+void nw_debug_tree_end(void)
+{
+    ImGui::TreePop();
+}
+
+void nw_debug_warning(const char *text)
+{
+    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.76f, 0.3f, 1.0f));
+    ImGui::PushTextWrapPos(ImGui::GetFontSize() * 24.0f);
+    ImGui::TextUnformatted(text);
+    ImGui::PopTextWrapPos();
+    ImGui::PopStyleColor();
 }
 
 /* menu is the path's first len characters or a submenu of it. */
@@ -349,6 +409,7 @@ void nw_debug_shutdown(void)
     nw_debug.shown = false;
     nw_debug.nitems = 0;
     nw_debug.placed = 0;
+    nw_debug.prompt = NULL;
 }
 
 bool nw_debug_event(const SDL_Event *e)
@@ -378,7 +439,7 @@ bool nw_debug_event(const SDL_Event *e)
         }
     }
     /* Hidden, no ImGui frame drains its input queue. */
-    if (!nw_debug.shown) {
+    if (!nw_debug.shown && !nw_debug.prompt) {
         if (e->type >= SDL_EVENT_WINDOW_FIRST && e->type <= SDL_EVENT_WINDOW_LAST) {
             nw_ui_event(e);
         }
@@ -403,7 +464,7 @@ bool nw_debug_event(const SDL_Event *e)
 
 bool nw_debug_wants_keyboard(void)
 {
-    return nw_debug.shown && ImGui::GetIO().WantCaptureKeyboard;
+    return (nw_debug.shown || nw_debug.prompt) && ImGui::GetIO().WantCaptureKeyboard;
 }
 
 void nw_debug_show(bool shown)
@@ -411,13 +472,32 @@ void nw_debug_show(bool shown)
     nw_debug.shown = shown;
 }
 
+static void nw_debug_prompt_frame(void)
+{
+    const char *title = nw_debug.prompt_title;
+    if (!ImGui::IsPopupOpen(title)) {
+        ImGui::OpenPopup(title);
+    }
+    ImGui::SetNextWindowPos(ImGui::GetMainViewport()->GetCenter(), ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
+    if (ImGui::BeginPopupModal(title, NULL, ImGuiWindowFlags_AlwaysAutoResize)) {
+        uint32_t asked = nw_debug.prompts;
+        if (!nw_debug.prompt(nw_debug.prompt_user)) {
+            ImGui::CloseCurrentPopup();
+            if (asked == nw_debug.prompts) {
+                nw_debug.prompt = NULL;
+            }
+        }
+        ImGui::EndPopup();
+    }
+}
+
 void nw_debug_frame(void)
 {
-    if (!nw_debug.shown) {
+    if (!nw_debug.shown && !nw_debug.prompt) {
         return;
     }
     nw_ui_begin();
-    if (ImGui::BeginMainMenuBar()) {
+    if (nw_debug.shown && ImGui::BeginMainMenuBar()) {
         char rate[32];
         SDL_snprintf(rate, sizeof(rate), "%.0f fps", ImGui::GetIO().Framerate);
         ImGui::TextDisabled(NW_APP_NAME);
@@ -426,6 +506,11 @@ void nw_debug_frame(void)
         ImGui::TextUnformatted(rate);
         ImGui::EndMainMenuBar();
     }
-    nw_debug_panels();
+    if (nw_debug.shown) {
+        nw_debug_panels();
+    }
+    if (nw_debug.prompt) {
+        nw_debug_prompt_frame();
+    }
     nw_ui_end();
 }

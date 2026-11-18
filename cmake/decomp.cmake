@@ -122,9 +122,6 @@ set(nw_decomp_flags
   -Werror=implicit-function-declaration -Werror=implicit-int -Werror=int-conversion -Werror=pointer-to-int-cast
   -Werror=int-to-pointer-cast -Werror=incompatible-pointer-types -Werror=incompatible-function-pointer-types
   -Werror=return-type)
-if(MINGW)
-  list(APPEND nw_decomp_flags -mno-ms-bitfields)
-endif()
 
 list(APPEND nw_decomp_flags -ffp-exception-behavior=maytrap)
 # The decomp's libm, not values clang folds with the build machine's libm (glibc and UCRT differ).
@@ -161,12 +158,12 @@ set(nw_game_sources ${nw_dataimage} src/gfx/dma.c src/gfx/fx2.c src/gfx/nulight.
   src/port/capture.c src/port/disc.c src/port/dump.c src/port/ps2video.c src/port/saves.c src/port/scene.c src/port/shadcom.c
   src/port/autosave.c src/port/cloudfx.c src/port/crate.c src/port/font3d.c src/port/menu.c src/port/nameentry.c src/port/names.c src/port/savemenu.c src/port/nubridge.c src/port/terrain.c
   src/port/text.c src/port/trace.c src/port/wide.c
-  src/gameplay/ai.c src/gameplay/air.c src/gameplay/airindicator.c src/gameplay/atlasphere.c src/gameplay/bosshealth.c
-  src/gameplay/camera.c src/gameplay/chase.c src/gameplay/crash.c src/gameplay/creature.c src/gameplay/cut.c src/gameplay/debris.c
+  src/gameplay/ai.c src/gameplay/air.c src/gameplay/airindicator.c src/gameplay/atlasphere.c src/gameplay/bosscut.c src/gameplay/bosshealth.c
+  src/gameplay/camera.c src/gameplay/chase.c src/gameplay/cheats.c src/gameplay/crash.c src/gameplay/creature.c src/gameplay/cut.c src/gameplay/debris.c
   src/gameplay/edbits.c src/gameplay/edges.c src/gameplay/firefly.c
   src/gameplay/game.c src/gameplay/game_obj.c src/gameplay/gems.c src/gameplay/gameplay.c src/gameplay/gcutscn.c src/gameplay/ground.c src/gameplay/hazards.c
-  src/gameplay/hitboxes.c src/gameplay/hubcrunch.c src/gameplay/jeep.c src/gameplay/line2d.c src/gameplay/mech.c src/gameplay/minigame.c src/gameplay/monkeybars.c
-  src/gameplay/move.c src/gameplay/numtl.c src/gameplay/panel.c src/gameplay/plane.c src/gameplay/spacefighter.c
+  src/gameplay/hitboxes.c src/gameplay/hubcrunch.c src/gameplay/hubgem.c src/gameplay/jeep.c src/gameplay/line2d.c src/gameplay/mech.c src/gameplay/minigame.c src/gameplay/monkeybars.c
+  src/gameplay/move.c src/gameplay/numtl.c src/gameplay/panel.c src/gameplay/plane.c src/gameplay/slidespin.c src/gameplay/spacefighter.c
   src/gameplay/steadycam.c src/gameplay/submarine.c
   src/gameplay/terrain.c src/gameplay/titlemenu.c src/gameplay/vehicle.c
   src/platform/highheap.c
@@ -176,6 +173,7 @@ set(nw_game_sources ${nw_dataimage} src/gfx/dma.c src/gfx/fx2.c src/gfx/nulight.
 list(FILTER nw_game_sources INCLUDE REGEX "\\.c$")
 add_library(nuworld_game STATIC $<TARGET_OBJECTS:nuworld_decomp> ${nw_game_sources})
 nw_embed_dir(nuworld_game nw_prompt_icons ${CMAKE_CURRENT_SOURCE_DIR}/assets/prompts)
+nw_embed(nuworld_game nw_hubgem_toml ${CMAKE_CURRENT_SOURCE_DIR}/assets/hubgem.toml)
 # The title menu's NuWorld mark.
 set(nw_title_logo ${nw_gen}/nw_title_logo.ghg)
 add_custom_command(OUTPUT ${nw_title_logo}
@@ -197,7 +195,7 @@ target_link_libraries(nuworld_game PUBLIC $<LINK_ONLY:nuworld_data> nuworld_audi
   nuworld_vfs)
 target_link_libraries(crashwoc-nuworld PRIVATE $<LINK_LIBRARY:WHOLE_ARCHIVE,nuworld_game>)
 # The renderer draws the game thread's frame packets, so it comes with the decomp.
-target_sources(crashwoc-nuworld PRIVATE src/frontend/controlpanel.c src/frontend/saveexport.c src/frontend/saveimport.c src/frontend/video.c src/gfx/backend.c src/gfx/view.c src/platform/input.c)
+target_sources(crashwoc-nuworld PRIVATE src/frontend/cheatpanel.c src/frontend/controlpanel.c src/frontend/profiles.c src/frontend/saveexport.c src/frontend/saveimport.c src/frontend/video.c src/gfx/backend.c src/gfx/view.c src/platform/input.c)
 target_compile_definitions(crashwoc-nuworld PRIVATE NW_WITH_GAME)
 
 if(NUWORLD_FUZZ)
@@ -220,9 +218,6 @@ if(NUWORLD_TESTS)
   add_dependencies(nuworld_test_ps2types nuworld_types)
   target_include_directories(nuworld_test_ps2types PRIVATE ${nw_gen})
   target_compile_options(nuworld_test_ps2types PRIVATE -Wall -Wextra)
-  if(MINGW)
-    target_compile_options(nuworld_test_ps2types PRIVATE -mno-ms-bitfields)
-  endif()
   add_test(NAME ps2types COMMAND nuworld_test_ps2types)
 
   # Local only: the data image from the imported disc of NUWORLD_TEST_DATA (skipped without it).
@@ -557,10 +552,13 @@ if(NUWORLD_TESTS)
   get_filename_component(nw_cc_dir ${CMAKE_C_COMPILER} DIRECTORY)
   find_program(NW_LLVM_NM llvm-nm HINTS ${nw_cc_dir})
   if(NW_LLVM_NM)
-    add_test(NAME decomp-globals
-      COMMAND ${CMAKE_COMMAND} -DNM=${NW_LLVM_NM}
-        "-DOBJECTS=$<JOIN:$<TARGET_OBJECTS:nuworld_decomp>;$<TARGET_OBJECTS:nuworld_game>,|>"
-        -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/check_globals.cmake)
+    if(NOT NW_MSVC_ABI)
+      file(GENERATE OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/globals-objects.rsp
+        CONTENT "\"$<JOIN:$<TARGET_OBJECTS:nuworld_decomp>;$<TARGET_OBJECTS:nuworld_game>,\"\n\">\"\n")
+      add_test(NAME decomp-globals
+        COMMAND ${CMAKE_COMMAND} -DNM=${NW_LLVM_NM} -DOBJECTS=${CMAKE_CURRENT_BINARY_DIR}/globals-objects.rsp
+          -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/check_globals.cmake)
+    endif()
     # Everything the executable links for the game, listed in a file (the command line would be too long).
     file(GENERATE OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/closure-objects.txt
       CONTENT "$<JOIN:$<TARGET_OBJECTS:nuworld_decomp>;$<TARGET_OBJECTS:nuworld_game>;$<TARGET_OBJECTS:nuworld_data>;$<TARGET_OBJECTS:nuworld_port>,\n>\n")
