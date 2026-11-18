@@ -37,6 +37,15 @@
  }
  
  
+@@ -760,7 +768,7 @@ void terrainpickupinit(char *name, short **store) {
+     *store += 0xE00;
+     pickup->data = *store;
+     *store += 0xE00;
+-    memset(pickup->terr, 0, 0x1C00);
++    memset(pickup->terr, 0, 128 * sizeof(TerrainSituType));
+     c = 0;
+     mbuf = pickup->terr;
+     while (c < 128) {
 @@ -3588,6 +3596,10 @@ s32 PlatformChecks(s32 itterationcnt, struct nuvec_s *vvel) {
          while (lp > 0) {
              *WriteData++ = *CurData++;

@@ -1,0 +1,11 @@
+--- a/src/gamelib/trigger.c
++++ b/src/gamelib/trigger.c
+@@ -595,7 +595,7 @@ struct instNUTRIGGERSYS_s *instNuTriggerSysCreate(struct NUTRIGGERSYS_s *trigger
+         itriggersys = buff->voidptr;
+ 
+         buff->voidptr = itriggersys + 1;
+-        memset(itriggersys, 0, 0x18);
++        memset(itriggersys, 0, sizeof(*itriggersys));
+ 
+         itriggersys->prev = 0;
+         itriggersys->next = active_triggersys_instances;

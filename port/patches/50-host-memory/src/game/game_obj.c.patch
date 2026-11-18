@@ -1,0 +1,20 @@
+--- a/src/game/game_obj.c
++++ b/src/game/game_obj.c
+@@ -2364,7 +2364,7 @@ inline s32 AddGameObject(struct obj_s *obj, struct obj_s *parent) {
+     s32 i;
+     s32 added;
+ 
+-    memset(obj, 0, 0x188);
++    memset(obj, 0, sizeof(*obj));
+     obj->SCALE = 1.0f;
+     obj->scale = 1.0f;
+     obj->RPos.iRAIL = -1;
+@@ -3477,7 +3477,7 @@ void KillItem(struct obj_s *obj) {
+ }
+ 
+ void ResetGameObject(struct obj_s *obj) {
+-    memset(obj, 0, 0x188);
++    memset(obj, 0, sizeof(*obj));
+     obj->reflect_y = 2000000.0f;
+     obj->SCALE = 1.0f;
+     obj->RPos.iRAIL = -1;

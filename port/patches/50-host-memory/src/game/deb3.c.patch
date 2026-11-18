@@ -1,0 +1,11 @@
+--- a/src/game/deb3.c
++++ b/src/game/deb3.c
+@@ -565,7 +565,7 @@ void InitDeb3(void)
+         cortlights[i * 6 + 4] = ((qrand() & 0x7F) + 0x80) * 60 / 50;
+         cortlights[i * 6 + 5] = ((qrand() & 0x7F) + 0x80) * 60 / 50;
+     }
+-    memset(deb3, 0, 0x3800);
++    memset(deb3, 0, sizeof(deb3));
+     RBodyInitClasses();
+     rockpt = 0;
+     if (Level == 1) {
