@@ -20,6 +20,20 @@ option(NUWORLD_FUZZ "Build the libFuzzer targets for the VFS readers and the loa
 option(NUWORLD_SANITIZE "Build the port, the decomp and the tests with ASan and UBSan (clang)" OFF)
 set(NUWORLD_TAG "BETA" CACHE STRING "Release tag in the build ID (empty for a release without one)")
 
+if(CMAKE_C_SIMULATE_ID STREQUAL "MSVC")
+  set(NW_MSVC_ABI ON)
+  set(CMAKE_MSVC_RUNTIME_LIBRARY MultiThreadedDLL)
+  add_compile_definitions(_CRT_SECURE_NO_WARNINGS _CRT_NONSTDC_NO_WARNINGS _USE_MATH_DEFINES)
+  add_link_options(LINKER:/DEBUG LINKER:/INCREMENTAL:NO LINKER:/OPT:NOREF LINKER:/OPT:NOICF
+    LINKER:/PDBALTPATH:%_PDB%)
+  cmake_path(GET CMAKE_C_COMPILER PARENT_PATH nw_llvm_bin)
+  find_program(NW_LLVM_LIB llvm-lib HINTS ${nw_llvm_bin} REQUIRED)
+  foreach(lang C CXX)
+    set(CMAKE_${lang}_ARCHIVE_CREATE "\"${NW_LLVM_LIB}\" /nologo /out:<TARGET> <OBJECTS>")
+  endforeach()
+  find_package(Python3 3.11 REQUIRED COMPONENTS Interpreter)
+endif()
+
 if(NUWORLD_SYSTEM_SDL3)
   find_package(SDL3 REQUIRED CONFIG)
 else()
@@ -38,6 +52,9 @@ endif()
 # After SDL: everything from here on, the decomp included; with libFuzzer's coverage for the fuzz targets.
 if(NUWORLD_FUZZ)
   add_compile_options(-fsanitize=fuzzer-no-link)
+endif()
+if(NW_MSVC_ABI)
+  add_compile_options(-gcodeview -gline-tables-only)
 endif()
 if(NUWORLD_SANITIZE)
   add_compile_options(-fsanitize=address,undefined -fno-sanitize-recover=undefined -fno-omit-frame-pointer)
@@ -85,6 +102,17 @@ function(nw_embed_dir target name dir)
     VERBATIM)
   target_sources(${target} PRIVATE ${out})
 endfunction()
+function(nw_symbols target)
+  if(NOT NW_MSVC_ABI)
+    return()
+  endif()
+  set(stem $<TARGET_FILE_DIR:${target}>/$<TARGET_FILE_BASE_NAME:${target}>)
+  target_link_options(${target} PRIVATE LINKER:/MAP:${stem}.map)
+  add_custom_command(TARGET ${target} POST_BUILD
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tools/symtab.py ${stem}.map $<TARGET_FILE:${target}>
+      ${stem}.sym
+    VERBATIM)
+endfunction()
 
 add_executable(crashwoc-nuworld
   src/main.c
@@ -126,6 +154,7 @@ if(MINGW)
   # Keep the release a single .exe: libc++ (Dear ImGui) linked in, not libc++.dll.
   target_link_options(crashwoc-nuworld PRIVATE -static-libstdc++)
 endif()
+nw_symbols(crashwoc-nuworld)
 
 # Checked at every build.
 set(nw_buildid ${CMAKE_CURRENT_BINARY_DIR}/gen/buildid.c)
@@ -270,6 +299,7 @@ if(NUWORLD_TESTS)
   add_executable(nuworld_test_log tests/c/test_log.c src/platform/crash.c src/platform/log.c)
   target_compile_options(nuworld_test_log PRIVATE -Wall -Wextra)
   target_link_libraries(nuworld_test_log PRIVATE nuworld_port ${CMAKE_DL_LIBS})
+  nw_symbols(nuworld_test_log)
   add_test(NAME log COMMAND nuworld_test_log)
   if(NUWORLD_DECOMP)
     set(nw_crash_state "state: no frame drawn yet.*game thread: not started.*")

@@ -329,6 +329,37 @@ static bool nw_crash_symbols(SDL_IOStream *io, NwCrashTable *t)
     return ok;
 }
 
+static bool nw_crash_sym_file(const char *exe, NwCrashTable *t)
+{
+    char path[MAX_PATH * 3];
+    size_t n = SDL_strlen(exe);
+    if (n < 4 || SDL_strcasecmp(exe + n - 4, ".exe") != 0) {
+        return false;
+    }
+    SDL_snprintf(path, sizeof(path), "%.*s.sym", (int)(n - 4), exe);
+    char *text = SDL_LoadFile(path, NULL);
+    if (!text) {
+        return false;
+    }
+    const IMAGE_DOS_HEADER *dos = (const IMAGE_DOS_HEADER *)GetModuleHandleW(NULL);
+    const IMAGE_NT_HEADERS *nt = (const IMAGE_NT_HEADERS *)((const char *)dos + dos->e_lfanew);
+    unsigned stamp = 0, size = 0;
+    bool ok = SDL_sscanf(text, "nwsym %x %x", &stamp, &size) == 2 && stamp == nt->FileHeader.TimeDateStamp &&
+              size == nt->OptionalHeader.SizeOfImage;
+    t->n = 0;
+    t->len = 0;
+    for (char *line = ok ? SDL_strchr(text, '\n') : NULL; ok && line && line[1];) {
+        char *name = NULL;
+        unsigned long at = SDL_strtoul(++line, &name, 16);
+        char *end = SDL_strchr(name, '\n');
+        size_t len = end ? (size_t)(end - name) : SDL_strlen(name);
+        ok = name != line && *name == ' ' && len > 1 && nw_crash_add(t, at, name + 1, len - 1);
+        line = end;
+    }
+    SDL_free(text);
+    return ok && t->n;
+}
+
 static void nw_crash_load_symbols(NwCrashTable *t)
 {
     WCHAR wide[MAX_PATH];
@@ -338,7 +369,7 @@ static void nw_crash_load_symbols(NwCrashTable *t)
         return;
     }
     SDL_IOStream *io = SDL_IOFromFile(path, "rb");
-    if (io && nw_crash_symbols(io, t)) {
+    if ((io && nw_crash_symbols(io, t)) || nw_crash_sym_file(path, t)) {
         nw_crash.exe = GetModuleHandleW(NULL);
         nw_crash.base = (uintptr_t)nw_crash.exe;
     }

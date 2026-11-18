@@ -24,6 +24,12 @@
 #define NW_HOST_ALIGNED(n)
 #endif
 
+#ifdef NW_HOST
+#define NW_HOST_BITS(ee, host) host
+#else
+#define NW_HOST_BITS(ee, host) ee
+#endif
+
 
 #ifdef NW_HOST
 void nw_ee_idle(void);

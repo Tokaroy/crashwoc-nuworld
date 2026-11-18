@@ -242,6 +242,37 @@ jobs:
           name: crashwoc-nuworld-windows-x64
           path: dist/crashwoc-nuworld-windows-x64/
 
+  windows-msvc:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: ilammy/msvc-dev-cmd@v1
+      - name: Install dependencies
+        run: |
+          choco install llvm --version=22.1.8 --allow-downgrade --no-progress -y
+          python -m pip install -r tools/requirements.txt
+      - run: cmake --preset msvc-release -DPython3_EXECUTABLE="$(cygpath -m "$pythonLocation")/python.exe"
+      - run: cmake --build --preset msvc-release
+      - run: ctest --test-dir build/msvc-release --output-on-failure
+      - run: |
+          version="$(python tools/package.py version --full)"
+          [[ "$(./build/msvc-release/NuWorld.exe --version)" =~ ^"CrashWOC: NuWorld $version "[0-9a-f]{7}$ ]]
+      - name: Check the data image, the scenes and the boot without data
+        run: |
+          for mode in --check-data --check-scenes "--scene LEVELS/B/HUB/HUB.GSC" --boot-check; do
+            status=0
+            ./build/msvc-release/NuWorld.exe --data-dir "$(mktemp -d)" $mode || status=$?
+            test "$status" = 2
+          done
+
 
   archive:
     needs: [linux, windows]
