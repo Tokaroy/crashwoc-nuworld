@@ -38,7 +38,7 @@ CRASHPAD = [
 ]
 PLATFORMS = {
     "windows-x64": {
-        "programs": ["NuWorld.exe", "crashpad_handler.exe"],
+        "programs": ["NuWorld.exe", "NuWorldUpdater.exe", "crashpad_handler.exe"],
         "files": ["NuWorld.sym"],
         "symbols": ["NuWorld.pdb", "NuWorld.map"],
         "notices": CRASHPAD,
@@ -46,7 +46,7 @@ PLATFORMS = {
         "extra": {},
     },
     "linux-x86_64": {
-        "programs": ["NuWorld"],
+        "programs": ["NuWorld", "NuWorldUpdater"],
         "files": [],
         "symbols": [],
         "notices": [],
@@ -62,6 +62,8 @@ PLATFORMS = {
 NOTICES = [
     ("SDL {tag}", "SDL3", "zlib License", "https://libsdl.org", "LICENSE.txt"),
     ("Dear ImGui {tag}", "imgui", "MIT License", "https://github.com/ocornut/imgui", "LICENSE.txt"),
+    ("miniz {tag}", "miniz", "MIT License", "https://github.com/richgel999/miniz", "LICENSE"),
+    ("Monocypher {tag}", "monocypher", "BSD 2-Clause License or CC0 1.0", "https://monocypher.org", "LICENCE.md"),
     ("Atkinson Hyperlegible", None, "SIL Open Font License 1.1", "https://www.brailleinstitute.org/freefont",
      "assets/fonts/OFL.txt"),
     ("Kenney Input Prompts", None, "CC0 1.0", "https://kenney.nl", "assets/prompts/License.txt"),
