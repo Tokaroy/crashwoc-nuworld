@@ -2,14 +2,17 @@
 """NuWorld's release packages: the executable with its licences, a readme and, on Linux, a desktop entry.
 
   package.py version [--full]          CMakeLists.txt's version, --full with NUWORLD_TAG ("0.8.0 BETA")
-  package.py stage BUILD PLATFORM OUT  OUT/crashwoc-nuworld-PLATFORM/ from a release build dir
+  package.py stage BUILD PLATFORM OUT  OUT/crashwoc-nuworld-PLATFORM/ from a release build dir; on Windows with
+                                       the libraries it loads, and OUT/crashwoc-nuworld-PLATFORM-symbols/
   package.py archive NAME OUT DIR...   OUT/NAME-PLATFORM.zip (Windows) or .tar.gz per staged DIR, and OUT/SHA256SUMS
 
 PLATFORM is windows-x64 or linux-x86_64. Every package is checked with tools/deny_gamedata.py.
 """
 import hashlib
+import os
 import re
 import shutil
+import struct
 import sys
 import tarfile
 import zipfile
@@ -19,10 +22,23 @@ import deny_gamedata
 
 REPO = Path(__file__).resolve().parent.parent
 PREFIX = "crashwoc-nuworld-"
+ROOT = "CrashWOC-NuWorld"
+SYMBOLS = "-symbols"
+RUNTIME = "x64/Microsoft.VC*.CRT"
+WINDOWS = frozenset(("advapi32", "gdi32", "imm32", "kernel32", "ole32", "oleaut32", "setupapi", "shell32", "user32",
+                     "version", "winhttp", "winmm"))
 PLATFORMS = {
-    "windows-x64": {"exe": "NuWorld.exe", "newline": "\r\n", "extra": {}},
+    "windows-x64": {
+        "programs": ["NuWorld.exe"],
+        "files": ["NuWorld.sym"],
+        "symbols": ["NuWorld.pdb", "NuWorld.map"],
+        "newline": "\r\n",
+        "extra": {},
+    },
     "linux-x86_64": {
-        "exe": "NuWorld",
+        "programs": ["NuWorld"],
+        "files": [],
+        "symbols": [],
         "newline": "\n",
         "extra": {
             "nuworld.desktop": "assets/dist/nuworld.desktop",
@@ -42,8 +58,8 @@ NOTICES = [
 NOTICES_HEAD = """\
 CrashWOC: NuWorld is licensed under the GNU General Public License v3.0 (LICENSE.txt).
 Parts of its SPU2 emulation (the interpolation table, the reverb filter) follow PCSX2
-(https://pcsx2.net, GPL-3.0-or-later). The Windows build links the LLVM C++ runtime
-(Apache-2.0 WITH LLVM-exception).
+(https://pcsx2.net, GPL-3.0-or-later). The Windows package carries Microsoft's Visual C++
+runtime (vcruntime140.dll) as Visual Studio's licence lets applications redistribute it.
 
 It includes the following third-party software and assets.
 """
@@ -79,13 +95,79 @@ def write_text(path, text, newline):
     path.write_bytes(text.replace("\r\n", "\n").replace("\n", newline).encode("utf-8"))
 
 
-def stage(build, platform, out):
+def pe_imports(data):
+    if data[:2] != b"MZ" or len(data) < 0x40:
+        raise ValueError("not a PE image")
+    pe = struct.unpack_from("<I", data, 0x3C)[0]
+    if data[pe:pe + 4] != b"PE\0\0":
+        raise ValueError("not a PE image")
+    count, opt_size = struct.unpack_from("<H", data, pe + 6)[0], struct.unpack_from("<H", data, pe + 20)[0]
+    opt = pe + 24
+    dirs = opt + (112 if struct.unpack_from("<H", data, opt)[0] == 0x20B else 96)
+    sections = [struct.unpack_from("<IIII", data, opt + opt_size + 40 * i + 8) for i in range(count)]
+
+    def at(rva):
+        for vsize, va, rawsize, raw in sections:
+            if va <= rva < va + max(vsize, rawsize):
+                return raw + rva - va
+        raise ValueError("an import lies outside the sections")
+
+    names = []
+    present = struct.unpack_from("<I", data, dirs - 4)[0]
+    for index, size, field in ((1, 20, 12), (13, 32, 4)):
+        rva = struct.unpack_from("<I", data, dirs + 8 * index)[0] if index < present else 0
+        while rva:
+            name = struct.unpack_from("<I", data, at(rva) + field)[0]
+            if not name:
+                break
+            start = at(name)
+            names.append(data[start:data.index(b"\0", start)].decode("ascii"))
+            rva += size
+    return names
+
+
+def libraries(programs, folders):
+    found, todo = {}, list(programs)
+    while todo:
+        user = todo.pop()
+        for name in pe_imports(user.read_bytes()):
+            key = name.lower()
+            if key in found or key.removesuffix(".dll") in WINDOWS or key.startswith("api-ms-win-"):
+                continue
+            lib = next((p for d in folders for p in sorted(d.glob("*.dll")) if p.name.lower() == key), None)
+            if lib is None:
+                raise ValueError(f"{user.name} loads {name}: no Windows library, and not in "
+                                 + ", ".join(map(str, folders)))
+            found[key] = lib
+            todo.append(lib)
+    return [found[key] for key in sorted(found)]
+
+
+def stage(build, platform, out, runtime=None):
     spec = PLATFORMS[platform]
     build = Path(build)
     dest = Path(out) / (PREFIX + platform)
     shutil.rmtree(dest, ignore_errors=True)
     dest.mkdir(parents=True)
-    shutil.copy2(build / spec["exe"], dest / spec["exe"])
+    programs = [build / name for name in spec["programs"]]
+    ship = programs + [build / name for name in spec["files"]]
+    try:
+        if platform.startswith("windows"):
+            if runtime is None:
+                redist = os.environ.get("VCToolsRedistDir")
+                runtime = sorted(Path(redist).glob(RUNTIME)) if redist else []
+            ship += libraries(programs, [build, *runtime])
+        for src in ship:
+            shutil.copy2(src, dest / src.name)
+        if spec["symbols"]:
+            symbols = Path(out) / (PREFIX + platform + SYMBOLS)
+            shutil.rmtree(symbols, ignore_errors=True)
+            symbols.mkdir(parents=True)
+            for name in spec["symbols"]:
+                shutil.copy2(build / name, symbols / name)
+    except (OSError, ValueError, struct.error) as e:
+        print(f"error: {e}", file=sys.stderr)
+        return False
     newline = spec["newline"]
     write_text(dest / "LICENSE.txt", (REPO / "LICENSE").read_text(encoding="utf-8"), newline)
     readme = (REPO / "assets/dist/README.txt").read_text(encoding="utf-8")
@@ -105,22 +187,21 @@ def archive(name, out, staged):
     made = []
     for src in map(Path, staged):
         platform = src.name.removeprefix(PREFIX)
-        exe = PLATFORMS[platform]["exe"]
+        programs = PLATFORMS[platform.removesuffix(SYMBOLS)]["programs"]
         if not deny_gamedata.check(deny_gamedata.files_under([str(src)])):
             return False
-        root = f"{name}-{platform}"
         files = sorted(p for p in src.rglob("*") if p.is_file())
         if platform.startswith("windows"):
-            path = out / f"{root}.zip"
+            path = out / f"{name}-{platform}.zip"
             with zipfile.ZipFile(path, "w", zipfile.ZIP_DEFLATED, compresslevel=9) as z:
                 for f in files:
-                    z.write(f, f"{root}/{f.relative_to(src).as_posix()}")
+                    z.write(f, f"{ROOT}/{f.relative_to(src).as_posix()}")
         else:
-            path = out / f"{root}.tar.gz"
+            path = out / f"{name}-{platform}.tar.gz"
             with tarfile.open(path, "w:gz") as t:
                 for f in files:
-                    info = t.gettarinfo(f, f"{root}/{f.relative_to(src).as_posix()}")
-                    info.mode = 0o755 if f.name == exe else 0o644  # artifacts drop the executable bit
+                    info = t.gettarinfo(f, f"{ROOT}/{f.relative_to(src).as_posix()}")
+                    info.mode = 0o755 if f.name in programs else 0o644  # artifacts drop the executable bit
                     info.uid = info.gid = 0
                     info.uname = info.gname = ""
                     with open(f, "rb") as fh:

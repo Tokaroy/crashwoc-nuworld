@@ -236,11 +236,6 @@ jobs:
             ./build/release/NuWorld.exe --data-dir "$(mktemp -d)" $mode || status=$?
             test "$status" = 2
           done
-      - run: '"$(cygpath -u "$pythonLocation")/python.exe" tools/package.py stage build/release windows-x64 dist'
-      - uses: actions/upload-artifact@v4
-        with:
-          name: crashwoc-nuworld-windows-x64
-          path: dist/crashwoc-nuworld-windows-x64/
 
   windows-msvc:
     runs-on: windows-latest
@@ -272,10 +267,19 @@ jobs:
             ./build/msvc-release/NuWorld.exe --data-dir "$(mktemp -d)" $mode || status=$?
             test "$status" = 2
           done
+      - run: python tools/package.py stage build/msvc-release windows-x64 dist
+      - uses: actions/upload-artifact@v4
+        with:
+          name: crashwoc-nuworld-windows-x64
+          path: dist/crashwoc-nuworld-windows-x64/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: crashwoc-nuworld-windows-x64-symbols
+          path: dist/crashwoc-nuworld-windows-x64-symbols/
 
 
   archive:
-    needs: [linux, windows]
+    needs: [linux, windows-msvc]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     env:

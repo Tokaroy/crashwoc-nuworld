@@ -3,6 +3,7 @@ import contextlib
 import hashlib
 import io
 import re
+import struct
 import sys
 import tarfile
 import tempfile
@@ -21,6 +22,30 @@ def quiet(fn, *args):
         return fn(*args)
 
 
+def pe(imports=(), delayed=()):
+    names, at = b"", {}
+    for name in (*imports, *delayed):
+        at[name] = 0x1100 + len(names)
+        names += name.encode() + b"\0"
+    table = b"".join(struct.pack("<5I", 0, 0, 0, at[n], 0) for n in imports) + bytes(20)
+    delay = b"".join(struct.pack("<8I", 1, at[n], 0, 0, 0, 0, 0, 0) for n in delayed) + bytes(32)
+    body = table.ljust(0x80, b"\0") + delay.ljust(0x80, b"\0") + names
+    head = bytearray(0x200)
+    head[:2] = b"MZ"
+    struct.pack_into("<I", head, 0x3C, 0x40)
+    head[0x40:0x44] = b"PE\0\0"
+    struct.pack_into("<HH", head, 0x44, 0x8664, 1)
+    struct.pack_into("<H", head, 0x54, 240)
+    struct.pack_into("<H", head, 0x58, 0x20B)
+    struct.pack_into("<I", head, 0x58 + 108, 16)
+    if imports:
+        struct.pack_into("<II", head, 0x58 + 112 + 8, 0x1000, len(table))
+    if delayed:
+        struct.pack_into("<II", head, 0x58 + 112 + 8 * 13, 0x1080, len(delay))
+    struct.pack_into("<8sIIII", head, 0x58 + 240, b".rdata", len(body), 0x1000, len(body), 0x200)
+    return bytes(head) + body
+
+
 class Package(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
@@ -30,7 +55,14 @@ class Package(unittest.TestCase):
             lic = self.build / "_deps" / f"{dep}-src" / "LICENSE.txt"
             lic.parent.mkdir(parents=True)
             lic.write_text(f"{dep} licence\n")
-        (self.build / "NuWorld.exe").write_bytes(b"MZ" + bytes(64))
+        self.runtime = self.root / "redist" / "x64" / "Microsoft.VC143.CRT"
+        self.runtime.mkdir(parents=True)
+        (self.runtime / "vcruntime140.dll").write_bytes(pe(["api-ms-win-crt-runtime-l1-1-0.dll", "KERNEL32.dll"]))
+        (self.runtime / "msvcp140.dll").write_bytes(pe(["VCRUNTIME140.dll"]))
+        (self.build / "NuWorld.exe").write_bytes(pe(["SDL3.dll", "KERNEL32.dll", "VCRUNTIME140.dll"], ["WINHTTP.dll"]))
+        (self.build / "SDL3.dll").write_bytes(pe(["USER32.dll", "ole32.dll"]))
+        for name in ("NuWorld.sym", "NuWorld.pdb", "NuWorld.map"):
+            (self.build / name).write_text(name)
         (self.build / "NuWorld").write_bytes(b"\x7fELF\x02\x01\x01" + bytes(64))
 
     def tearDown(self):
@@ -40,12 +72,33 @@ class Package(unittest.TestCase):
         self.assertRegex(package.version(), r"^\d+\.\d+\.\d+$")
         self.assertTrue(package.version(full=True).startswith(package.version()))
 
+    def test_imports(self):
+        self.assertEqual(package.pe_imports(pe(["a.dll", "B.DLL"], ["late.dll"])), ["a.dll", "B.DLL", "late.dll"])
+        self.assertEqual(package.pe_imports(pe()), [])
+        for bad in (b"", b"MZ" + bytes(64)):
+            with self.assertRaises((ValueError, struct.error)):
+                package.pe_imports(bad)
+
+    def test_sdl_versions_agree(self):
+        tag = package.fetch_tags()["SDL3"]
+        self.assertIn(f"/{tag}/SDL3-devel-{tag.removeprefix('release-')}-VC.zip", package.cmake_text())
+
+    def test_unknown_library(self):
+        (self.build / "NuWorld.exe").write_bytes(pe(["KERNEL32.dll", "other.dll"]))
+        report = io.StringIO()
+        with contextlib.redirect_stderr(report):
+            self.assertFalse(quiet(package.stage, self.build, "windows-x64", self.root / "dist", [self.runtime]))
+        self.assertIn("NuWorld.exe loads other.dll", report.getvalue())
+
     def test_windows(self):
         out = self.root / "dist"
-        self.assertTrue(quiet(package.stage, self.build, "windows-x64", out))
+        self.assertTrue(quiet(package.stage, self.build, "windows-x64", out, [self.runtime]))
         staged = out / "crashwoc-nuworld-windows-x64"
         names = sorted(p.name for p in staged.iterdir())
-        self.assertEqual(names, ["LICENSE.txt", "NuWorld.exe", "README.txt", "THIRD_PARTY_NOTICES.txt"])
+        self.assertEqual(names, ["LICENSE.txt", "NuWorld.exe", "NuWorld.sym", "README.txt", "SDL3.dll",
+                                 "THIRD_PARTY_NOTICES.txt", "vcruntime140.dll"])
+        symbols = out / "crashwoc-nuworld-windows-x64-symbols"
+        self.assertEqual(sorted(p.name for p in symbols.iterdir()), ["NuWorld.map", "NuWorld.pdb"])
         readme = (staged / "README.txt").read_bytes()
         self.assertIn(package.version(full=True).encode(), readme)
         self.assertNotIn(b"{version}", readme)
@@ -55,13 +108,17 @@ class Package(unittest.TestCase):
         self.assertIn("imgui licence", notices)
         self.assertRegex(notices, r"SDL release-\S+ \(zlib License\)")
 
-        self.assertTrue(quiet(package.archive, "CrashWOC-NuWorld-v9.9.9", self.root / "out", [staged]))
+        self.assertTrue(quiet(package.archive, "CrashWOC-NuWorld-v9.9.9", self.root / "out", [staged, symbols]))
         zip_path = self.root / "out" / "CrashWOC-NuWorld-v9.9.9-windows-x64.zip"
         with zipfile.ZipFile(zip_path) as z:
-            self.assertIn("CrashWOC-NuWorld-v9.9.9-windows-x64/NuWorld.exe", z.namelist())
-            self.assertEqual(len(z.namelist()), 4)
+            self.assertIn("CrashWOC-NuWorld/NuWorld.exe", z.namelist())
+            self.assertEqual(len(z.namelist()), 7)
+        symbols_path = self.root / "out" / "CrashWOC-NuWorld-v9.9.9-windows-x64-symbols.zip"
+        with zipfile.ZipFile(symbols_path) as z:
+            self.assertEqual(sorted(z.namelist()), ["CrashWOC-NuWorld/NuWorld.map", "CrashWOC-NuWorld/NuWorld.pdb"])
         sums = (self.root / "out" / "SHA256SUMS").read_text()
-        self.assertEqual(sums, f"{hashlib.sha256(zip_path.read_bytes()).hexdigest()}  {zip_path.name}\n")
+        self.assertEqual(sums, "".join(f"{hashlib.sha256(p.read_bytes()).hexdigest()}  {p.name}\n"
+                                       for p in (symbols_path, zip_path)))
 
     def test_linux(self):
         out = self.root / "dist"
@@ -73,13 +130,13 @@ class Package(unittest.TestCase):
         self.assertTrue(quiet(package.archive, "b", self.root / "out", [staged]))
         with tarfile.open(self.root / "out" / "b-linux-x86_64.tar.gz") as t:
             modes = {m.name: m.mode for m in t.getmembers()}
-        self.assertEqual(modes["b-linux-x86_64/NuWorld"], 0o755)
-        self.assertEqual(modes["b-linux-x86_64/README.txt"], 0o644)
+        self.assertEqual(modes["CrashWOC-NuWorld/NuWorld"], 0o755)
+        self.assertEqual(modes["CrashWOC-NuWorld/README.txt"], 0o644)
         self.assertEqual(len(modes), 6)
 
     def test_game_data_is_refused(self):
         out = self.root / "dist"
-        quiet(package.stage, self.build, "windows-x64", out)
+        quiet(package.stage, self.build, "windows-x64", out, [self.runtime])
         staged = out / "crashwoc-nuworld-windows-x64"
         (staged / "SYSTEM.CNF").write_text("BOOT2 = cdrom0:\\SLES_503.86;1\n")
         self.assertFalse(quiet(package.archive, "x", self.root / "out", [staged]))
