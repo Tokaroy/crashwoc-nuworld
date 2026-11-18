@@ -18,6 +18,10 @@
 double nw_atan2(double y, double x);
 double nw_sd_add(double a, double b);
 float nw_sd_to_f32(double a);
+float nw_fpu_add(float a, float b);
+float nw_fpu_sub(float a, float b);
+float nw_fpu_div(float a, float b);
+float nw_fpu_sqrt(float x);
 void NuMemCopy128(void *dst, void *src, int count);
 float NuFsqrt(float x);
 void NuMtxScaleVU0(struct numtx_s *m, struct nuvec_s *scale);
@@ -307,8 +311,21 @@ static void test_eefloat(void)
     CHECK(nw_ee_out(NW_EE_MAX) == FLT_MAX && nw_ee_out(-inf) == -FLT_MAX);
     /* Toward zero where the nearest is a step up, also below a power of two. */
     CHECK(nw_ee_mul(1 + 0x1p-12, 1 + 0x3p-12) == 1 + 0x1p-10 + 0x1p-23);
-    CHECK(nw_ee_add(1.0, -0x1p-40) == 1 - 0x1p-24 && nw_ee_add(1.0, 0x1p-40) == 1.0);
+    CHECK(nw_ee_mul(1 - 0x5p-14, 1 - 0x3p-12) == 1 - 0x5p-14 - 0x3p-12 + 0x3p-24);
+    CHECK(nw_ee_add(1.0, -0x1p-40) == 1.0 && nw_ee_add(1.0, 0x1p-40) == 1.0);
+    CHECK(nw_ee_add(1.0, -0x1.000002p-2) == 0.75 && nw_ee_sub(-0x1.000002p-2, -1.0) == 0.75);
+    CHECK(nw_ee_div(1.0, 3.0) == 0x1.555556p-2 && nw_ee_div(2.0, 0.0) == NW_EE_MAX);
     CHECK(nw_ee_mul(FLT_MIN, 0.5) == 0.0 && nw_ee_in(0x1p-130f) == 0.0);
+}
+
+static void test_fpu(void)
+{
+    volatile float one = 1.0f, quarter = 0x1.000002p-2f, three = 3.0f;
+    CHECK(one - quarter == 0x1.7ffffep-1f && one / three == 0x1.555554p-2f);
+    CHECK(nw_fpu_add(1.0f, -0x1.000002p-2f) == 0.75f && nw_fpu_sub(1.0f, 0x1.000002p-2f) == 0.75f);
+    CHECK(nw_fpu_add(1.0f, 0x1p-40f) == 1.0f && nw_fpu_sub(0x1p-40f, 1.0f) == -1.0f);
+    CHECK(nw_fpu_div(1.0f, 3.0f) == 0x1.555556p-2f && nw_fpu_div(-1.0f, 3.0f) == -0x1.555556p-2f);
+    CHECK(nw_fpu_sqrt(5.0f) == 0x1.1e377ap+1f && nw_fpu_sqrt(-4.0f) == 2.0f && signbit(nw_fpu_sqrt(-0.0f)));
 }
 
 /* Floats toward zero, doubles to nearest, as on the EE. */
@@ -364,6 +381,7 @@ int main(void)
     test_stream_link();
     test_copy();
     test_eefloat();
+    test_fpu();
     test_trig();
     test_anim_curve();
     if (failures) {

@@ -1,5 +1,6 @@
-/* The EE FPU's single precision: exponent 255 is a number (no inf or NaN), results are rounded toward zero, clamp at
-   its largest value and flush below the smallest normal to zero. Values travel between operations as doubles. */
+/* The EE FPU's single precision: exponent 255 is a number (no inf or NaN), sums and products round toward zero and
+   quotients to nearest, clamp at its largest value and flush below the smallest normal to zero. Values travel between
+   operations as doubles. */
 #ifndef NUWORLD_HLE_EEFLOAT_H
 #define NUWORLD_HLE_EEFLOAT_H
 
@@ -38,10 +39,41 @@ static inline double nw_ee_round(double x, double err)
     return fabs(r) < FLT_MIN ? copysign(0.0, r) : r;
 }
 
+static inline double nw_ee_nearest(double x)
+{
+    if (x == 0.0) {
+        return x;
+    }
+    int e;
+    double s = ldexp(fabs(frexp(x, &e)), 24);
+    double t = trunc(s);
+    double f = s - t;
+    if (f > 0.5 || (f == 0.5 && trunc(t * 0.5) != t * 0.5)) {
+        t += 1.0;
+    }
+    double r = copysign(ldexp(t, e - 24), x);
+    if (fabs(r) > NW_EE_MAX) {
+        return copysign(NW_EE_MAX, r);
+    }
+    return fabs(r) < FLT_MIN ? copysign(0.0, r) : r;
+}
+
+static inline double nw_ee_guard(double x, double other)
+{
+    int ex, eo;
+    frexp(x, &ex);
+    frexp(other, &eo);
+    if (x == 0.0 || other == 0.0 || ex >= eo) {
+        return x;
+    }
+    return ldexp(trunc(ldexp(x, 25 - eo)), eo - 25);
+}
+
 static inline double nw_ee_add(double a, double b)
 {
-    double s = a + b, bb = s - a;
-    return nw_ee_round(s, (a - (s - bb)) + (b - bb));
+    double ga = nw_ee_guard(a, b), gb = nw_ee_guard(b, a);
+    double s = ga + gb, bb = s - ga;
+    return nw_ee_round(s, (ga - (s - bb)) + (gb - bb));
 }
 
 static inline double nw_ee_sub(double a, double b)
@@ -61,8 +93,7 @@ static inline double nw_ee_div(double a, double b)
     if (fabs(b) < FLT_MIN) {
         return signbit(a) != signbit(b) ? -NW_EE_MAX : NW_EE_MAX;
     }
-    double q = a / b;
-    return nw_ee_round(q, fma(-q, b, a) / b);
+    return nw_ee_nearest(a / b);
 }
 
 /* The host float nearest the EE's: past FLT_MAX, FLT_MAX. */
