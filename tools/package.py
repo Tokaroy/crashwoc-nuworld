@@ -25,13 +25,23 @@ PREFIX = "crashwoc-nuworld-"
 ROOT = "CrashWOC-NuWorld"
 SYMBOLS = "-symbols"
 RUNTIME = "x64/Microsoft.VC*.CRT"
-WINDOWS = frozenset(("advapi32", "gdi32", "imm32", "kernel32", "ole32", "oleaut32", "setupapi", "shell32", "user32",
-                     "version", "winhttp", "winmm"))
+WINDOWS = frozenset(("advapi32", "gdi32", "imm32", "kernel32", "ole32", "oleaut32", "powrprof", "setupapi",
+                     "shell32", "user32", "version", "winhttp", "winmm"))
+CRASHPAD = [
+    ("Crashpad {tag}", "crashpad", "Apache License 2.0", "https://github.com/getsentry/crashpad", "LICENSE"),
+    ("mini_chromium", "crashpad", "BSD 3-Clause License", "https://chromium.googlesource.com/chromium/mini_chromium",
+     "third_party/mini_chromium/mini_chromium/LICENSE"),
+    ("zlib", "crashpad", "zlib License", "https://zlib.net", "third_party/zlib/zlib/LICENSE"),
+    ("MPack", "crashpad", "MIT License", "https://github.com/ludocode/mpack", "third_party/mpack/LICENSE"),
+    ("getopt", "crashpad", "public domain", "https://sourceware.org/ml/newlib/2005/msg00758.html",
+     "third_party/getopt/LICENSE"),
+]
 PLATFORMS = {
     "windows-x64": {
-        "programs": ["NuWorld.exe"],
+        "programs": ["NuWorld.exe", "crashpad_handler.exe"],
         "files": ["NuWorld.sym"],
         "symbols": ["NuWorld.pdb", "NuWorld.map"],
+        "notices": CRASHPAD,
         "newline": "\r\n",
         "extra": {},
     },
@@ -39,6 +49,7 @@ PLATFORMS = {
         "programs": ["NuWorld"],
         "files": [],
         "symbols": [],
+        "notices": [],
         "newline": "\n",
         "extra": {
             "nuworld.desktop": "assets/dist/nuworld.desktop",
@@ -49,8 +60,8 @@ PLATFORMS = {
 
 # (name, FetchContent name or None, licence, home page, licence file: under BUILD/_deps/<name>-src/ or the repo)
 NOTICES = [
-    ("SDL", "SDL3", "zlib License", "https://libsdl.org", "LICENSE.txt"),
-    ("Dear ImGui", "imgui", "MIT License", "https://github.com/ocornut/imgui", "LICENSE.txt"),
+    ("SDL {tag}", "SDL3", "zlib License", "https://libsdl.org", "LICENSE.txt"),
+    ("Dear ImGui {tag}", "imgui", "MIT License", "https://github.com/ocornut/imgui", "LICENSE.txt"),
     ("Atkinson Hyperlegible", None, "SIL Open Font License 1.1", "https://www.brailleinstitute.org/freefont",
      "assets/fonts/OFL.txt"),
     ("Kenney Input Prompts", None, "CC0 1.0", "https://kenney.nl", "assets/prompts/License.txt"),
@@ -59,14 +70,14 @@ NOTICES_HEAD = """\
 CrashWOC: NuWorld is licensed under the GNU General Public License v3.0 (LICENSE.txt).
 Parts of its SPU2 emulation (the interpolation table, the reverb filter) follow PCSX2
 (https://pcsx2.net, GPL-3.0-or-later). The Windows package carries Microsoft's Visual C++
-runtime (vcruntime140.dll) as Visual Studio's licence lets applications redistribute it.
+runtime libraries as Visual Studio's licence lets applications redistribute them.
 
 It includes the following third-party software and assets.
 """
 
 
 def cmake_text():
-    return (REPO / "CMakeLists.txt").read_text(encoding="utf-8")
+    return "".join((REPO / name).read_text(encoding="utf-8") for name in ("CMakeLists.txt", "cmake/crashpad.cmake"))
 
 
 def version(full=False):
@@ -80,12 +91,12 @@ def fetch_tags():
     return dict(re.findall(r"FetchContent_Declare\((\w+)\s+GIT_REPOSITORY\s+\S+\s+GIT_TAG\s+(\S+)", cmake_text()))
 
 
-def notices(build):
+def notices(build, extra=()):
     tags = fetch_tags()
     parts = [NOTICES_HEAD]
-    for name, fetch, licence, url, file in NOTICES:
+    for name, fetch, licence, url, file in (*NOTICES, *extra):
         path = build / "_deps" / f"{fetch.lower()}-src" / file if fetch else REPO / file
-        title = f"{name} {tags[fetch]}" if fetch else name
+        title = name.format(tag=tags.get(fetch))
         parts.append(f"\n{'=' * 78}\n{title} ({licence})\n{url}\n{'=' * 78}\n\n")
         parts.append(path.read_text(encoding="utf-8").strip() + "\n")
     return "".join(parts)
@@ -172,7 +183,7 @@ def stage(build, platform, out, runtime=None):
     write_text(dest / "LICENSE.txt", (REPO / "LICENSE").read_text(encoding="utf-8"), newline)
     readme = (REPO / "assets/dist/README.txt").read_text(encoding="utf-8")
     write_text(dest / "README.txt", readme.replace("{version}", version(full=True)), newline)
-    write_text(dest / "THIRD_PARTY_NOTICES.txt", notices(build), newline)
+    write_text(dest / "THIRD_PARTY_NOTICES.txt", notices(build, spec["notices"]), newline)
     for name, src in spec["extra"].items():
         if name.endswith(".png"):
             shutil.copy2(REPO / src, dest / name)

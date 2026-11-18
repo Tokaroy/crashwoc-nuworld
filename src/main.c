@@ -1127,6 +1127,7 @@ static int nw_boot(const char *data_dir, int hardware_speed, float aspect, NwPla
     if (!settings.minidump) {
         nw_crash_dumps(NULL);
     }
+    nw_crash_arm();
     nw_platform_gl_debug(settings.gl_debug || nw_gl_debug_arg);
     if (SDL_strcmp(settings.gpu, "auto") != 0) {
         nw_gpu_prefer(settings.gpu);
@@ -1808,6 +1809,7 @@ int main(int argc, char *argv[])
             nw_log_open(root);
         }
         SDL_free(root);
+        nw_crash_arm();
         nw_crash_test(crash_test);
     }
     /* The checks, tests and comparisons read the retail disc. */
