@@ -164,6 +164,7 @@ struct nw_wide_s {
     float hud;     /* HUD x reach over retail's */
     float draw;    /* draw radii over retail's */
     float draw2;
+    float distance; /* the draw distance setting alone, without the widening: the enemies' spawn radius */
     int pvs_all;
 };
 extern struct nw_wide_s nw_wide;
