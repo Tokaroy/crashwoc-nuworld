@@ -281,6 +281,25 @@ jobs:
         with:
           name: crashwoc-nuworld-windows-x64-symbols
           path: dist/crashwoc-nuworld-windows-x64-symbols/
+      - name: Scan the package with Microsoft Defender
+        shell: pwsh
+        timeout-minutes: 10
+        run: |
+          $defender = "$env:ProgramFiles\Windows Defender\MpCmdRun.exe"
+          $excluded = (Get-MpPreference).ExclusionPath
+          if ($excluded) { Remove-MpPreference -ExclusionPath $excluded }
+          Set-MpPreference -MAPSReporting Advanced -SubmitSamplesConsent SendSafeSamples
+          & $defender -SignatureUpdate
+          if ($LASTEXITCODE) { Write-Output "::warning::the Defender signatures were not updated" }
+          Get-MpComputerStatus | Format-List AMRunningMode, AntivirusSignatureVersion, AntivirusSignatureLastUpdated
+          $control = New-Item -ItemType Directory "$env:RUNNER_TEMP\defender-control"
+          Set-Content -NoNewline -LiteralPath "$control\control.com" -Value ('X5O!P%@AP[4\PZX54(P^)7CC)7}$EICAR-STANDARD' + '-ANTIVIRUS-TEST-FILE!$H+H*')
+          $report = & $defender -Scan -ScanType 3 -File $control.FullName -DisableRemediation
+          $report
+          if (-not ($report -match 'EICAR')) { throw "Defender did not detect the control file" }
+          $report = & $defender -Scan -ScanType 3 -File (Resolve-Path dist\crashwoc-nuworld-windows-x64).Path -DisableRemediation
+          $report
+          if (-not ($report -match 'found no threats')) { throw "Defender did not report the package clean" }
 
 
   archive:
