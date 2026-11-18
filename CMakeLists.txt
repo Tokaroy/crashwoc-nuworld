@@ -164,6 +164,10 @@ if(MINGW)
   # Keep the release a single .exe: libc++ (Dear ImGui) linked in, not libc++.dll.
   target_link_options(crashwoc-nuworld PRIVATE -static-libstdc++)
 endif()
+if(NW_MSVC_ABI)
+  include(cmake/crashpad.cmake)
+  target_link_libraries(crashwoc-nuworld PRIVATE nuworld_crashpad)
+endif()
 nw_symbols(crashwoc-nuworld)
 
 # Checked at every build.
@@ -314,14 +318,20 @@ if(NUWORLD_TESTS)
   if(NUWORLD_DECOMP)
     set(nw_crash_state "state: no frame drawn yet.*game thread: not started.*")
     set(nw_crash_last "last log lines:.*the report's last lines hold")
-    if(WIN32)
-      set(nw_crash_dump "minidump: [^\n]*nuworld-[0-9]+-[0-9]+\\.dmp.*")
-    endif()
     set(nw_crash_segv "CRASH: [^\n]* at nw_crash_test_fault\\+0x[0-9a-f]+ .*stack:.*nw_crash_test\\+.*")
-    add_test(NAME crash-segv
-      COMMAND crashwoc-nuworld --crash-test segv --data-dir ${CMAKE_CURRENT_BINARY_DIR}/test-crash)
-    set_tests_properties(crash-segv PROPERTIES PASS_REGULAR_EXPRESSION
-      "${nw_crash_segv}${nw_crash_state}${nw_crash_dump}${nw_crash_last}")
+    if(NW_MSVC_ABI)
+      set(nw_crash_dump "minidump: [^\n]*crashes[^\n]*reports.*")
+      add_test(NAME crash-segv
+        COMMAND ${CMAKE_COMMAND} -DEXE=$<TARGET_FILE:crashwoc-nuworld> -DDIR=${CMAKE_CURRENT_BINARY_DIR}/test-crash
+          -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/check_crash.cmake)
+      set_tests_properties(crash-segv PROPERTIES PASS_REGULAR_EXPRESSION
+        "${nw_crash_segv}${nw_crash_state}${nw_crash_dump}${nw_crash_last}.*minidump file: [0-9]+ bytes")
+    else()
+      add_test(NAME crash-segv
+        COMMAND crashwoc-nuworld --crash-test segv --data-dir ${CMAKE_CURRENT_BINARY_DIR}/test-crash)
+      set_tests_properties(crash-segv PROPERTIES PASS_REGULAR_EXPRESSION
+        "${nw_crash_segv}${nw_crash_state}${nw_crash_last}")
+    endif()
     add_test(NAME crash-abort COMMAND crashwoc-nuworld --crash-test abort)
     set_tests_properties(crash-abort PROPERTIES PASS_REGULAR_EXPRESSION
       "CRASH: abort[^\n]* on thread main.*stack:.*nw_crash_test\\+.*${nw_crash_state}${nw_crash_last}")

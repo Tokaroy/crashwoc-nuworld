@@ -55,11 +55,17 @@ class Package(unittest.TestCase):
             lic = self.build / "_deps" / f"{dep}-src" / "LICENSE.txt"
             lic.parent.mkdir(parents=True)
             lic.write_text(f"{dep} licence\n")
+        for _name, _fetch, _licence, _url, file in package.CRASHPAD:
+            lic = self.build / "_deps" / "crashpad-src" / file
+            lic.parent.mkdir(parents=True, exist_ok=True)
+            lic.write_text(f"{file} licence\n")
         self.runtime = self.root / "redist" / "x64" / "Microsoft.VC143.CRT"
         self.runtime.mkdir(parents=True)
         (self.runtime / "vcruntime140.dll").write_bytes(pe(["api-ms-win-crt-runtime-l1-1-0.dll", "KERNEL32.dll"]))
         (self.runtime / "msvcp140.dll").write_bytes(pe(["VCRUNTIME140.dll"]))
+        (self.runtime / "concrt140.dll").write_bytes(pe(["VCRUNTIME140.dll"]))
         (self.build / "NuWorld.exe").write_bytes(pe(["SDL3.dll", "KERNEL32.dll", "VCRUNTIME140.dll"], ["WINHTTP.dll"]))
+        (self.build / "crashpad_handler.exe").write_bytes(pe(["POWRPROF.dll", "MSVCP140.dll"]))
         (self.build / "SDL3.dll").write_bytes(pe(["USER32.dll", "ole32.dll"]))
         for name in ("NuWorld.sym", "NuWorld.pdb", "NuWorld.map"):
             (self.build / name).write_text(name)
@@ -96,7 +102,8 @@ class Package(unittest.TestCase):
         staged = out / "crashwoc-nuworld-windows-x64"
         names = sorted(p.name for p in staged.iterdir())
         self.assertEqual(names, ["LICENSE.txt", "NuWorld.exe", "NuWorld.sym", "README.txt", "SDL3.dll",
-                                 "THIRD_PARTY_NOTICES.txt", "vcruntime140.dll"])
+                                 "THIRD_PARTY_NOTICES.txt", "crashpad_handler.exe", "msvcp140.dll",
+                                 "vcruntime140.dll"])
         symbols = out / "crashwoc-nuworld-windows-x64-symbols"
         self.assertEqual(sorted(p.name for p in symbols.iterdir()), ["NuWorld.map", "NuWorld.pdb"])
         readme = (staged / "README.txt").read_bytes()
@@ -107,12 +114,15 @@ class Package(unittest.TestCase):
         self.assertIn("sdl3 licence", notices)
         self.assertIn("imgui licence", notices)
         self.assertRegex(notices, r"SDL release-\S+ \(zlib License\)")
+        self.assertRegex(notices, r"Crashpad [0-9a-f]{40} \(Apache License 2\.0\)")
+        self.assertIn("mini_chromium (BSD 3-Clause License)", notices)
+        self.assertIn("third_party/getopt/LICENSE licence", notices)
 
         self.assertTrue(quiet(package.archive, "CrashWOC-NuWorld-v9.9.9", self.root / "out", [staged, symbols]))
         zip_path = self.root / "out" / "CrashWOC-NuWorld-v9.9.9-windows-x64.zip"
         with zipfile.ZipFile(zip_path) as z:
             self.assertIn("CrashWOC-NuWorld/NuWorld.exe", z.namelist())
-            self.assertEqual(len(z.namelist()), 7)
+            self.assertEqual(len(z.namelist()), 9)
         symbols_path = self.root / "out" / "CrashWOC-NuWorld-v9.9.9-windows-x64-symbols.zip"
         with zipfile.ZipFile(symbols_path) as z:
             self.assertEqual(sorted(z.namelist()), ["CrashWOC-NuWorld/NuWorld.map", "CrashWOC-NuWorld/NuWorld.pdb"])
