@@ -51,8 +51,9 @@ class Package(unittest.TestCase):
         self.tmp = tempfile.TemporaryDirectory()
         self.root = Path(self.tmp.name)
         self.build = self.root / "build"
-        for dep in ("sdl3", "imgui"):
-            lic = self.build / "_deps" / f"{dep}-src" / "LICENSE.txt"
+        for dep, file in (("sdl3", "LICENSE.txt"), ("imgui", "LICENSE.txt"), ("miniz", "LICENSE"),
+                          ("monocypher", "LICENCE.md")):
+            lic = self.build / "_deps" / f"{dep}-src" / file
             lic.parent.mkdir(parents=True)
             lic.write_text(f"{dep} licence\n")
         for _name, _fetch, _licence, _url, file in package.CRASHPAD:
@@ -66,6 +67,8 @@ class Package(unittest.TestCase):
         (self.runtime / "concrt140.dll").write_bytes(pe(["VCRUNTIME140.dll"]))
         (self.build / "NuWorld.exe").write_bytes(pe(["SDL3.dll", "KERNEL32.dll", "VCRUNTIME140.dll"], ["WINHTTP.dll"]))
         (self.build / "crashpad_handler.exe").write_bytes(pe(["POWRPROF.dll", "MSVCP140.dll"]))
+        (self.build / "NuWorldUpdater.exe").write_bytes(pe(["SDL3.dll", "WINHTTP.dll"]))
+        (self.build / "NuWorldUpdater").write_bytes(b"\x7fELF\x02\x01\x01" + bytes(64))
         (self.build / "SDL3.dll").write_bytes(pe(["USER32.dll", "ole32.dll"]))
         for name in ("NuWorld.sym", "NuWorld.pdb", "NuWorld.map"):
             (self.build / name).write_text(name)
@@ -101,8 +104,8 @@ class Package(unittest.TestCase):
         self.assertTrue(quiet(package.stage, self.build, "windows-x64", out, [self.runtime]))
         staged = out / "crashwoc-nuworld-windows-x64"
         names = sorted(p.name for p in staged.iterdir())
-        self.assertEqual(names, ["LICENSE.txt", "NuWorld.exe", "NuWorld.sym", "README.txt", "SDL3.dll",
-                                 "THIRD_PARTY_NOTICES.txt", "crashpad_handler.exe", "msvcp140.dll",
+        self.assertEqual(names, ["LICENSE.txt", "NuWorld.exe", "NuWorld.sym", "NuWorldUpdater.exe", "README.txt",
+                                 "SDL3.dll", "THIRD_PARTY_NOTICES.txt", "crashpad_handler.exe", "msvcp140.dll",
                                  "vcruntime140.dll"])
         symbols = out / "crashwoc-nuworld-windows-x64-symbols"
         self.assertEqual(sorted(p.name for p in symbols.iterdir()), ["NuWorld.map", "NuWorld.pdb"])
@@ -113,6 +116,8 @@ class Package(unittest.TestCase):
         notices = (staged / "THIRD_PARTY_NOTICES.txt").read_text()
         self.assertIn("sdl3 licence", notices)
         self.assertIn("imgui licence", notices)
+        self.assertRegex(notices, r"miniz \S+ \(MIT License\)")
+        self.assertIn("monocypher licence", notices)
         self.assertRegex(notices, r"SDL release-\S+ \(zlib License\)")
         self.assertRegex(notices, r"Crashpad [0-9a-f]{40} \(Apache License 2\.0\)")
         self.assertIn("mini_chromium (BSD 3-Clause License)", notices)
@@ -122,7 +127,7 @@ class Package(unittest.TestCase):
         zip_path = self.root / "out" / "CrashWOC-NuWorld-v9.9.9-windows-x64.zip"
         with zipfile.ZipFile(zip_path) as z:
             self.assertIn("CrashWOC-NuWorld/NuWorld.exe", z.namelist())
-            self.assertEqual(len(z.namelist()), 9)
+            self.assertEqual(len(z.namelist()), 10)
         symbols_path = self.root / "out" / "CrashWOC-NuWorld-v9.9.9-windows-x64-symbols.zip"
         with zipfile.ZipFile(symbols_path) as z:
             self.assertEqual(sorted(z.namelist()), ["CrashWOC-NuWorld/NuWorld.map", "CrashWOC-NuWorld/NuWorld.pdb"])
@@ -141,8 +146,9 @@ class Package(unittest.TestCase):
         with tarfile.open(self.root / "out" / "b-linux-x86_64.tar.gz") as t:
             modes = {m.name: m.mode for m in t.getmembers()}
         self.assertEqual(modes["CrashWOC-NuWorld/NuWorld"], 0o755)
+        self.assertEqual(modes["CrashWOC-NuWorld/NuWorldUpdater"], 0o755)
         self.assertEqual(modes["CrashWOC-NuWorld/README.txt"], 0o644)
-        self.assertEqual(len(modes), 6)
+        self.assertEqual(len(modes), 7)
 
     def test_game_data_is_refused(self):
         out = self.root / "dist"

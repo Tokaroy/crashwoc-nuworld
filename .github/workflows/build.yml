@@ -252,7 +252,12 @@ jobs:
       - uses: ilammy/msvc-dev-cmd@v1
       - name: Install dependencies
         run: |
-          choco install llvm --version=22.1.8 --allow-downgrade --no-progress -y
+          pushd "$(cygpath -u "$RUNNER_TEMP")"
+          curl -fsSLO https://github.com/llvm/llvm-project/releases/download/llvmorg-22.1.8/LLVM-22.1.8-win64.exe
+          echo "16e5709785fef73c854646241c4a92c5cd574318d1b33c63330dd7721903e55c *LLVM-22.1.8-win64.exe" | sha256sum -c -
+          ./LLVM-22.1.8-win64.exe //S
+          popd
+          clang --version
           python -m pip install -r tools/requirements.txt
       - run: cmake --preset msvc-release -DPython3_EXECUTABLE="$(cygpath -m "$pythonLocation")/python.exe"
       - run: cmake --build --preset msvc-release

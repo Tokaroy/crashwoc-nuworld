@@ -140,14 +140,17 @@ add_executable(crashwoc-nuworld
   src/frontend/ui.cpp
   src/frontend/wizard.cpp)
 set_target_properties(crashwoc-nuworld PROPERTIES OUTPUT_NAME NuWorld)
-nw_embed(crashwoc-nuworld nw_font_regular ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/AtkinsonHyperlegible-Regular.ttf)
-nw_embed(crashwoc-nuworld nw_font_bold ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/AtkinsonHyperlegible-Bold.ttf)
+add_library(nuworld_fonts STATIC)
+nw_embed(nuworld_fonts nw_font_regular ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/AtkinsonHyperlegible-Regular.ttf)
+nw_embed(nuworld_fonts nw_font_bold ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/AtkinsonHyperlegible-Bold.ttf)
 nw_embed(crashwoc-nuworld nw_beta_menu_png ${CMAKE_CURRENT_SOURCE_DIR}/assets/wizard/beta-menu.png)
 # Window icon: the exe's icon resource on Windows (SDL takes the first one), a PNG set at runtime elsewhere.
 if(WIN32)
   # Plus the version in the exe's properties (FILEOS VOS_NT_WINDOWS32, FILETYPE VFT_APP).
   set(NW_RC_ICON ${CMAKE_CURRENT_SOURCE_DIR}/assets/branding/nuworld.ico)
   string(STRIP "${PROJECT_VERSION} ${NUWORLD_TAG}" NW_RC_VERSION)
+  set(NW_RC_NAME NuWorld)
+  set(NW_RC_DESCRIPTION "CrashWOC: NuWorld")
   configure_file(assets/branding/nuworld.rc.in ${CMAKE_CURRENT_BINARY_DIR}/gen/nuworld.rc @ONLY)
   target_sources(crashwoc-nuworld PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/gen/nuworld.rc)
   # No console window; --console opens one (src/platform/log.c).
@@ -159,7 +162,8 @@ endif()
 
 target_include_directories(crashwoc-nuworld PRIVATE src)
 target_compile_options(crashwoc-nuworld PRIVATE -Wall -Wextra $<$<COMPILE_LANGUAGE:CXX>:-fno-exceptions -fno-rtti>)
-target_link_libraries(crashwoc-nuworld PRIVATE nuworld_frontend nuworld_gfx nuworld_imgui nuworld_port SDL3::SDL3)
+target_link_libraries(crashwoc-nuworld PRIVATE nuworld_frontend nuworld_gfx nuworld_imgui nuworld_port nuworld_fonts
+  SDL3::SDL3)
 if(MINGW)
   # Keep the release a single .exe: libc++ (Dear ImGui) linked in, not libc++.dll.
   target_link_options(crashwoc-nuworld PRIVATE -static-libstdc++)
@@ -265,6 +269,54 @@ target_include_directories(nuworld_save PUBLIC src)
 target_compile_options(nuworld_save PRIVATE -Wall -Wextra)
 target_link_libraries(nuworld_save PUBLIC SDL3::SDL3)
 
+FetchContent_Declare(miniz
+  GIT_REPOSITORY https://github.com/richgel999/miniz.git
+  GIT_TAG 3.1.2
+  GIT_SHALLOW TRUE
+  SOURCE_SUBDIR none)
+FetchContent_Declare(monocypher
+  GIT_REPOSITORY https://github.com/LoupVaillant/Monocypher.git
+  GIT_TAG 4.0.3
+  GIT_SHALLOW TRUE
+  SOURCE_SUBDIR none)
+FetchContent_MakeAvailable(miniz monocypher)
+file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/gen/miniz/miniz_export.h "#define MINIZ_EXPORT\n")
+add_library(nuworld_updater_deps STATIC
+  ${miniz_SOURCE_DIR}/miniz.c
+  ${miniz_SOURCE_DIR}/miniz_tdef.c
+  ${miniz_SOURCE_DIR}/miniz_tinfl.c
+  ${miniz_SOURCE_DIR}/miniz_zip.c
+  ${monocypher_SOURCE_DIR}/src/monocypher.c
+  ${monocypher_SOURCE_DIR}/src/optional/monocypher-ed25519.c)
+target_include_directories(nuworld_updater_deps SYSTEM PUBLIC ${miniz_SOURCE_DIR}
+  ${CMAKE_CURRENT_BINARY_DIR}/gen/miniz ${monocypher_SOURCE_DIR}/src ${monocypher_SOURCE_DIR}/src/optional)
+target_compile_definitions(nuworld_updater_deps PUBLIC MINIZ_NO_STDIO MINIZ_NO_TIME MINIZ_NO_ZLIB_COMPATIBLE_NAMES)
+
+add_library(nuworld_updater STATIC
+  src/updater/apply.c
+  src/updater/archive.c
+  src/updater/job.c)
+target_include_directories(nuworld_updater PUBLIC src)
+target_compile_options(nuworld_updater PRIVATE -Wall -Wextra)
+target_link_libraries(nuworld_updater PUBLIC nuworld_updater_deps nuworld_port nuworld_save nuworld_vfs)
+
+add_executable(nuworld-updater src/updater/main.cpp src/frontend/ui.cpp src/gfx/gl.c)
+set_target_properties(nuworld-updater PROPERTIES OUTPUT_NAME NuWorldUpdater)
+target_include_directories(nuworld-updater PRIVATE src)
+target_compile_options(nuworld-updater PRIVATE -Wall -Wextra $<$<COMPILE_LANGUAGE:CXX>:-fno-exceptions -fno-rtti>)
+target_link_libraries(nuworld-updater PRIVATE nuworld_updater nuworld_imgui nuworld_fonts SDL3::SDL3)
+if(WIN32)
+  set(NW_RC_NAME NuWorldUpdater)
+  set(NW_RC_DESCRIPTION "CrashWOC: NuWorld Updater")
+  configure_file(assets/branding/nuworld.rc.in ${CMAKE_CURRENT_BINARY_DIR}/gen/nuworld-updater.rc @ONLY)
+  target_sources(nuworld-updater PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/gen/nuworld-updater.rc)
+  set_target_properties(nuworld-updater PROPERTIES WIN32_EXECUTABLE ON)
+endif()
+if(MINGW)
+  target_link_options(nuworld-updater PRIVATE -static-libstdc++)
+endif()
+add_dependencies(crashwoc-nuworld nuworld-updater)
+
 if(NUWORLD_TESTS)
   enable_testing()
   add_executable(nuworld_test_vfs tests/c/test_vfs.c)
@@ -310,6 +362,10 @@ if(NUWORLD_TESTS)
   target_compile_options(nuworld_test_update PRIVATE -Wall -Wextra)
   target_link_libraries(nuworld_test_update PRIVATE nuworld_port)
   add_test(NAME update COMMAND nuworld_test_update)
+  add_executable(nuworld_test_updater tests/c/test_updater.c)
+  target_compile_options(nuworld_test_updater PRIVATE -Wall -Wextra)
+  target_link_libraries(nuworld_test_updater PRIVATE nuworld_updater)
+  add_test(NAME updater COMMAND nuworld_test_updater ${CMAKE_CURRENT_BINARY_DIR}/test-updater)
   add_executable(nuworld_test_log tests/c/test_log.c src/platform/crash.c src/platform/log.c)
   target_compile_options(nuworld_test_log PRIVATE -Wall -Wextra)
   target_link_libraries(nuworld_test_log PRIVATE nuworld_port ${CMAKE_DL_LIBS})
