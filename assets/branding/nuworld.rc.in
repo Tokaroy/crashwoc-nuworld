@@ -10,6 +10,7 @@ BEGIN
   BEGIN
     BLOCK "040904B0"
     BEGIN
+      VALUE "CompanyName", "NuWorld"
       VALUE "FileDescription", "CrashWOC: NuWorld"
       VALUE "FileVersion", "@PROJECT_VERSION@"
       VALUE "InternalName", "NuWorld"
