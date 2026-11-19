@@ -6,9 +6,13 @@
 #include "port/level.h"
 
 extern u16 new_lev_flags;
+extern s32 cutmovie, GameMode;
 
 void StartCutMovie(void)
 {
+    if (cutmovie == 0) {
+        GameMode = 0;
+    }
     bool menu = nw_title_menu_starting();
     StartCutMovie__retail();
     if (menu) {
