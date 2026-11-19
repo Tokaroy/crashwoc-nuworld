@@ -291,11 +291,10 @@ if(NUWORLD_TESTS)
       fire_r castle_a castle_c fire_fly western droid earth_b fire_b water_b weath_b space_b space_a cast_bug west_b
       cold_b weather ballsof s_balls space_r seashell airship hub)
   set_tests_properties(levels-retail PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 900)
-  # Local only: the same levels as the PAL v1.03 PS2's game at 50 Hz, the sweep script on the pad.
+  # Local only: the same levels as the PAL v1.03 PS2's game at 50 Hz, its recordings (.ppd) on the pad.
   add_test(NAME levels-pal103-retail
     COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/run_local.py ${Python3_EXECUTABLE}
       ${CMAKE_CURRENT_SOURCE_DIR}/tests/level_check.py $<TARGET_FILE:crashwoc-nuworld> {root} -j 8 --revision 1.03
-      --pad-script sweep
       cold_a volcano water west_a earth avalanch coral snow jungle snow_b castle jungle_a garden farm toonarmy
       fire_r castle_a castle_c fire_fly western droid earth_b fire_b water_b weath_b space_b space_a cast_bug west_b
       cold_b weather ballsof s_balls space_r seashell airship hub)

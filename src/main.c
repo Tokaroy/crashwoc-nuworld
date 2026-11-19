@@ -316,7 +316,7 @@ static int nw_check_data(const char *data_dir)
         if (ok) {
             int kept = nw_hz_patch();
             printf("60 Hz table: %d values not retail's\n", kept);
-            printf("late revision table: %d values not PAL v1.03's\n", nw_rev_patch(50));
+            printf("late revision table: %d values not PAL v1.03's\n", nw_rev_patch(60));
             ok = kept == 0;
         }
     }
