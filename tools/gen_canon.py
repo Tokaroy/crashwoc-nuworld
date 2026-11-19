@@ -233,7 +233,7 @@ class Scene:
             p += 8 + 12 * ln
         return out
 
-    def read_objects(self) -> list[tuple[int, int, tuple, tuple, list[int]]]:
+    def read_objects(self) -> list[tuple[int, int, tuple, tuple, list[int], list[int]]]:
         off, size = self.chunks["OBJ0"]
         nu, p = self.nu, off + 8
         n, colourref = struct.unpack_from("<ii", nu, p)
@@ -243,7 +243,7 @@ class Scene:
             start = p
             nsub = struct.unpack_from("<i", nu, p)[0]
             p += 16
-            lo, hi, mtls = [math.inf] * 3, [-math.inf] * 3, []
+            lo, hi, mtls, spots = [math.inf] * 3, [-math.inf] * 3, [], []
             for _ in range(nsub):
                 kind = struct.unpack_from("<i", nu, p)[0]
                 count = struct.unpack_from("<i", nu, p + 4)[0]
@@ -252,12 +252,14 @@ class Scene:
                     for _ in range(count):
                         skip, mtl = struct.unpack_from("<ii", nu, p + 4)
                         mtls.append(mtl)
+                        spots.append(p + 8 - start)
                         p += 12 + skip
                         p += 4 + struct.unpack_from("<i", nu, p)[0]
                 elif kind == 1:
                     p += 16
                     for _ in range(count):
                         mtls.append(struct.unpack_from("<i", nu, p)[0])
+                        spots.append(p - start)
                         p += 16 + struct.unpack_from("<i", nu, p + 12)[0]
                 else:
                     raise Refused("geom type")
@@ -268,7 +270,7 @@ class Scene:
                 p += 32
             if colourref == 1:
                 p += 16 + struct.unpack_from("<i", nu, p)[0]
-            out.append((start, p, tuple(lo), tuple(hi), mtls))
+            out.append((start, p, tuple(lo), tuple(hi), mtls, spots))
         if p != off + size:
             raise Refused("object walk")
         return out
@@ -358,12 +360,85 @@ def ter_platforms(ter: bytes | None) -> dict[int, tuple[bytes, bytes]]:
     return out
 
 
-def material_compatible(s: Scene, t: Scene, i: int) -> bool:
-    a, b = s.material(i), t.material(i)
-    if any(a[o:o + 4] != b[o:o + 4] for o in range(0, MTL_SIZE, 4) if o not in MTL_LOOSE):
+def material_for(s: Scene, t: Scene, i: int) -> int | None:
+    b = t.material(i)
+    tb = struct.unpack_from("<i", b, 0x1A4)[0]
+    n = struct.unpack_from("<i", s.data("MS00" if "MS00" in s.chunks else "MS02"), 0)[0]
+    for j in [i] + [k for k in range(n) if k != i]:
+        if j >= n:
+            continue
+        a = s.material(j)
+        ta = struct.unpack_from("<i", a, 0x1A4)[0]
+        if any(a[o:o + 4] != b[o:o + 4] for o in range(0, MTL_SIZE, 4) if o not in MTL_LOOSE and o != 0x1A4):
+            continue
+        if (ta == -1) == (tb == -1) and (ta == -1 or s.texture(ta) == t.texture(tb)):
+            return j
+    return None
+
+
+def retarget(t: Scene, k: int, remap: dict[int, int]) -> bytes:
+    b = bytearray(t.obj_bytes(k))
+    for o in t.objects[k][5]:
+        struct.pack_into("<i", b, o, remap[struct.unpack_from("<i", b, o)[0]])
+    return bytes(b)
+
+
+def rel(d: bytes, at: int) -> int | None:
+    v = struct.unpack_from("<i", d, at)[0]
+    return at + v if v else None
+
+
+def anim_values(d: bytes, p: int) -> list:
+    time, _names, nchunks = struct.unpack_from("<fii", d, p)
+    chunks = rel(d, p + 12)
+    out: list = [time, nchunks]
+    for i in range(nchunks if chunks is not None else 0):
+        c = rel(d, chunks + 4 * i)
+        if c is None:
+            out.append(None)
+            continue
+        numnodes, valid = struct.unpack_from("<ii", d, c)
+        sets = rel(d, c + 8)
+        out.append((numnodes, valid))
+        for j in range(numnodes if sets is not None else 0):
+            cs = rel(d, sets + 4 * j)
+            if cs is None:
+                out.append(None)
+                continue
+            flags, n = struct.unpack_from("<i", d, cs)[0], struct.unpack_from("<b", d, cs + 12)[0]
+            consts, curves = rel(d, cs + 4), rel(d, cs + 8)
+            out.append((flags, n, d[consts:consts + 4 * max(n, 0)] if consts is not None else None))
+            for k in range(n if curves is not None else 0):
+                cv = rel(d, curves + 4 * k)
+                if cv is None:
+                    out.append(None)
+                    continue
+                mask, _keys, numkeys, cflags = struct.unpack_from("<IiII", d, cv)
+                keys = rel(d, cv + 4)
+                kb = bytearray(d[keys:keys + 16 * numkeys]) if keys is not None else bytearray()
+                if len(kb) != 16 * numkeys:
+                    raise struct.error("keys")
+                if numkeys:
+                    kb[-12:-8] = bytes(4)
+                out.append((mask, numkeys, cflags, bytes(kb)))
+    return out
+
+
+def same_anim(s: Scene, t: Scene, ix: int) -> bool:
+    if "ALIB" not in s.chunks or "ALIB" not in t.chunks:
         return False
-    tid = struct.unpack_from("<i", a, 0x1A4)[0]
-    return tid == -1 or s.texture(tid) == t.texture(tid)
+    a, b = s.data("ALIB"), t.data("ALIB")
+    if ix >= min(struct.unpack_from("<i", a, 0)[0], struct.unpack_from("<i", b, 0)[0]):
+        return False
+    try:
+        pa, pb = rel(a, 8 + 4 * ix), rel(b, 8 + 4 * ix)
+        return pa is not None and pb is not None and anim_values(a, pa) == anim_values(b, pb)
+    except struct.error:
+        return False
+
+
+def box(s: Scene, k: int) -> bytes:
+    return struct.pack("<6f", *s.objects[k][2], *s.objects[k][3])
 
 
 def chunk(tag: str, body: bytes) -> bytes:
@@ -382,7 +457,7 @@ def instance_record(s: Scene, t: Scene, item, objects: list[int], adopt: dict) -
     if item[0] == "new":
         ti = t.instances[item[1]]
         objid = len(s.objects) + objects.index(struct.unpack_from("<i", ti, 0x40)[0])
-        return ti[:0x40] + struct.pack("<ii", objid, struct.unpack_from("<i", ti, 0x44)[0]) + b"\0\0\0\0" + ti[0x4C:]
+        return ti[:0x40] + struct.pack("<i", objid) + ti[0x44:]
     blank = next((r for r in s.instances if struct.unpack_from("<i", r, 0x48)[0] == 0), None)
     if blank is None:
         raise Refused("no instance to hide")
@@ -401,6 +476,7 @@ def scene_patch(old: bytes, new: bytes, ter_new: bytes | None, ter_old: bytes | 
     m = align(s, t)
     plats_new, plats_old = ter_platforms(ter_new), ter_platforms(ter_old)
     adopt: dict = {}
+    move: dict[int, int] = {}
     for i in sorted(set(plats_new) | {i for _n, i in t.specials}):
         if not 0 <= i < len(t.instances):
             raise Refused(f"reference {i} past the instances")
@@ -408,7 +484,7 @@ def scene_patch(old: bytes, new: bytes, ter_new: bytes | None, ter_old: bytes | 
         tobj = struct.unpack_from("<i", ti, 0x40)[0]
         j = m.get(i)
         if j is None:
-            if struct.unpack_from("<i", ti, 0x48)[0] != 0:
+            if struct.unpack_from("<i", ti, 0x48)[0] != 0 and not same_anim(s, t, t.anim_of(i)[0x5C]):
                 raise Refused(f"new animated instance {i}")
             adopt[("new", i)] = i
             continue
@@ -419,17 +495,30 @@ def scene_patch(old: bytes, new: bytes, ter_new: bytes | None, ter_old: bytes | 
             same = was is not None and was[1] == plats_new[i][1]
             if not pivot and not same:
                 raise Refused(f"platform {i} moved with its frame")
-            if not same and not near(s.obj_bytes(struct.unpack_from("<i", sj, 0x40)[0]), t.obj_bytes(tobj)):
+            sobj = struct.unpack_from("<i", sj, 0x40)[0]
+            if not same and not near(s.obj_bytes(sobj), t.obj_bytes(tobj)):
                 adopt[("old", j)] = i
-        if not pivot:
+            elif not pivot and near(box(s, sobj), box(t, tobj)):
+                move[j] = i
+        if not pivot and j not in move:
             notes.append(f"{i} keeps the old pivot")
     objects = []
+    remap: dict[int, int] = {}
     for i in sorted(adopt.values()):
         tobj = struct.unpack_from("<i", t.instances[i], 0x40)[0]
-        if not all(material_compatible(s, t, k) for k in t.objects[tobj][4]):
-            raise Refused(f"instance {i}: its materials differ")
+        for k in t.objects[tobj][4]:
+            if k not in remap:
+                j = material_for(s, t, k)
+                if j is None:
+                    raise Refused(f"instance {i}: its materials differ")
+                remap[k] = j
         if tobj not in objects:
             objects.append(tobj)
+    gone = set(plats_old) - set(m.values())
+    if move:
+        notes.append(f"{len(move)} platforms at US v1.01's place")
+    if gone:
+        notes.append(f"{len(gone)} old platforms hidden")
     items: list = list(range(len(s.instances)))
     where = {x: k for k, x in enumerate(items)}
 
@@ -460,12 +549,19 @@ def scene_patch(old: bytes, new: bytes, ter_new: bytes | None, ter_old: bytes | 
     if holes:
         notes.append(f"{holes} hidden instances")
     slots = [instance_record(s, t, x, objects, adopt) for x in items]
+    for k, x in enumerate(items):
+        if x in gone:
+            flags = struct.unpack_from("<i", slots[k], 0x44)[0] & ~1
+            slots[k] = slots[k][:0x44] + struct.pack("<i", flags) + slots[k][0x48:]
+        elif x in move:
+            slots[k] = t.instances[move[x]][:0x40] + slots[k][0x40:]
     anims = []
     for x, rec in zip(items, slots):
         if struct.unpack_from("<i", rec, 0x48)[0] != 0:
-            if not isinstance(x, int) or s.anim_of(x) is None:
+            anim = s.anim_of(x) if isinstance(x, int) else t.anim_of(x[1]) if x[0] == "new" else None
+            if anim is None:
                 raise Refused("an animated instance without its animation")
-            anims.append(s.anim_of(x))
+            anims.append(anim)
     names_same = s.names == t.names
     old_spec = [(n, where[j]) for n, j in s.specials]
     new_spec = [(n, where[item_of(i)]) for n, i in t.specials]
@@ -492,7 +588,7 @@ def scene_patch(old: bytes, new: bytes, ter_new: bytes | None, ter_old: bytes | 
         rebuilt["IABL"] = chunk("IABL", struct.pack("<i", len(anims)) + s.data("IABL")[4:8] + b"".join(anims))
     if objects:
         rebuilt["OBJ0"] = chunk("OBJ0", struct.pack("<i", len(s.objects) + len(objects)) + s.data("OBJ0")[4:] +
-                                b"".join(t.obj_bytes(k) for k in objects))
+                                b"".join(retarget(t, k, remap) for k in objects))
         notes.append(f"{len(objects)} objects from US v1.01 for instances {sorted(adopt.values())}")
     moved = sum(1 for k, x in enumerate(items) if x != k)
     if moved:

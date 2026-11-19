@@ -23,8 +23,8 @@ def chunk(tag: bytes, body: bytes) -> bytes:
     return tag + struct.pack("<i", 8 + len(body)) + body
 
 
-def obj(lo: float, hi: float) -> bytes:
-    geom = struct.pack("<iii", 0, 0, 0) + struct.pack("<i", 0)
+def obj(lo: float, hi: float, mtl: int = 0) -> bytes:
+    geom = struct.pack("<iii", 0, 0, mtl) + struct.pack("<i", 0)
     sub = struct.pack("<ii3fiii", 0, 1, 0, 0, 0, 0, 0, 0) + geom + struct.pack("<6fii", lo, lo, lo, hi, hi, hi, 0, 0)
     return struct.pack("<iiii", 1, 0, 0, 0) + sub
 
@@ -34,14 +34,34 @@ def inst(objid: int, x: float, anim: int = 0) -> bytes:
     return struct.pack("<16f", *mtx) + struct.pack("<iiihbb", objid, 5, anim, 0, 0, 0)
 
 
+def material(kind: int) -> bytes:
+    return struct.pack("<i", kind) + b"\0" * 0x1A0 + struct.pack("<i", -1) + b"\0" * 0x28
+
+
+def animation(value: float, unread: int) -> bytes:
+    def to(field: int, target: int) -> bytes:
+        return struct.pack("<i", target - field)
+
+    out = struct.pack("<fii", 30.0, 0, 1) + to(12, 16) + to(16, 20)
+    out += struct.pack("<ii", 1, 1) + to(28, 40) + struct.pack("<ii", 0, 0) + to(40, 44)
+    out += struct.pack("<i", 0) + to(48, 60) + to(52, 64) + struct.pack("<bxxx", 1)
+    out += struct.pack("<f", 0.0) + to(64, 68)
+    out += struct.pack("<I", 3) + to(72, 84) + struct.pack("<II", 2, 0)
+    return out + struct.pack("<4f", 0.0, 1.0, 0.0, value) + struct.pack("<fIff", 30.0, unread, 0.0, value)
+
+
 def scene(instances: list[bytes], specials: list[tuple[int, int]], splines: list[tuple[int, list[float]]],
-          names: bytes, anims: int = 0, low: float = 0.0) -> bytes:
-    objs = [obj(low, low + 1.0), obj(0.0, 2.0)]
+          names: bytes, anims: int = 0, low: float = 0.0, objs: list[bytes] | None = None,
+          mats: list[bytes] | None = None, anim: bytes | None = None) -> bytes:
+    objs = objs or [obj(low, low + 1.0), obj(0.0, 2.0)]
+    mats = mats or [material(0)]
     body = chunk(b"NTBL", struct.pack("<i", len(names)) + names)
-    body += chunk(b"MS00", struct.pack("<ii", 1, 0) + b"\0" * 0x1A4 + struct.pack("<i", -1) + b"\0" * 0x28)
+    body += chunk(b"MS00", struct.pack("<ii", len(mats), 0) + b"".join(mats))
     body += chunk(b"OBJ0", struct.pack("<ii", len(objs), 0) + b"".join(objs))
     body += chunk(b"INST", struct.pack("<ii", len(instances), 0) + b"".join(instances))
-    body += chunk(b"IABL", struct.pack("<ii", anims, 0) + b"\x11" * (0x60 * anims))
+    body += chunk(b"IABL", struct.pack("<ii", anims, 0) + (b"\x11" * 0x5C + b"\0\0\0\0") * anims)
+    if anim is not None:
+        body += chunk(b"ALIB", struct.pack("<iii", 1, 0, 4) + anim)
     body += chunk(b"SPEC", struct.pack("<ii", len(specials), 0) + b"".join(
         struct.pack("<16f", *([0.0] * 16)) + struct.pack("<iiii", i, n, 0, 0) for i, n in specials))
     sst = b"".join(struct.pack("<HHi", len(p) // 3, 12, n) + struct.pack(f"<{len(p)}f", *p) for n, p in splines)
@@ -109,6 +129,36 @@ class GenCanonTest(unittest.TestCase):
         moved = scene([inst(0, 0.5)], [(0, 0)], [(5, [0.0] * 3)], names, low=-0.5)
         with self.assertRaisesRegex(gen_canon.Refused, "moved with its frame"):
             gen_canon.scene_patch(old, moved, ter([(0, b"\x05" * 4)]), ter([(0, b"\x06" * 4)]))
+
+    def test_scene_new_platform(self):
+        names = b"plat\0raft\0weecam_mid_00\0"
+        model = b"\x01\x02" * 8
+        old = scene([inst(0, 100.0), inst(1, 110.0), inst(0, 130.0)], [(0, 0)], [(10, [0.0] * 3)], names,
+                    mats=[material(1), material(2)], anim=animation(5.0, 0x1111))
+        new = scene([inst(0, 100.5), inst(0, 130.0), inst(2, 50.0, anim=7)], [(0, 0), (2, 5)], [(10, [0.0] * 3)],
+                    names, anims=1, objs=[obj(0.0, 1.0), obj(0.0, 2.0), obj(0.0, 3.0)],
+                    mats=[material(2), material(1)], anim=animation(5.0, 0x2222))
+        patched, notes = gen_canon.scene_patch(old, new, ter([(0, model), (2, model)]), ter([(0, model), (1, model)]))
+        s, o, t = gen_canon.Scene(patched), gen_canon.Scene(old), gen_canon.Scene(new)
+        self.assertEqual(s.instances[0], t.instances[0][:0x40] + o.instances[0][0x40:])
+        self.assertEqual(s.instances[2], t.instances[2][:0x40] + struct.pack("<i", 2) + t.instances[2][0x44:])
+        self.assertEqual(s.anims, t.anims)
+        self.assertEqual(s.objects[2][4], [1])
+        self.assertEqual(s.obj_bytes(2)[:56] + s.obj_bytes(2)[60:], t.obj_bytes(2)[:56] + t.obj_bytes(2)[60:])
+        hidden = [r for r in s.instances if not struct.unpack_from("<i", r, 0x44)[0] & 1]
+        self.assertEqual(hidden, [o.instances[1][:0x44] + struct.pack("<i", 4) + o.instances[1][0x48:]])
+        self.assertEqual(s.specials, [("plat", 0), ("raft", 2)])
+        self.assertTrue(any("hidden" in n for n in notes) and any("place" in n for n in notes))
+        other = scene([inst(0, 100.5), inst(0, 130.0), inst(2, 50.0, anim=7)], [(0, 0), (2, 5)], [(10, [0.0] * 3)],
+                      names, anims=1, objs=[obj(0.0, 1.0), obj(0.0, 2.0), obj(0.0, 3.0)],
+                      mats=[material(2), material(1)], anim=animation(6.0, 0x2222))
+        with self.assertRaisesRegex(gen_canon.Refused, "new animated instance 2"):
+            gen_canon.scene_patch(old, other, ter([(0, model), (2, model)]), ter([(0, model), (1, model)]))
+        plain = scene([inst(0, 100.5), inst(0, 130.0), inst(2, 50.0)], [(0, 0), (2, 5)], [(10, [0.0] * 3)], names,
+                      objs=[obj(0.0, 1.0), obj(0.0, 2.0), obj(0.0, 3.0, 1)], mats=[material(2), material(3)],
+                      anim=animation(5.0, 0))
+        with self.assertRaisesRegex(gen_canon.Refused, "instance 2: its materials differ"):
+            gen_canon.scene_patch(old, plain, ter([(0, model), (2, model)]), ter([(0, model), (1, model)]))
 
     def test_plan(self):
         packed, payload = fixture()
