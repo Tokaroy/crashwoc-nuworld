@@ -77,6 +77,7 @@ typedef struct NwVuTexture {
     unsigned int index, clut;
     bool tcc; /* TEX0.TCC */
     bool surface;
+    bool filtered;
     unsigned int rgba; /* particle-only RGBA8UI cache: GS bytes with the palette already applied */
     uint8_t alpha_min, alpha_max; /* conservative bounds across the particle texture's mip levels */
     bool power_of_two;
@@ -114,6 +115,7 @@ NwVuProgram nw_vu_skin_program(const char *package);
 /* A skin draw's palette and blend-shape weights in the packet's texture buffers (units 3 and 4), its geom's deltas
    on unit 5. */
 void nw_vu_skin(NwVuProgram program, uint32_t joints, uint32_t weights, uint32_t nweights);
+void nw_vu_silhouette(bool skin, const float lv[16], uint32_t joints);
 /* water's and wateruv's VU 0x1B2-0x1D1: the 32 waves a vertex picks by its normal's y, until the next table. */
 void nw_vu_waves(const float waves[32][4]);
 /* ptl's VU 0x3C-0xBF: the effect list as NwPtlList holds it. */

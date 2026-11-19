@@ -80,6 +80,9 @@ struct nuvtx_tc1_s;
 NwCmd *nw_rndr_strip(struct nuvtx_tc1_s *verts, int count, struct numtx_s *mtx, struct rndrstream_s *stream);
 /* The same record in no stream yet. */
 NwRecord *nw_rndr_record(NwCmdOp op, struct numtl_s *mtl, const void *mpg, int misc);
+void nw_rndr_model_begin(const struct numtx_s *wm);
+void nw_rndr_model_end(void);
+uint32_t nw_rndr_silhouette(const struct numtx_s *quad, float *scale);
 void nw_rndr_push(struct rndrstream_s *stream, NwRecord *r);
 /* The record's view and VU 0x0C block become the current ones, as a stream set up when it is flushed. */
 void nw_rndr_latch(NwRecord *r);

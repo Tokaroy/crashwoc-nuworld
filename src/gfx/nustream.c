@@ -173,10 +173,59 @@ struct numtx_s *nw_rndr_joints(uint32_t n)
     return (struct numtx_s *)j->mtx;
 }
 
+static uint32_t nw_model_next, nw_model_now, nw_model_last, nw_model_parts;
+static struct numtx_s nw_model_wm;
+
+void nw_rndr_model_begin(const struct numtx_s *wm)
+{
+    float det = wm->_00 * (wm->_11 * wm->_22 - wm->_12 * wm->_21) - wm->_01 * (wm->_10 * wm->_22 - wm->_12 * wm->_20) +
+                wm->_02 * (wm->_10 * wm->_21 - wm->_11 * wm->_20);
+    if (det < 0.0f) {
+        nw_model_now = 0;
+        return;
+    }
+    if (++nw_model_next == 0) {
+        nw_model_next = 1;
+    }
+    nw_model_now = nw_model_last = nw_model_next;
+    nw_model_parts = 0;
+    nw_model_wm = *wm;
+}
+
+void nw_rndr_model_end(void)
+{
+    nw_model_now = 0;
+}
+
+uint32_t nw_rndr_silhouette(const struct numtx_s *quad, float *scale)
+{
+    uint32_t id = nw_model_last;
+    const struct numtx_s *wm = &nw_model_wm;
+    nw_model_last = 0;
+    float ux = quad->_00 * quad->_00 + quad->_01 * quad->_01 + quad->_02 * quad->_02;
+    float uz = quad->_20 * quad->_20 + quad->_21 * quad->_21 + quad->_22 * quad->_22;
+    float wx = wm->_00 * wm->_00 + wm->_01 * wm->_01 + wm->_02 * wm->_02;
+    if (!id || !nw_model_parts || ux <= 0.0f || uz <= 0.0f || wx <= 0.0f) {
+        return 0;
+    }
+    float dx = wm->_30 - quad->_30, dy = wm->_31 - quad->_31, dz = wm->_32 - quad->_32;
+    float u = (dx * quad->_00 + dy * quad->_01 + dz * quad->_02) / ux;
+    float v = (dx * quad->_20 + dy * quad->_21 + dz * quad->_22) / uz;
+    if (u < -1.0f || u > 1.0f || v < -1.0f || v > 1.0f) {
+        return 0;
+    }
+    *scale = SDL_sqrtf(ux / wx);
+    return id;
+}
+
 NwRecord *nw_rndr_record(NwCmdOp op, struct numtl_s *mtl, const void *mpg, int misc)
 {
     NwRecord *r = nw_rndr_alloc(sizeof(*r));
     memset(r, 0, sizeof(*r));
+    if (nw_model_now && (op == NW_CMD_DRAW || op == NW_CMD_DRAW_OT || op == NW_CMD_SKIN)) {
+        r->cmd.silhouette = nw_model_now;
+        nw_model_parts++;
+    }
     r->cmd.op = (uint8_t)op;
     r->cmd.key = nw_interp_cmd(op);
     r->cmd.material = mtl;

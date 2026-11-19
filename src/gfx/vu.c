@@ -300,6 +300,10 @@ static const char nw_vu_fs[] =
     "    return sample_level(uv, min(int(lod + 0.5), u_texlod.y), bilinear);\n"
     "#endif\n"
     "}\n"
+    "vec4 filtered(vec2 st)\n"
+    "{\n"
+    "    return floor(texture(u_surf, vec2(st.x, 1.0 - st.y)) * vec4(255.0, 255.0, 255.0, 128.0) + 0.5);\n"
+    "}\n"
     /* The GS Z under the pixel, back from the depth the GS matrix (src/gfx/backend.c) gave it. */
     "vec4 zclut()\n"
     "{\n"
@@ -358,7 +362,7 @@ static const char nw_vu_fs[] =
     "#if PARTICLE\n"
     "        vec4 t = floor(sample_gs(st));\n"
     "#else\n"
-    "        vec4 t = u_texmode.x == 4 ? zclut() : floor(sample_gs(st));\n"
+    "        vec4 t = u_texmode.x == 4 ? zclut() : u_texmode.x == 5 ? filtered(st) : floor(sample_gs(st));\n"
     "        if (u_zalpha != 0) {\n"
     "            t.a = zclut().a;\n"
     "        }\n"
@@ -647,6 +651,50 @@ static bool nw_vu_link(NwVuProgram program)
     return true;
 }
 
+static const char nw_vu_silhouette_fs[] =
+    "out vec4 o_col;\n"
+    "void main()\n"
+    "{\n"
+    "    o_col = vec4(1.0, 1.0, 1.0, 0.25);\n"
+    "}\n";
+
+static struct {
+    GLuint prog;
+    GLint lv, joints, blend;
+} nw_vu_sil[2];
+
+static bool nw_vu_silhouette_link(bool skin)
+{
+    NwVuProgram program = skin ? NW_VU_SKIN : NW_VU_TRICU;
+    GLuint vs = nw_vu_shader(GL_VERTEX_SHADER, program, nw_vu_vs);
+    GLuint fs = vs ? nw_vu_shader(GL_FRAGMENT_SHADER, program, nw_vu_silhouette_fs) : 0;
+    if (!fs) {
+        glDeleteShader(vs);
+        return false;
+    }
+    GLint ok = 0;
+    GLuint p = nw_vu_sil[skin].prog = glCreateProgram();
+    glAttachShader(p, vs);
+    glAttachShader(p, fs);
+    glLinkProgram(p);
+    glDeleteShader(vs);
+    glDeleteShader(fs);
+    glGetProgramiv(p, GL_LINK_STATUS, &ok);
+    if (!ok) {
+        char log[1024] = "";
+        glGetProgramInfoLog(p, sizeof(log), NULL, log);
+        return SDL_SetError("vu: program: %s", log);
+    }
+    nw_vu_sil[skin].lv = glGetUniformLocation(p, "u_lv");
+    nw_vu_sil[skin].joints = glGetUniformLocation(p, "u_joints");
+    nw_vu_sil[skin].blend = glGetUniformLocation(p, "u_blend");
+    glUseProgram(p);
+    glUniform1i(glGetUniformLocation(p, "u_pool"), 3);
+    glUniform1i(glGetUniformLocation(p, "u_weights"), 4);
+    glUniform1i(glGetUniformLocation(p, "u_deltas"), 5);
+    return true;
+}
+
 bool nw_vu_init(void)
 {
     for (int i = 0; i < NW_VU_PROGRAMS; i++) {
@@ -654,6 +702,10 @@ bool nw_vu_init(void)
             nw_vu_shutdown();
             return false;
         }
+    }
+    if (!nw_vu_silhouette_link(false) || !nw_vu_silhouette_link(true)) {
+        nw_vu_shutdown();
+        return false;
     }
     return true;
 }
@@ -663,6 +715,20 @@ void nw_vu_shutdown(void)
     for (int i = 0; i < NW_VU_PROGRAMS; i++) {
         glDeleteProgram(nw_vu[i].prog);
         nw_vu[i].prog = 0;
+    }
+    for (int i = 0; i < 2; i++) {
+        glDeleteProgram(nw_vu_sil[i].prog);
+        nw_vu_sil[i].prog = 0;
+    }
+}
+
+void nw_vu_silhouette(bool skin, const float lv[16], uint32_t joints)
+{
+    glUseProgram(nw_vu_sil[skin].prog);
+    glUniformMatrix4fv(nw_vu_sil[skin].lv, 1, GL_FALSE, lv);
+    if (skin) {
+        glUniform1i(nw_vu_sil[skin].joints, (GLint)joints * 4);
+        glUniform2i(nw_vu_sil[skin].blend, 0, 0);
     }
 }
 
@@ -742,7 +808,10 @@ uint32_t nw_vu_use(NwVuProgram program, const NwVuObject *o, const NwVuMaterial 
     const NwVuZClut *z = m->zclut;
     bool zonly = z && !z->alpha && !z->ad;
     bool textured = !zonly && m->tex && m->tex->index;
-    glUniform4i(nw_vu[program].texmode, zonly ? 4 : textured ? (m->tex->surface ? 3 : m->tex->clut ? 1 : 2) : 0,
+    glUniform4i(nw_vu[program].texmode,
+                zonly      ? 4
+                : textured ? (m->tex->surface ? (m->tex->filtered ? 5 : 3) : m->tex->clut ? 1 : 2)
+                           : 0,
                 m->state.mmag, m->state.wms == 1, m->state.wmt == 1);
     glUniform4i(nw_vu[program].texlod, m->state.mmin, m->state.mxl, m->state.l, m->state.k);
     glUniform1i(nw_vu[program].filter, (GLint)nw_vu_filter_mode);
