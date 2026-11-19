@@ -5,6 +5,7 @@
 #include "game/creature.h"
 #include "game/game.retail.h"
 #include "gameplay/bosscut.h"
+#include "gameplay/fixes.h"
 #include "gameplay/gems.h"
 #include "gameplay/hubgem.h"
 #include "gameplay/jeep.h"
@@ -29,7 +30,9 @@ void CheckFinish(struct obj_s *obj)
 {
     int before = new_level;
     u16 flags = new_lev_flags;
+    float top = nw_fix_finish_top(obj);
     CheckFinish__retail(obj);
+    obj->top = top;
     nw_boss_cut_finish(flags);
     if (obj->finished == 1 && new_level != -1 && new_level != before) {
         nw_autosave_checkpoint(true);

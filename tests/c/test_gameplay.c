@@ -691,6 +691,31 @@ static void ground_slam(void)
     crash_at(60, &retail);
 }
 
+static float finish_top_at(const NwProfile *p, short character, short vehicle)
+{
+    struct creature_s *c = &Character[0];
+    crash_at(60, p);
+    VEHICLECONTROL = vehicle != -1;
+    c->obj.character = character;
+    c->obj.vehicle = vehicle;
+    c->obj.max.y = 0.9f;
+    c->obj.top = 0.45f;
+    CHECK(nw_fix_finish_top(&c->obj) == 0.45f);
+    return c->obj.top;
+}
+
+static void finish_top(void)
+{
+    struct creature_s *was = player;
+    NwProfile retail = { 0 }, fixed = { .bug_fixes = true };
+    player = &Character[0];
+    CHECK(finish_top_at(&retail, 0, -1) == 0.45f && finish_top_at(&retail, 1, -1) == 0.45f);
+    CHECK(finish_top_at(&fixed, 0, -1) == 0.9f && finish_top_at(&fixed, 1, -1) == 0.9f);
+    CHECK(finish_top_at(&fixed, 0, 3) == 0.45f);
+    crash_at(60, &retail);
+    player = was;
+}
+
 /* One MoveLoopXZ with MovePlayer's target and air friction; the globals come back. */
 static void loop(float side, float forward, float target)
 {
@@ -3515,6 +3540,7 @@ int main(void)
     hazard_hitboxes();
     air_jump();
     ground_slam();
+    finish_top();
     coco_jump();
     coco_run();
     mech_stand_jump();
