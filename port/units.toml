@@ -188,7 +188,7 @@ schema = 1
                "StartCutMovie", "SetCutMovieRate", "AppCutSceneCharacterRender", "GetSpaceCut"] }
 "game/bug" = { treatment = "compile" }
 "game/game_deb" = { treatment = "compile" }
-"game/credits" = { treatment = "compile" }
+"game/credits" = { treatment = "compile", wrap = ["InitCredits"] }
 "game/vu" = { treatment = "replace" }
 
 # sdk: fdlibm and rand are built for the host (same libm everywhere, PS2 RAND_MAX)
