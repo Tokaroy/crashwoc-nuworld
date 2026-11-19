@@ -260,6 +260,7 @@ typedef struct NwProfile {
     bool hub_gem;
     bool first_boss_cut;
     bool vehicle_hints;
+    bool bug_fixes;
     bool hitboxes;      /* the debug menu's view of every collision shape, not saved */
 } NwProfile;
 

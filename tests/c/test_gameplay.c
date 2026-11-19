@@ -16,6 +16,7 @@
 #include "gameplay/cheats.h"
 #include "gameplay/edges.h"
 #include "gameplay/firefly.h"
+#include "gameplay/fixes.h"
 #include "gameplay/gameplay.h"
 #include "gameplay/ground.h"
 #include "gameplay/hazards.h"
@@ -666,6 +667,28 @@ static void air_jump(void)
     crash_at(50, &retail);
     CHECK(air_jump_at(-0.05f, 3, 0) == 4 && air_jump_at(-0.3f, 3, 0) == 3 && air_jump_at(-0.05f, 0, 0) == 0);
     Game.powerbits = powers;
+}
+
+static int ground_slam_at(const NwProfile *p, u8 ground, s32 jump_frame)
+{
+    struct creature_s *c = &Character[0];
+    crash_at(60, p);
+    c->obj.ground = ground;
+    c->jump = 2;
+    c->jump_frame = jump_frame;
+    c->jump_frames = 18;
+    c->ok_slam = 1;
+    nw_fix_ground_slam(c);
+    return c->ok_slam;
+}
+
+static void ground_slam(void)
+{
+    NwProfile retail = { 0 }, fixed = { .bug_fixes = true };
+    CHECK(ground_slam_at(&retail, 3, 18) == 1 && ground_slam_at(&retail, 2, 18) == 1);
+    CHECK(ground_slam_at(&fixed, 3, 18) == 0 && ground_slam_at(&fixed, 2, 18) == 0);
+    CHECK(ground_slam_at(&fixed, 0, 18) == 1 && ground_slam_at(&fixed, 3, 10) == 1);
+    crash_at(60, &retail);
 }
 
 /* One MoveLoopXZ with MovePlayer's target and air friction; the globals come back. */
@@ -3491,6 +3514,7 @@ int main(void)
     line_2d();
     hazard_hitboxes();
     air_jump();
+    ground_slam();
     coco_jump();
     coco_run();
     mech_stand_jump();

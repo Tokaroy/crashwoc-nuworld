@@ -1052,6 +1052,7 @@ static void nw_boot_request(const NwSettings *s, bool hitboxes)
                                      .hub_gem = s->hub_gem,
                                      .first_boss_cut = s->first_boss_cut,
                                      .vehicle_hints = s->vehicle_hints,
+                                     .bug_fixes = s->bug_fixes,
                                      .hitboxes = hitboxes });
 }
 
@@ -1225,7 +1226,8 @@ static int nw_boot(const char *data_dir, int hardware_speed, float aspect, NwPla
                                        .camera_stability = settings.camera_stability,
                                        .hub_gem = settings.hub_gem,
                                        .first_boss_cut = settings.first_boss_cut,
-                                       .vehicle_hints = settings.vehicle_hints });
+                                       .vehicle_hints = settings.vehicle_hints,
+                                       .bug_fixes = settings.bug_fixes });
     }
     nw_wide_set(nw_video_start(&platform, &settings), settings.hud);
     nw_debug_panel("Settings", "Audio", nw_boot_audio, &settings, false);
@@ -1242,6 +1244,7 @@ static int nw_boot(const char *data_dir, int hardware_speed, float aspect, NwPla
     nw_debug_toggle("Gameplay", "Turning relic on time trial records", &settings.relic_spin);
     nw_debug_toggle("Gameplay", "Aku Aku after the first boss", &settings.first_boss_cut);
     nw_debug_toggle("Gameplay", "Vehicle controls", &settings.vehicle_hints);
+    nw_debug_toggle("Gameplay", "PS2 bug fixes", &settings.bug_fixes);
     if (!nw_run_retail()) {
         nw_cheat_panel_start();
     }
@@ -1346,7 +1349,8 @@ static int nw_boot(const char *data_dir, int hardware_speed, float aspect, NwPla
                  settings.camera_stability != applied.camera_stability ||
                  settings.hub_gem != applied.hub_gem ||
                  settings.first_boss_cut != applied.first_boss_cut ||
-                 settings.vehicle_hints != applied.vehicle_hints)) {
+                 settings.vehicle_hints != applied.vehicle_hints ||
+                 settings.bug_fixes != applied.bug_fixes)) {
                 nw_boot_request(&settings, hitboxes);
                 hitboxes_shown = hitboxes;
             }
