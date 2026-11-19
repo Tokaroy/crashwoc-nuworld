@@ -186,6 +186,7 @@ add_custom_target(nuworld_buildid
 # check for a newer release and the game's doubles.
 add_library(nuworld_port STATIC
   src/hle/eedouble.c
+  src/hle/eefpu.c
   src/platform/clock.c
   src/platform/http.c
   src/platform/update.c
@@ -203,6 +204,7 @@ endif()
 # Disc images, the data folder and the game file system.
 set(NW_VFS_SOURCES
   src/platform/paths.c
+  src/vfs/canon.c
   src/vfs/dat.c
   src/vfs/disc.c
   src/vfs/extract.c

@@ -13,6 +13,7 @@ schema = 1
 "_impure_ptr" = "newlib reent block (src/shim/libc.c): retail impure_data holds an SDK code pointer (_cleanup_r)"
 "nw_wide" = "the widescreen view (src/port/wide.c) the NW_WIDE seams read; retail has none"
 "nw_hz" = "the game logic's rate (src/port/hz.c) the NW_HZ seams read; retail has none"
+"nw_rev" = "the revision (src/port/rev.c) the NW_REV seams read; retail has none"
 
 [conflicts]
 
@@ -24,6 +25,14 @@ schema = 1
 "__fdlib_version" = "01000000"
 "glb_amb_error_flag" = "ffffffff"
 "glb_dir_error_flag" = "ffffffff"
+
+[discs."PAL v2.01"]
+"ariel16_fnt" = 0x002e66d8
+"ariel16_bmp" = 0x002e6f78
+
+[discs."USA v1.01"]
+"ariel16_fnt" = 0x002dfcd8
+"ariel16_bmp" = 0x002e0578
 
 [discs."USA v1.00"]
 "ariel16_fnt" = 0x002e4558

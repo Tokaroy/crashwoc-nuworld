@@ -1,0 +1,283 @@
+--- a/src/game/main.c
++++ b/src/game/main.c
+@@ -885,6 +885,7 @@ extern s32 pausestats_frame;
+ extern s32 Demo;
+ extern float tumble_time;
+ extern float tumble_duration;
++extern s32 boss_dead;
+ 
+ extern void NewMenu(struct cursor_s *cursor, s32 menu, s32 y, s32 level);
+ extern void ResetTimer(struct gtimer_s *t);
+@@ -1019,7 +1020,8 @@ void DoInput(void)
+             !(PLAYERCOUNT != 0 &&
+               (player->obj.finished != 0 ||
+                (Level == 0x25 && tumble_time < tumble_duration &&
+-                last_hub != -1)))) {
++                last_hub != -1))) &&
++            !NW_REV(0, (LBIT & 0x3E00000) != 0 && boss_dead == 2)) {
+             pause_dir = 1;
+             NewMenu(&Cursor, 3, 0, -1);
+             ResetTimer(&PauseTimer);
+@@ -1082,6 +1084,9 @@ void DoInput(void)
+                 return;
+             }
+         }
++        if (NW_REV(0, (LBIT & 0x3E00000) != 0 && boss_dead == 2)) {
++            return;
++        }
+         pause_dir = 1;
+         NewMenu(&Cursor, 3, 0, -1);
+         ResetTimer(&PauseTimer);
+@@ -1151,12 +1156,25 @@ void SetTexAnimSignals(void)
+     } else {
+         texanimbits &= 0xFFFFFFBF;
+     }
+-    if (Level == 0x18 && WeatherBossSkeletonTimer != 0.0f) {
++    if (NW_REV(0, 1)) {
++        if (Level == 0x18) {
++            if (WeatherBossSkeletonTimer != 0.0f) {
++                texanimbits |= 0x100;
++            } else {
++                texanimbits &= 0xFFFFFEFF;
++            }
++            if (WeatherBossDead != 0) {
++                texanimbits |= 0x200;
++            } else {
++                texanimbits &= 0xFFFFFDFF;
++            }
++        }
++    } else if (Level == 0x18 && WeatherBossSkeletonTimer != 0.0f) {
+         texanimbits |= 0x100;
+     } else {
+         texanimbits &= 0xFFFFFEFF;
+     }
+-    if (Level == 0x18 && WeatherBossDead != 0) {
++    if (NW_REV(Level == 0x18, 0) && WeatherBossDead != 0) {
+         texanimbits |= 0x200;
+     }
+     NuTexAnimSetSignals(texanimbits);
+@@ -1781,6 +1799,44 @@ extern void tbslotBeginFn(struct TbSet *set, int slot);
+ extern int tbslotEndFn(void *tbset, int slot);
+ extern int tbslotLastValue(struct TbSet *set, int slot);
+ extern void tbslotReset(struct TbSet *set, int slot);
++extern s32 force_menu;
++extern s32 gameover_continue;
++extern s32 mask_panel_wait;
++extern int loading;
++
++#if defined(NW_HOST) || defined(NW_REV_LATEST)
++void UpdateLoading(s32 reset)
++{
++    s32 target = NW_HZ(50, 60);
++
++    switch (Level) {
++    case 7:
++        if (best_cRPos != 0 && best_cRPos->iRAIL == 0 &&
++            ((u16)(best_cRPos->iALONG - 100) <= 48 || (u16)(best_cRPos->iALONG - 175) <= 7)) {
++            target = 0;
++        }
++        break;
++    case 5:
++        if (best_cRPos != 0 && best_cRPos->iRAIL == 0 && (u16)(best_cRPos->iALONG - 109) <= 15) {
++            target = 0;
++        }
++        break;
++    case 8:
++        if (best_cRPos != 0 && best_cRPos->iRAIL == 0 &&
++            ((u16)(best_cRPos->iALONG - 104) <= 6 || (u16)(best_cRPos->iALONG - 178) <= 23)) {
++            target = 0;
++        }
++        break;
++    }
++    if (reset != 0) {
++        loading = target;
++    } else if (loading < target) {
++        loading++;
++    } else if (loading > target) {
++        loading--;
++    }
++}
++#endif
+ 
+ int main(int argc, char** argv) {
+     int render_frame;
+@@ -1953,6 +2009,23 @@ int main(int argc, char** argv) {
+             GameSfx(0xc6,0);
+             cortex_gameover_i = -1;
+             tempanim_waitaudio = 1;
++        } else if (NW_REV(0, Level == 0x25 && (Game.cutbits & 1U) == 0 && force_menu == -1)) {
++            NewCut(0);
++            GameMode = 1;
++        } else if (NW_REV(0, gameover_continue != 0 && Level == 0x25 && (Game.level[21].flags & 0x800) != 0 &&
++                              (Game.cutbits & 0x40) == 0)) {
++            NewCut(6);
++            GameMode = 1;
++        } else if (NW_REV(0, gameover_continue != 0 && Level == 0x25 && (Game.level[23].flags & 0x800) != 0 &&
++                              (Game.cutbits & 0x800) == 0)) {
++            NewCut(11);
++            GameMode = 1;
++        } else if (NW_REV(0, gameover_continue != 0 && Level == 0x25 && (Game.level[22].flags & 0x800) != 0 &&
++                              (Game.cutbits & 0x10000) == 0)) {
++            NewCut(16);
++            GameMode = 1;
++        } else if (NW_REV(0, 1)) {
++            GameMode = 0;
+         } else if (Level == 0x25) {
+             if ((Game.cutbits & 1U) == 0) {
+                 NewCut(0);
+@@ -1969,6 +2042,7 @@ int main(int argc, char** argv) {
+             }
+             ResetTimer(&CutTimer);
+         }
++        NW_REV(0, gameover_continue = 0);
+         if (ForcePlayRecord == 0) {
+             pad_play = (Demo != 0 && pad_record == 0) ? 1 : 0;
+         }
+@@ -1996,6 +2070,9 @@ int main(int argc, char** argv) {
+         NuDisableVBlank();
+         NuStrCpy(load_txt, "NewMode");
+         NuEnableVBlank();
++        if (NW_REV(0, 1)) {
++            NuDebugMsgProlog(".\\main.c", 0x130c)("NewMode");
++        }
+ next_game_mode:
+         NuSoundUpdate();
+         if (((Cursor.menu != 0x11) && (game_music != LDATA->music[0])) && ((GameMode != 1 || (gamecut != 0)))) {
+@@ -2036,10 +2113,16 @@ next_game_mode:
+         }
+         ResetGameSfx();
+         player_dying = 0;
++        if (NW_REV(0, 1)) {
++            skipped_frame_ticks = 0;
++        }
+         vtog_time = vtog_duration = 0;
+         ResetGameCameras(GameCam, 1);
+         in_finish_range = 0;
+         ResetAwards();
++        if (NW_REV(0, 1)) {
++            UpdateLoading(1);
++        }
+         NuSoundUpdate();
+         NuRndrSwapStreamBuffers();
+         (void)nuvideo_global_vbcnt;
+@@ -2052,6 +2135,9 @@ next_game_mode:
+         frameout_count = nuvideo_global_vbcnt;
+         half = 0.5f;
+         pause_frameout_grace = 0;
++        if (NW_REV(0, 1)) {
++            scene_started = 0;
++        }
+         frameout = 0;
+         while (((new_mode == -1) && (new_level == -1)) || fadeval < 0xff || (fadehack != 0)) {
+             tbslotBeginFn(app_tbset, 0);
+@@ -2151,7 +2237,9 @@ next_game_mode:
+                         edobjUpdateObjects(1.0f);
+                         edanimUpdateObjects(1.0f);
+                         NuRndrWaterRippleUpdate(1);
+-                        NuBridgeUpdate(&Character[0].obj.pos.x);
++                        if (NW_REV(1, 0)) {
++                            NuBridgeUpdate(&Character[0].obj.pos.x);
++                        }
+                         NuWindUpdate(&Character[0].obj.pos.x);
+                         if ((LDATA->flags & 8) != 0) {
+                             TerrainPlatformNewUpdate();
+@@ -2185,6 +2273,9 @@ next_game_mode:
+                             tbslotBeginFn(app_tbset, 2);
+                         }
+                         ProcessVehicleLevel(Pad[0]);
++                        if (NW_REV(0, 1)) {
++                            UpdateLoading(0);
++                        }
+                         if (FRAME == 0) {
+                             tbslotEndFn(app_tbset, 2);
+                         }
+@@ -2211,6 +2302,9 @@ next_game_mode:
+                         } else {
+                             NuRndrSetSpecularLight(ldir, 0);
+                         }
++                        if (NW_REV(0, 1)) {
++                            NuBridgeUpdate(&Character[0].obj.pos.x);
++                        }
+                         UpdateScreenWumpas();
+                         if (PLAYERCOUNT != 0) {
+                             UpdatePlayerStats(plr);
+@@ -2365,7 +2459,8 @@ next_game_mode:
+                         if ((LDATA->flags & 1) != 0) {
+                             if (plr->used != 0 && plr->obj.mask != 0 &&
+                                 plr->obj.mask->active != 0 && (LDATA->flags & 0xe00) == 0 &&
+-                                (VEHICLECONTROL != 1 || (LBIT & 0x1005042000UL) == 0)) {
++                                (VEHICLECONTROL != 1 || (LBIT & 0x1005042000UL) == 0) &&
++                                NW_REV(1, Cursor.menu != 0x21 && mask_panel_wait == 0)) {
+                                 DrawMask(plr->obj.mask);
+                             }
+                             DrawMaskFeathers();
+@@ -2453,6 +2548,12 @@ next_game_mode:
+                 if (player_dying != 0) {
+                     DrawCreatures(&Character[0], 1, 1, 0);
+                 }
++                if (NW_REV(0, (LDATA->flags & 1) != 0 && plr->used != 0 && plr->obj.mask != 0 &&
++                              plr->obj.mask->active != 0 && (LDATA->flags & 0xe00) == 0 &&
++                              (VEHICLECONTROL != 1 || (LBIT & 0x1005042000UL) == 0) &&
++                              (Cursor.menu == 0x21 || mask_panel_wait != 0))) {
++                    DrawMask(plr->obj.mask);
++                }
+                 DrawPanel();
+                 if ((new_mode != -1) || (new_level != -1)) {
+                     fade_rate = 10;
+@@ -2552,6 +2653,9 @@ next_game_mode:
+         }
+ 
+         if (new_mode != -1) {
++            if (NW_REV(0, 1)) {
++                PauseGameAudio(0);
++            }
+             NuSoundStopStream(4);
+             NuSoundUpdate();
+             GameMode = new_mode;
+@@ -2917,7 +3021,7 @@ void BGLoad(void)
+                         fall_speed[character] = fall_speed[character] + fallrate < maxfallspd
+                             ? fall_speed[character] + fallrate : maxfallspd;
+                         if (fadeval == 0xff) {
+-                            done = phase != 0;
++                            done = NW_REV(phase != 0, 1);
+                         }
+                         break;
+                     }
+@@ -2937,6 +3041,9 @@ bgload_render_characters:
+                     MiniGameRender();
+                 } else {
+                     done = bgload_complete;
++                    if (NW_REV(0, 1) && done != 0 && render_characters == 1) {
++                        fadeval = 0xff;
++                    }
+                 }
+                 TimeTunnelRender();
+                 pNuCam->mtx = numtx_identity;
+@@ -2999,10 +3106,16 @@ bgload_render_characters:
+     }
+     BGLoadEnd();
+     if (NuRndrBeginScene(-1) != 0) {
++        if (NW_REV(0, 1) && render_characters == 1) {
++            NuRndrClear(3, 0, 1.0f);
++        }
+         NuRndrEndScene();
+         NuRndrSwapScreen(-1);
+     }
+     if (NuRndrBeginScene(-1) != 0) {
++        if (NW_REV(0, 1) && render_characters == 1) {
++            NuRndrClear(3, 0, 1.0f);
++        }
+         NuRndrEndScene();
+         NuRndrSwapScreen(-1);
+     }
+@@ -3010,6 +3123,10 @@ bgload_render_characters:
+     fadeval = 0xff;
+ }
+ 
++#if defined(NW_HOST) || defined(NW_REV_LATEST)
++s32 gameover_continue = 0;
++s32 mask_panel_wait = 0;
++#endif
+ int loading = 0;
+ 
+ inline void BGLoadSfxFn(void)

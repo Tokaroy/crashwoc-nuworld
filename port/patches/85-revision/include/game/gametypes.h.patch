@@ -1,0 +1,59 @@
+--- a/include/game/gametypes.h
++++ b/include/game/gametypes.h
+@@ -101,7 +101,11 @@ struct remember_s {
+ }; /* 0x02 */
+ 
+ struct cursor_s {
++#ifdef NW_REV_US101_LAYOUT
++    struct remember_s remember[40];
++#else
+     struct remember_s remember[48];     /* 0x00 */
++#endif
+     u32 menu_frame;                     /* 0x60 */
+     u32 item_frame;                     /* 0x64 */
+     signed char x;                      /* 0x68 */
+@@ -205,6 +209,12 @@ struct cammtx_s {
+     u16 old_zrot;                       /* 0x108 */
+     u16 new_zrot;                       /* 0x10A */
+     u16 hdg_to_player;                  /* 0x10C */
++#ifdef NW_REV_US101_LAYOUT
++    signed char mode;
++    signed char iRAIL;
++    short iALONG;
++    u16 angle;
++#else
+     short route;                        /* 0x10E */
+     short i0;                           /* 0x110 */
+     short i1;                           /* 0x112 */
+@@ -214,6 +224,7 @@ struct cammtx_s {
+     u16 angle;                          /* 0x118 */
+     signed char vertical;               /* 0x11A */
+     char pad1;                          /* 0x11B */
++#endif
+ }; /* 0x11C */
+ 
+ struct tersurface_s {
+@@ -530,6 +541,15 @@ struct Nearest_Light_s {
+ }; /* 0xB0 */
+ 
+ typedef struct {
++#ifdef NW_REV_US101_LAYOUT
++    u8 mode;
++    signed char iRAIL;
++    short iALONG;
++    float fALONG;
++    float fACROSS;
++    u16 angle;
++    u16 cam_angle;
++#else
+     signed char iRAIL;                  /* 0x00 */
+     signed char vertical;               /* 0x01 */
+     short iALONG;                       /* 0x02 */
+@@ -543,6 +563,7 @@ typedef struct {
+     char pad1;                          /* 0x15 */
+     char pad2;                          /* 0x16 */
+     char pad3;                          /* 0x17 */
++#endif
+     struct nuvec_s pos;                 /* 0x18 */
+ } RailPosition; /* 0x24 */
+ 

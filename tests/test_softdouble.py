@@ -24,7 +24,7 @@ class Rewrite(unittest.TestCase):
                 f"  %6 = tail call float @llvm.experimental.constrained.sitofp.f32.i64(i64 %1, {MD}) #9",
                 f"  %7 = tail call float @llvm.experimental.constrained.fadd.f32(float %5, float %6, {MD}) #9",
                 "  ret float %7")
-        out = tool.rewrite(ir)
+        out = tool.rewrite(ir, fpu=False)
         self.assertIn("@llvm.experimental.constrained.fpext.f64.f32(", out)
         self.assertIn("%4 = tail call double @nw_sd_mul(double %3, double 1.000000e-01) #9, !dbg !12", out)
         self.assertIn("%5 = tail call float @nw_sd_to_f32(double %4) #9", out)
@@ -33,6 +33,34 @@ class Rewrite(unittest.TestCase):
         self.assertIn("declare double @nw_sd_mul(double, double)", out)
         self.assertIn("declare float @nw_sd_to_f32(double)", out)
         self.assertEqual(out.count("declare"), 3)
+
+    def test_float_arithmetic_goes_through_the_ee_fpu(self):
+        ir = fn(f"  %3 = tail call float @llvm.experimental.constrained.fadd.f32(float %0, float 1.0, {MD}) #9",
+                f"  %4 = tail call float @llvm.experimental.constrained.fsub.f32(float %3, float %0, {MD}) #9",
+                f"  %5 = tail call float @llvm.experimental.constrained.fdiv.f32(float %4, float 3.0, {MD}) #9",
+                f"  %6 = tail call float @llvm.experimental.constrained.sqrt.f32(float %5, {MD}) #9",
+                f"  %7 = tail call float @llvm.experimental.constrained.fmul.f32(float %6, float %6, {MD}) #9",
+                "  %8 = tail call float @llvm.sqrt.f32(float %7), !dbg !44",
+                "  ret float %8")
+        out = tool.rewrite(ir)
+        self.assertIn("%3 = tail call float @nw_fpu_add(float %0, float 1.0) #9", out)
+        self.assertIn("%4 = tail call float @nw_fpu_sub(float %3, float %0) #9", out)
+        self.assertIn("%5 = tail call float @nw_fpu_div(float %4, float 3.0) #9", out)
+        self.assertIn("%6 = tail call float @nw_fpu_sqrt(float %5) #9", out)
+        self.assertIn("@llvm.experimental.constrained.fmul.f32(float %6", out)
+        self.assertIn("%8 = tail call float @nw_fpu_sqrt(float %7), !dbg !44", out)
+        self.assertIn("declare float @nw_fpu_sqrt(float)", out)
+        self.assertEqual(out.count("declare"), 4)
+        self.assertEqual(tool.rewrite(ir, fpu=False), ir)
+        self.assertTrue(tool.VU0.search("nuvecvu0.c") and not tool.VU0.search("vehicle.wrap.c"))
+
+    def test_float_operations_the_ee_fpu_cannot_take_fail(self):
+        for line in (f"  %3 = tail call <4 x float> @llvm.experimental.constrained.fadd.v4f32(<4 x float> %a, "
+                     f"<4 x float> %b, {MD})",
+                     "  %3 = fdiv float 1.0, 3.0",
+                     "  %3 = tail call <4 x float> @llvm.sqrt.v4f32(<4 x float> %a)"):
+            with self.subTest(line=line), self.assertRaises(tool.Unsupported):
+                tool.rewrite(fn(line, "  ret float %0"))
 
     def test_exact_double_operations_stay(self):
         ir = fn("  %3 = tail call i1 @llvm.experimental.constrained.fcmps.f64(double 1.0, double 2.0, "

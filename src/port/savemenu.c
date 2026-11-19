@@ -27,6 +27,7 @@ extern struct game_s Game;
 extern struct game_s SaveSlot[2][2];
 extern struct cursor_s Cursor;
 extern struct gtimer_s GlobalTimer;
+extern int nw_hz; /* port/hz.c */
 extern struct objtab_s ObjTab[];
 extern s8 CLetter[];
 extern char tbuf[128];
@@ -88,7 +89,7 @@ void DrawGameSlot(struct game_s *game, f32 x, f32 y, s32 colour)
         NwSaveTime t;
         nw_savemenu_when(game, &t);
         if (t.year) {
-            bool ntsc = nw_disc_ntsc();
+            bool ntsc = nw_disc_region() == NW_REGION_US;
             SDL_snprintf(tbuf, sizeof(tbuf), "%02d:%02d %02d.%02d.%02d", t.hour, t.minute, ntsc ? t.month : t.day,
                          ntsc ? t.day : t.month, t.year % 100);
             Text3D(tbuf, x, y - 0.3f, 1.0f, 0.5f, 0.5f, 0.5f, 0, 0);
@@ -109,7 +110,7 @@ void DrawGameSlots(void)
         for (int column = 0; column < 2; column++, x += NW_SAVEMENU_DX) {
             s32 colour = 0;
             if (Cursor.y == row && Cursor.x == column) {
-                colour = (GlobalTimer.frame % 10 < 5) ? 4 : 3;
+                colour = (GlobalTimer.frame % (nw_hz == 60 ? 12 : 10) < 5) ? 4 : 3;
             }
             DrawGameSlot(&SaveSlot[row][column], x, y, colour);
         }

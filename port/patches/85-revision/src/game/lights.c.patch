@@ -1,0 +1,137 @@
+--- a/src/game/lights.c
++++ b/src/game/lights.c
+@@ -28,6 +28,7 @@
+ #include "nu_port.h"
+ 
+ #include "nu3d/nustream.h"
++#include "numath/nufloat.h"
+ #include "numath/nuvec.h"
+ #include "game/gametypes.h"
+ #include "game/creature.h"
+@@ -529,7 +530,7 @@ s32 FindNearestLights(struct nuvec_s *vec, struct Nearest_Light_s *nearest_light
+     if (nearest_light->AmbIndex != -1) {
+         if (Lights[nearest_light->AmbIndex].brightness == 6) {
+             sfactor = sf2;
+-        } else if (Lights[nearest_light->AmbIndex].brightness == 7) {
++        } else if (NW_REV(Lights[nearest_light->AmbIndex].brightness == 7, 1)) {
+             sfactor = sf;
+         }
+         nearest_light->AmbCol.x = sfactor * Lights[nearest_light->AmbIndex].r;
+@@ -559,7 +560,8 @@ s32 FindNearestLights(struct nuvec_s *vec, struct Nearest_Light_s *nearest_light
+                 Lights[nearest_light->glbdirectional.Index].type == 2)) {
+         if (NW_RETAIL(Lights[nearest_light->pDir1st->Index].brightness, LIGHT_BEFORE_BRIGHTNESS) == 6) {
+             sfactor = sf2;
+-        } else if (NW_RETAIL(Lights[nearest_light->pDir1st->Index].brightness, LIGHT_BEFORE_BRIGHTNESS) == 7) {
++        } else if (NW_REV(NW_RETAIL(Lights[nearest_light->pDir1st->Index].brightness,
++                                     LIGHT_BEFORE_BRIGHTNESS) == 7, 1)) {
+             sfactor = sf;
+         }
+         nearest_light->pDir1st->Colour.r =
+@@ -594,7 +596,8 @@ s32 FindNearestLights(struct nuvec_s *vec, struct Nearest_Light_s *nearest_light
+                 Lights[nearest_light->glbdirectional.Index].type == 2)) {
+         if (NW_RETAIL(Lights[nearest_light->pDir2nd->Index].brightness, LIGHT_BEFORE_BRIGHTNESS) == 6) {
+             sfactor = sf2;
+-        } else if (NW_RETAIL(Lights[nearest_light->pDir2nd->Index].brightness, LIGHT_BEFORE_BRIGHTNESS) == 7) {
++        } else if (NW_REV(NW_RETAIL(Lights[nearest_light->pDir2nd->Index].brightness,
++                                     LIGHT_BEFORE_BRIGHTNESS) == 7, 1)) {
+             sfactor = sf;
+         }
+         nearest_light->pDir2nd->Colour.r =
+@@ -629,7 +632,8 @@ s32 FindNearestLights(struct nuvec_s *vec, struct Nearest_Light_s *nearest_light
+                 Lights[nearest_light->glbdirectional.Index].type == 2)) {
+         if (NW_RETAIL(Lights[nearest_light->pDir3rd->Index].brightness, LIGHT_BEFORE_BRIGHTNESS) == 6) {
+             sfactor = sf2;
+-        } else if (NW_RETAIL(Lights[nearest_light->pDir3rd->Index].brightness, LIGHT_BEFORE_BRIGHTNESS) == 7) {
++        } else if (NW_REV(NW_RETAIL(Lights[nearest_light->pDir3rd->Index].brightness,
++                                     LIGHT_BEFORE_BRIGHTNESS) == 7, 1)) {
+             sfactor = sf;
+         }
+         nearest_light->pDir3rd->Colour.r =
+@@ -714,7 +718,7 @@ void CalculateSingleLightProportion(struct nuvec_s *vec, struct pdir_s *light,
+         } else if (global != -1) {
+             if (Lights[global].brightness == 6) {
+                 sfactor = sf2;
+-            } else if (Lights[global].brightness == 7) {
++            } else if (NW_REV(Lights[global].brightness == 7, 1)) {
+                 sfactor = sf;
+             }
+             light->Colour.r = Lights[global].r * sfactor;
+@@ -729,7 +733,7 @@ void CalculateSingleLightProportion(struct nuvec_s *vec, struct pdir_s *light,
+     } else if (global != -1) {
+         if (Lights[global].brightness == 6) {
+             sfactor = sf2;
+-        } else if (Lights[global].brightness == 7) {
++        } else if (NW_REV(Lights[global].brightness == 7, 1)) {
+             sfactor = sf;
+         }
+         light->Colour.r = Lights[global].r * 0.33f * sfactor;
+@@ -794,7 +798,7 @@ f32 FindLightProportion(struct nuvec_s *vec, struct Nearest_Light_s *nearest_lig
+         } else if (nearest_light->glbambindex != -1) {
+             if (Lights[nearest_light->glbambindex].brightness == 6) {
+                 sfactor = sf2;
+-            } else if (Lights[nearest_light->glbambindex].brightness == 7) {
++            } else if (NW_REV(Lights[nearest_light->glbambindex].brightness == 7, 1)) {
+                 sfactor = sf;
+             }
+             nearest_light->AmbCol.x = Lights[nearest_light->glbambindex].r * sfactor;
+@@ -808,7 +812,7 @@ f32 FindLightProportion(struct nuvec_s *vec, struct Nearest_Light_s *nearest_lig
+     } else if (nearest_light->glbambindex != -1) {
+         if (Lights[nearest_light->glbambindex].brightness == 6) {
+             sfactor = sf2;
+-        } else if (Lights[nearest_light->glbambindex].brightness == 7) {
++        } else if (NW_REV(Lights[nearest_light->glbambindex].brightness == 7, 1)) {
+             sfactor = sf;
+         }
+         nearest_light->AmbCol.x = Lights[nearest_light->glbambindex].r * sfactor;
+@@ -938,27 +942,39 @@ void SetLevelLights(void) {
+                   &titledir[2], (struct nuvec_s *)&titlergb);
+         NuRndrSetSpecularLight(&specular, 0);
+     } else if (Level == 43 && cutmovie == -1) {
+-        trig = NuTrigTable[creditsang[0] & 0xFFFF];
+-        if (trig < 0.0) {
+-            trig = -trig;
++        if (NW_REV(0, 1)) {
++            intensity = NuFabs(NuTrigTable[creditsang[0] & 0xFFFF]);
++        } else {
++            trig = NuTrigTable[creditsang[0] & 0xFFFF];
++            if (trig < 0.0) {
++                trig = -trig;
++            }
++            intensity = trig;
+         }
+-        intensity = trig;
+         NuVecRotateY(&creditsdir[0], &ZVec, creditsang[0]);
+         creditsdircol[0].r = intensity;
+         creditsang[0] += 256;
+-        trig = NuTrigTable[creditsang[1] & 0xFFFF];
+-        if (trig < 0.0) {
+-            trig = -trig;
++        if (NW_REV(0, 1)) {
++            intensity = NuFabs(NuTrigTable[creditsang[1] & 0xFFFF]);
++        } else {
++            trig = NuTrigTable[creditsang[1] & 0xFFFF];
++            if (trig < 0.0) {
++                trig = -trig;
++            }
++            intensity = trig;
+         }
+-        intensity = trig;
+         NuVecRotateY(&creditsdir[1], &ZVec, -creditsang[1]);
+         creditsdircol[1].r = intensity;
+         creditsang[1] += 256;
+-        trig = NuTrigTable[creditsang[2] & 0xFFFF];
+-        if (trig < 0.0) {
+-            trig = -trig;
++        if (NW_REV(0, 1)) {
++            intensity = NuFabs(NuTrigTable[creditsang[2] & 0xFFFF]);
++        } else {
++            trig = NuTrigTable[creditsang[2] & 0xFFFF];
++            if (trig < 0.0) {
++                trig = -trig;
++            }
++            intensity = trig;
+         }
+-        intensity = trig;
+         NuVecRotateX(&creditsdir[2], &ZVec, creditsang[2]);
+         creditsang[2] += 256;
+         creditsdircol[2].r = intensity;

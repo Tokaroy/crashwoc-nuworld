@@ -30,6 +30,7 @@ sites = [
   { fn = "DrawCRUNCHTIME", pal = "0x23", nth = 0, of = 1, ntsc = "0x2D" },
   { fn = "DrawCRUNCHTIME", pal = "0x32", nth = 1, of = 2, ntsc = "0x3C" },
   { fn = "MoveCreature", pal = "0.02f", nth = 0, of = 6, ntsc = "0.016666668f" },
+  { fn = "MoveCreature", pal = "0.02f", nth = 1, of = 6, ntsc = "0.016666668f" },
   { fn = "MoveCreature", pal = "50", nth = 0, of = 1, ntsc = "60" },
   { fn = "MoveCreature", pal = "0.02f", nth = 2, of = 6, ntsc = "0.016666668f" },
   { fn = "MoveCreature", pal = "0.02f", nth = 3, of = 6, ntsc = "0.016666668f" },
@@ -47,6 +48,7 @@ sites = [
 [[file]]
 path = "src/game/bug.c"
 sites = [
+  { fn = "UpdateBugLight", pal = "6", nth = 0, of = 1, ntsc = "5" },
   { fn = "UpdateBugLight", pal = "0.02f", nth = 0, of = 7, ntsc = "0.016666668f" },
   { fn = "UpdateBugLight", pal = "0.02f", nth = 1, of = 7, ntsc = "0.016666668f" },
   { fn = "UpdateBugLight", pal = "0.02f", nth = 2, of = 7, ntsc = "0.016666668f" },
@@ -228,6 +230,7 @@ sites = [
 path = "src/game/cut.c"
 sites = [
   { fn = "LoadCutComponents", pal = "0.6f", nth = 0, of = 1, ntsc = "0.5f" },
+  { fn = "LoadCutMovie", pal = '"ats\\levels\\pal\\title.ats"', nth = 0, of = 1, ntsc = '"ats\\levels\\title.ats"' },
   { fn = "SetCutMovieRate", pal = "1.2f", nth = 0, of = 1, ntsc = "1.0f" },
   { fn = "PlayCutMovie", pal = "10", nth = 0, of = 1, ntsc = "8" },
   { fn = "PlayCutMovie", pal = "0.02f", nth = 0, of = 1, ntsc = "0.016666668f" },
@@ -240,6 +243,9 @@ sites = [
 path = "src/game/deb3.c"
 sites = [
   { fn = "PlayRandSFX", pal = "50", nth = 0, of = 1, ntsc = "60" },
+  { fn = "InitDeb3", pal = "50", nth = 0, of = 3, ntsc = "60" },
+  { fn = "InitDeb3", pal = "50", nth = 1, of = 3, ntsc = "60" },
+  { fn = "InitDeb3", pal = "50", nth = 2, of = 3, ntsc = "60" },
   { fn = "AddDeb3Ang", pal = "100.0f", nth = 0, of = 4, ntsc = "120.0f" },
   { fn = "AddDeb3Ang", pal = "100.0f", nth = 1, of = 4, ntsc = "120.0f" },
   { fn = "AddDeb3Ang", pal = "100.0f", nth = 2, of = 4, ntsc = "120.0f" },
@@ -248,6 +254,8 @@ sites = [
   { fn = "AddDeb3Ang", pal = "50.0f", nth = 2, of = 4, ntsc = "60.0f" },
   { fn = "AddDeb3Ang", pal = "50.0f", nth = 3, of = 4, ntsc = "60.0f" },
   { fn = "AddDeb3", pal = "100.0f", nth = 0, of = 4, ntsc = "120.0f" },
+  { fn = "AddDeb3", pal = "100.0f", nth = 1, of = 4, ntsc = "120.0f" },
+  { fn = "AddDeb3", pal = "100.0f", nth = 2, of = 4, ntsc = "120.0f" },
   { fn = "AddDeb3", pal = "50.0f", nth = 0, of = 4, ntsc = "60.0f" },
   { fn = "AddDeb3", pal = "50.0f", nth = 1, of = 4, ntsc = "60.0f" },
   { fn = "AddDeb3", pal = "50.0f", nth = 2, of = 4, ntsc = "60.0f" },
@@ -360,17 +368,20 @@ sites = [
   { fn = "HubSelect", pal = "10", nth = 0, of = 1, ntsc = "12" },
   { fn = "MakeEditText", pal = "10", nth = 0, of = 1, ntsc = "12" },
   { fn = "MakeEditText", pal = "5", nth = 0, of = 1, ntsc = "6" },
-  { fn = "NewMenu", pal = "0x16", nth = 0, of = 1, ntsc = "0x13" },
+  { fn = "NewMenu", pal = "0x16", nth = 0, of = 2, ntsc = "0x13" },
   { fn = "NewMenu", pal = "0x32", nth = 0, of = 1, ntsc = "0x3C" },
   { fn = "NewMenu", pal = "0x96", nth = 0, of = 1, ntsc = "0xB4" },
   { fn = "ProcMenu", pal = "0x18", nth = 0, of = 5, ntsc = "0x1D" },
   { fn = "ProcMenu", pal = "0x5db", nth = 0, of = 1, ntsc = "0x707" },
   { fn = "ProcMenu", pal = "0xA", nth = 0, of = 5, ntsc = "0x8" },
-  { fn = "ProcMenu", pal = "0xA", nth = 1, of = 5, ntsc = "0x8" },
+  { fn = "ProcMenu", pal = "0xA", nth = 1, of = 5, ntsc = "0xC" },
+  { fn = "ProcMenu", pal = "5", nth = 0, of = 7, ntsc = "6" },
   { fn = "ProcMenu", pal = "0xA", nth = 2, of = 5, ntsc = "0xC" },
   { fn = "ProcMenu", pal = "5", nth = 2, of = 7, ntsc = "6" },
   { fn = "ProcMenu", pal = "400", nth = 0, of = 2, ntsc = "480" },
   { fn = "ProcMenu", pal = "400", nth = 1, of = 2, ntsc = "480" },
+  { fn = "ProcMenu", pal = "-0x1F", nth = 0, of = 1, ntsc = "-0x17" },
+  { fn = "ProcMenu", pal = "0x20", nth = 0, of = 1, ntsc = "0x18" },
   { fn = "ProcMenu", pal = "0xA", nth = 3, of = 5, ntsc = "0x8" },
   { fn = "ProcMenu", pal = "0xA", nth = 4, of = 5, ntsc = "0x8" },
   { fn = "ProcMenu", pal = "0x32", nth = 0, of = 2, ntsc = "0x28" },
@@ -514,6 +525,7 @@ sites = [
   { fn = "DeathTransporter", pal = "0.02f", nth = 0, of = 2, ntsc = "0.016666668f" },
   { fn = "DeathTransporter", pal = "0.02f", nth = 1, of = 2, ntsc = "0.016666668f" },
   { fn = "BonusTransporter", pal = "5", nth = 1, of = 3, ntsc = "6" },
+  { fn = "BonusTransporter", pal = "5", nth = 2, of = 3, ntsc = "6" },
   { fn = "BonusTransporter", pal = "0.02f", nth = 0, of = 3, ntsc = "0.016666668f" },
   { fn = "BonusTransporter", pal = "0.02f", nth = 1, of = 3, ntsc = "0.016666668f" },
   { fn = "BonusTransporter", pal = "0x19", nth = 0, of = 2, ntsc = "0x1E" },
@@ -713,6 +725,8 @@ sites = [
   { fn = "BGLoad", pal = "1.08f", nth = 0, of = 1, ntsc = "0.9f" },
   { fn = "BGLoadSfx", pal = "10", nth = 0, of = 2, ntsc = "8" },
   { fn = "BGLoadSfx", pal = "10", nth = 1, of = 2, ntsc = "8" },
+  { fn = "InitWorld", pal = '".ppd"', nth = 0, of = 1, ntsc = '".pad"' },
+  { fn = "main", pal = "Level == 12", nth = 0, of = 1, ntsc = "0" },
 ]
 
 [[file]]
@@ -830,7 +844,7 @@ sites = [
   { fn = "DrawGameMessage", pal = "16", nth = 1, of = 3, ntsc = "20" },
   { fn = "DrawGameMessage", pal = "11", nth = 0, of = 1, ntsc = "13" },
   { fn = "DrawGameMessage", pal = "16", nth = 2, of = 3, ntsc = "20" },
-  { fn = "DrawGameMessage", pal = "18", nth = 0, of = 1, ntsc = "21" },
+  { fn = "DrawGameMessage", pal = "18", nth = 0, of = 1, ntsc = "22" },
   { fn = "DrawGameMessage", pal = "31", nth = 0, of = 1, ntsc = "37" },
   { fn = "DrawGameMessage", pal = "50", nth = 0, of = 1, ntsc = "60" },
   { fn = "DrawGameMessage", pal = "43", nth = 0, of = 1, ntsc = "52" },
@@ -901,6 +915,7 @@ sites = [
   { fn = "DrawPanel", pal = "200", nth = 3, of = 4, ntsc = "240" },
   { fn = "DrawPanel", pal = "25", nth = 14, of = 15, ntsc = "30" },
   { fn = "DrawPanel", pal = "25.0f", nth = 3, of = 4, ntsc = "30.0f" },
+  { fn = "UpdatePlayerStats", pal = "5", nth = 0, of = 6, ntsc = "6" },
   { fn = "UpdatePlayerStats", pal = "5", nth = 1, of = 6, ntsc = "6" },
   { fn = "UpdatePlayerStats", pal = "5", nth = 2, of = 6, ntsc = "6" },
   { fn = "UpdatePlayerStats", pal = "4", nth = 1, of = 2, ntsc = "5" },

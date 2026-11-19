@@ -1,0 +1,11 @@
+--- a/src/game/jeep.c
++++ b/src/game/jeep.c
+@@ -711,7 +711,7 @@ void MovePlayerJeep(struct creature_s *Cre, struct nupad_s *Pad) {
+             s32 i;
+ 
+             Start = *(struct nuvec_s *)&Jeep->RestartPoint;
+-            memset(&Jeep->Move, 0, 0x100);
++            memset(&Jeep->Move, 0, sizeof(Jeep->Move));
+             Jeep->Dropped = 1;
+             Start.y += DropAdj;
+             Jeep->DownHole = 0;

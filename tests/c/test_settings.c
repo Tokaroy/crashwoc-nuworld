@@ -280,6 +280,9 @@ int main(int argc, char *argv[])
     CHECK(!s.long_time_names); /* the original's 3 letters unless asked */
     CHECK(read_text("[game]\nlong_time_names = true\n", &s) && s.long_time_names);
     nw_settings_defaults(&s);
+    CHECK(s.relic_spin);
+    CHECK(read_text("[game]\nrelic_spin = false\n", &s) && !s.relic_spin);
+    nw_settings_defaults(&s);
     CHECK(s.discord);
     CHECK(read_text("[discord]\nenabled = false\n", &s) && !s.discord);
     CHECK(nw_settings_save(&s, root));
@@ -421,10 +424,8 @@ int main(int argc, char *argv[])
           !s.movement.spacefighter.roll && s.movement.spacefighter.aim && !s.movement.crash.air_jump);
     CHECK(read_text("[game.movement]\nmonkey_bar_speed = 350\n", &s) && s.movement.spacefighter.aim_assist);
 
-    /* The rate is the disc's now: an older file's hz is kept but changes nothing; PAL at 60 Hz is asked for. */
-    CHECK(read_speed("[game]\nhz = 60\nhardware_speed = true\n") == 1);
-    CHECK(read_text("[game]\nhz = 60\n", &s) && !s.pal_60hz);
-    CHECK(read_text("[game]\npal_60hz = true\n", &s) && s.pal_60hz);
+    /* A file from when the rate was a setting. */
+    CHECK(read_speed("[game]\nhz = 50\npal_60hz = false\nhardware_speed = true\n") == 1);
 
     float a = -1.0f;
     char name[16];

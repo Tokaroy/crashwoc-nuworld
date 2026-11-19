@@ -97,16 +97,22 @@ static void test_disc_manifest(void)
           "7fc6826d08c42a5a92fc018edae3e520783beb5a8330410251192bfe26b1eca1", NW_DISC_DATA_ELF },
         { &nw_disc_manifest_usa100, 446, 57, 6823304, "c672d8baae995ad043a6af7a0351c89cbec5b96b93e1175ce1394dada10c1f61",
           "4ce4cfb85538d5986bd2401b2a30af64ad7aa8cad3649705bbcd1fa0c6543f9d", NW_DISC_ENGLISH },
+        { &nw_disc_manifest_pal201, 453, 56, 5546092, "68648f550bdc1ff6f2945e97e4e21bb5cfbf89b0c0be21749a39f713efcfdbb2",
+          "3c8d2997e27b2034fa9027764deebbab87f06d443b633cf729d172086b251c25", 0 },
+        { &nw_disc_manifest_usa101, 455, 57, 5596300, "673c91a7f2d1810a848e1bb0da88cea12d3199713e151c487f53c6fa9c57ff77",
+          "b72fe66ea1111645313e6ec0d09fece7eaabc2042c2ac0fe1fa9b4602ef40e74", NW_DISC_ENGLISH },
     };
     CHECK(nw_disc_manifests[0] == &nw_disc_manifest && nw_disc_manifests[1] == &nw_disc_manifest_usa100 &&
-          !nw_disc_manifests[2]);
+          nw_disc_manifests[2] == &nw_disc_manifest_pal201 && nw_disc_manifests[3] == &nw_disc_manifest_usa101 &&
+          !nw_disc_manifests[4]);
     for (size_t d = 0; d < SDL_arraysize(discs); d++) {
         const NwManifest *m = discs[d].m;
         const NwManifestEntry *cnf = nw_manifest_find(m, "system.cnf");
         const NwManifestEntry *elf = nw_manifest_find(m, m->boot);
         unsigned skipped = 0;
 
-        CHECK(m->count == discs[d].count && m->flags == discs[d].flags);
+        CHECK(m->count == discs[d].count && m->flags == discs[d].flags &&
+              m->region == (SDL_strcmp(m->vmode, "NTSC") == 0 ? NW_REGION_US : NW_REGION_PAL));
         CHECK(cnf && cnf->size == discs[d].cnf_size && strcmp(cnf->sha256, discs[d].cnf) == 0);
         CHECK(elf && elf->size == discs[d].elf_size && strcmp(elf->sha256, discs[d].elf) == 0);
         for (size_t i = 0; i < m->count; i++) {
@@ -163,7 +169,7 @@ static void manifest_add(TestManifest *t, const char *path, const void *data, si
 static void manifest_build(TestManifest *t)
 {
     memset(t, 0, sizeof(*t));
-    t->m = (NwManifest){ t->entries, 0, "PAL v1.03", "SLES_503.86", "1.03", "PAL", NW_DISC_DATA_ELF };
+    t->m = (NwManifest){ t->entries, 0, "PAL v1.03", "SLES_503.86", "1.03", "PAL", NW_REGION_PAL, NW_DISC_DATA_ELF };
     t->known[0] = &t->m;
     manifest_add(t, "DUMMY.DAT", dummy_data, DUMMY_SIZE, NW_MANIFEST_SKIP);
     manifest_add(t, "EMPTY.BIN", "", 0, 0);
@@ -354,8 +360,9 @@ static void test_verify(void)
     }
 
     /* Picked by BOOT2 and VER. */
-    NwManifest usa = { t.entries, t.m.count, "USA v1.00", "SLUS_202.38", "1.00", "NTSC", NW_DISC_ENGLISH };
-    NwManifest pal2 = { t.entries, t.m.count, "PAL v2.01", "SLES_503.86", "2.01", "PAL", 0 };
+    NwManifest usa = { t.entries, t.m.count, "USA v1.00", "SLUS_202.38", "1.00",
+                       "NTSC", NW_REGION_US, NW_DISC_ENGLISH };
+    NwManifest pal2 = { t.entries, t.m.count, "PAL v2.01", "SLES_503.86", "2.01", "PAL", NW_REGION_PAL, 0 };
     const NwManifest *several[] = { &usa, &pal2, &t.m, NULL };
     spec.cnf = pal_cnf;
     if (open_spec(&spec, &disc, &iso)) {
@@ -478,10 +485,13 @@ static void test_import(void)
     CHECK(nw_extract_manifest(root, nw_disc_manifests) == &nw_disc_manifest);
     static const char usa[] = "nuworld-disc 1\r\nboot SLUS_202.38\r\nver 1.00\r\n";
     static const char usa101[] = "nuworld-disc 1\nboot SLUS_202.38\nver 1.01\n";
+    static const char usa9[] = "nuworld-disc 1\nboot SLUS_202.38\nver 9.99\n";
     SDL_SaveFile(AT("disc/" NW_DISC_STAMP), usa, strlen(usa));
     CHECK(nw_extract_manifest(root, nw_disc_manifests) == &nw_disc_manifest_usa100);
     SDL_SaveFile(AT("disc/" NW_DISC_STAMP), usa101, strlen(usa101));
-    CHECK_FAILS(nw_extract_manifest(root, nw_disc_manifests), "the imported disc is SLUS_202.38 v1.01");
+    CHECK(nw_extract_manifest(root, nw_disc_manifests) == &nw_disc_manifest_usa101);
+    SDL_SaveFile(AT("disc/" NW_DISC_STAMP), usa9, strlen(usa9));
+    CHECK_FAILS(nw_extract_manifest(root, nw_disc_manifests), "the imported disc is SLUS_202.38 v9.99");
     SDL_SaveFile(AT("disc/" NW_DISC_STAMP), "", 0);
     CHECK(nw_extract_manifest(root, nw_disc_manifests) == &nw_disc_manifest);
 

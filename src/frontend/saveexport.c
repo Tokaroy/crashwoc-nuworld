@@ -59,6 +59,11 @@ void *nw_saveexport_icon(const NwVfs *vfs, size_t *len)
     return data;
 }
 
+const char *nw_saveexport_ps2_name(const NwVfs *vfs)
+{
+    return vfs && vfs->manifest && vfs->manifest->region == NW_REGION_US ? NW_SAVE_PS2_US : NW_SAVE_PS2_PAL;
+}
+
 void nw_saveexport_game(const uint8_t *game, char *out, size_t size)
 {
     char name[NW_SAVE_NAME_SIZE];
@@ -106,7 +111,9 @@ static void nw_saveexport_read_card(void)
 {
     const NwSaveRegistry *reg = nw_saves_levels();
     nw_saveexport.why[0] = '\0';
-    nw_saveexport.state = reg ? nw_save_card(nw_saveexport.card, reg, nw_saveexport.games) : NW_SAVE_CARD_FAILED;
+    nw_saveexport.state = reg ? nw_save_card(nw_saveexport.card, nw_saveexport_ps2_name(nw_saveexport.vfs), reg,
+                                             nw_saveexport.games)
+                              : NW_SAVE_CARD_FAILED;
     if (nw_saveexport.state == NW_SAVE_CARD_FAILED || nw_saveexport.state == NW_SAVE_CARD_BLANK) {
         SDL_strlcpy(nw_saveexport.why, SDL_GetError(), sizeof(nw_saveexport.why));
     }
@@ -156,7 +163,8 @@ static void nw_saveexport_export(void)
     }
     const NwSaveRegistry *reg = nw_saves_levels();
     nw_saveexport.result_ok =
-        reg && nw_save_export(nw_saveexport.dir, reg, nw_saveexport.card, picks, icon, icon_len);
+        reg && nw_save_export(nw_saveexport.dir, reg, nw_saveexport.card, nw_saveexport_ps2_name(nw_saveexport.vfs),
+                              picks, icon, icon_len);
     if (nw_saveexport.result_ok) {
         SDL_snprintf(nw_saveexport.result, sizeof(nw_saveexport.result),
                      "Exported. The card as it was before is %s.bak.", nw_saveexport.card);

@@ -13,6 +13,7 @@
 
 /* The save icon of the disc (STUFF/CRASH.ICO, as the game loads it), SDL_malloc'd; NULL with an SDL error. */
 void *nw_saveexport_icon(const NwVfs *vfs, size_t *len);
+const char *nw_saveexport_ps2_name(const NwVfs *vfs);
 char *nw_saveexport_cards_folder(void);
 void nw_saveexport_game(const uint8_t *game, char *out, size_t size);
 

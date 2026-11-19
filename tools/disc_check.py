@@ -29,7 +29,7 @@ C_TESTS = {
     "vag": "audio-retail", "obj": "edunits-retail", "anm": "edunits-retail", "gra": "edunits-retail",
     "ptl": "edunits-retail", "cpt": "edunits-retail", "ats": "texanim-retail (title)",
     "ai": "levels-retail", "crt": "levels-retail", "lgt": "levels-retail", "wmp": "levels-retail",
-    "vis": "levels-retail", "ppd": "levels-retail (--pad-script)",
+    "vis": "levels-retail", "ppd": "levels-pal103-retail", "pad": "levels-retail",
 }
 
 

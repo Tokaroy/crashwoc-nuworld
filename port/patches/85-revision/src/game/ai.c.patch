@@ -1,0 +1,146 @@
+--- a/src/game/ai.c
++++ b/src/game/ai.c
+@@ -40,6 +40,7 @@
+ 
+ #include "nu3d/nugscn.h"
+ #include "nu3d/nulight.h"
++#include "numath/nufloat.h"
+ #include "numath/nutrig.h"
+ #include "numath/nuvec.h"
+ #include "game/gametypes.h"
+@@ -3588,17 +3589,23 @@ s32 UpdateCRUNCHTIME(void)
+             if (NuVecDistSqr(&plrmid, &weather_srcpos[j], 0) < 0.110889f
+                 || NuVecDistSqr(&plrmid, &weather_dstpos[j], 0) < 0.110889f) {
+                 kill = 1;
+-            } else {
++            } else if (NW_REV(1, player->obj.pos.y + player->obj.bot * player->obj.SCALE < 1.333f)) {
+                 yrot = NuAtan2D(weather_srcpos[j].x - weather_dstpos[j].x,
+                                 weather_srcpos[j].z - weather_dstpos[j].z);
+                 NuVecSub(&pos[1], &plrmid, &weather_dstpos[j]);
+                 NuVecRotateY(&pos[1], &pos[1], -yrot);
+-                dd = pos[1].x;
+-                if (dd < 0.0) {
+-                    dd = 0.0 - dd;
+-                }
+-                if (dd < 0.333f) {
+-                    kill = 1;
++                if (NW_REV(0, 1)) {
++                    if (NuFabs(pos[1].x) < 0.333f) {
++                        kill = 1;
++                    }
++                } else {
++                    dd = pos[1].x;
++                    if (dd < 0.0) {
++                        dd = 0.0 - dd;
++                    }
++                    if (dd < 0.333f) {
++                        kill = 1;
++                    }
+                 }
+             }
+         }
+@@ -3977,6 +3984,9 @@ inline s32 PlayerLateralInRange(f32 p0, struct nuvec_s *line, struct nuvec_s *a,
+     if (ratio < 0.0f) {
+         d = -d;
+     }
++    if (NW_REV(0, 1)) {
++        return NuFabs(d) < p1;
++    }
+     dist = d;
+     if (dist < 0.0) {
+         dist = -dist;
+@@ -4000,6 +4010,9 @@ inline s32 PlayerLateralOutOfRange(f32 p0, struct nuvec_s *line, struct nuvec_s
+     if (ratio < 0.0f) {
+         d = -d;
+     }
++    if (NW_REV(0, 1)) {
++        return NuFabs(d) > p1;
++    }
+     dist = d;
+     if (dist < 0.0) {
+         dist = -dist;
+@@ -4077,6 +4090,9 @@ NW_HOST_LOOSE_CALLS void MoveCreature(struct creature_s *c)
+     plr = player;
+     GetTopBot(player);
+     NewTopBot(&plr->obj);
++    if (NW_REV(0, 1)) {
++        ai_type = AITab[c->i_aitab].ai_type;
++    }
+     switch (c->obj.dead) {
+     case 1:
+         NuVecAdd(&c->obj.pos, &c->obj.pos, &c->obj.mom);
+@@ -4092,9 +4108,17 @@ NW_HOST_LOOSE_CALLS void MoveCreature(struct creature_s *c)
+         mid.z = c->obj.pos.z;
+         c->obj.oldpos = c->obj.pos;
+         c->obj.anim.oldaction = c->obj.anim.action;
++        if (NW_REV(0, 1)) {
++            touchmask = 0;
++            ptype = -1;
++            ptarget = -1;
++            oldhdg = c->obj.hdg;
++        }
+         OldTopBot(&c->obj);
+         pos = AITab[c->i_aitab].pos;
+-        ai_type = AITab[c->i_aitab].ai_type;
++        if (NW_REV(1, 0)) {
++            ai_type = AITab[c->i_aitab].ai_type;
++        }
+         points = AIType[ai_type].points;
+         if (c->cmdcurr == 0) {
+             c->cmdcurr = c->cmdtable;
+@@ -4486,11 +4510,15 @@ NW_HOST_LOOSE_CALLS void MoveCreature(struct creature_s *c)
+             case 0x56:
+                 c->ai.rotflags = c->cmdcurr->i;
+                 if (c->ai.rotflags & 1) {
+-                    double dd = c->cmdcurr->f;
+-                    if (dd < 0.0) {
+-                        dd = 0.0 - dd;
++                    if (NW_REV(0, 1)) {
++                        c->ai.spins = NuFabs(c->cmdcurr->f);
++                    } else {
++                        double dd = c->cmdcurr->f;
++                        if (dd < 0.0) {
++                            dd = 0.0 - dd;
++                        }
++                        c->ai.spins = dd;
+                     }
+-                    c->ai.spins = dd;
+                 }
+                 break;
+             case 0x33:
+@@ -4970,11 +4998,13 @@ label8c:
+                 dz = pos[c->ai.i1].z - pos[c->ai.i0].z;
+                 fb = (c->ai.speed * 0.02f) / NuFsqrt(dx * dx + dz * dz);
+                 fa = RatioAlongLine(&plr->obj.pos, &pos[c->ai.i0], &pos[c->ai.i1]);
+-                dd = c->ai.lateral - fa;
+-                if (dd < 0.0) {
+-                    dd = 0.0 - dd;
++                if (NW_REV(1, 0)) {
++                    dd = c->ai.lateral - fa;
++                    if (dd < 0.0) {
++                        dd = 0.0 - dd;
++                    }
+                 }
+-                if (dd > fb) {
++                if (NW_REV(dd > fb, NuFabs(c->ai.lateral - fa) > fb)) {
+                     if (fa < c->ai.lateral) {
+                         c->obj.anim.newaction = 0x39;
+                         c->ai.lateral -= fb;
+@@ -5005,11 +5035,13 @@ label8c:
+                     target = hi;
+                 }
+                 dy = target - own;
+-                dd = dy;
+-                if (dd < 0.0) {
+-                    dd = 0.0 - dd;
++                if (NW_REV(1, 0)) {
++                    dd = dy;
++                    if (dd < 0.0) {
++                        dd = 0.0 - dd;
++                    }
+                 }
+-                if (dd > 0.2f) {
++                if (NW_REV(dd > 0.2f, NuFabs(dy) > 0.2f)) {
+                     if (dy < 0.0f) {
+                         c->obj.anim.newaction = 0x16;
+                     } else {

@@ -122,6 +122,7 @@ static void nw_profile_poll(void)
         nw_profile.wombat = p.wombat;
         nw_profile.hub_minigame = p.hub_minigame;
         nw_profile.long_time_names = p.long_time_names;
+        nw_profile.relic_spin = p.relic_spin;
         nw_profile.camera_stability = p.camera_stability;
         nw_profile.hub_gem = p.hub_gem;
         nw_profile.first_boss_cut = p.first_boss_cut;

@@ -153,9 +153,9 @@ set(nw_game_sources ${nw_dataimage} src/gfx/dma.c src/gfx/fx2.c src/gfx/nulight.
   src/gfx/numtl.c src/gfx/nutex.c src/gfx/nuwater.c src/gfx/ps2txtr.c src/gfx/ptl.c src/hle/asmmem.c src/hle/asmstrm.c
   src/hle/eefloat.c src/hle/nuanim.c src/hle/nucamvu0.c src/hle/numath.c src/hle/numtxvu0.c src/hle/nuplnvu0.c
   src/hle/nuvecvu0.c src/port/fptrap.c src/port/game.c src/port/gcutscn.c src/port/heap.c src/port/nuanim.c
-  src/port/hz.c src/port/nudat.c src/port/nuerror.c src/port/nugscn.c
+  src/port/hz.c src/port/nudat.c src/port/nuerror.c src/port/nugscn.c src/port/rev.c
   src/port/nuhgobj.c src/port/level.c src/port/options.c src/port/padscript.c src/port/presence.c
-  src/port/capture.c src/port/disc.c src/port/dump.c src/port/edptl.c src/port/ps2video.c src/port/saves.c src/port/scene.c src/port/shadcom.c
+  src/port/capture.c src/port/disc.c src/port/dump.c src/port/ps2video.c src/port/saves.c src/port/scene.c src/port/shadcom.c
   src/port/autosave.c src/port/cloudfx.c src/port/crate.c src/port/font3d.c src/port/menu.c src/port/nameentry.c src/port/names.c src/port/savemenu.c src/port/nubridge.c src/port/terrain.c
   src/port/text.c src/port/trace.c src/port/wide.c
   src/gameplay/ai.c src/gameplay/air.c src/gameplay/airindicator.c src/gameplay/atlasphere.c src/gameplay/bosscut.c src/gameplay/bosshealth.c
@@ -291,15 +291,14 @@ if(NUWORLD_TESTS)
       fire_r castle_a castle_c fire_fly western droid earth_b fire_b water_b weath_b space_b space_a cast_bug west_b
       cold_b weather ballsof s_balls space_r seashell airship hub)
   set_tests_properties(levels-retail PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 900)
-  # Local only: the same levels at NTSC's 60 Hz, the sweep script on the pad (the recordings are 50 Hz ticks).
-  add_test(NAME levels-60hz-retail
+  # Local only: the same levels as the PAL v1.03 PS2's game at 50 Hz, its recordings (.ppd) on the pad.
+  add_test(NAME levels-pal103-retail
     COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/run_local.py ${Python3_EXECUTABLE}
-      ${CMAKE_CURRENT_SOURCE_DIR}/tests/level_check.py $<TARGET_FILE:crashwoc-nuworld> {root} -j 8 --hz 60
-      --pad-script sweep
+      ${CMAKE_CURRENT_SOURCE_DIR}/tests/level_check.py $<TARGET_FILE:crashwoc-nuworld> {root} -j 8 --revision 1.03
       cold_a volcano water west_a earth avalanch coral snow jungle snow_b castle jungle_a garden farm toonarmy
       fire_r castle_a castle_c fire_fly western droid earth_b fire_b water_b weath_b space_b space_a cast_bug west_b
       cold_b weather ballsof s_balls space_r seashell airship hub)
-  set_tests_properties(levels-60hz-retail PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 900)
+  set_tests_properties(levels-pal103-retail PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 900)
   # Local only: title, intro, hub, a level and the hub again keep as many scene GPU objects alive at both hubs.
   add_test(NAME scene-free-retail
     COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/run_local.py ${Python3_EXECUTABLE}
@@ -337,7 +336,17 @@ if(NUWORLD_TESTS)
   target_compile_options(nuworld_test_hz PRIVATE -Wall -Wextra)
   target_link_libraries(nuworld_test_hz PRIVATE $<LINK_LIBRARY:WHOLE_ARCHIVE,nuworld_game>)
   add_test(NAME hz COMMAND nuworld_test_hz)
-  # The disc's region and its level files' sound numbers in PAL's numbering.
+  add_executable(nuworld_test_rev tests/c/test_rev.c)
+  target_include_directories(nuworld_test_rev PRIVATE ${nw_decomp_includes})
+  target_compile_definitions(nuworld_test_rev PRIVATE NW_HOST)
+  target_compile_options(nuworld_test_rev PRIVATE -Wall -Wextra)
+  target_link_libraries(nuworld_test_rev PRIVATE $<LINK_LIBRARY:WHOLE_ARCHIVE,nuworld_game>)
+  add_test(NAME rev COMMAND nuworld_test_rev)
+  add_executable(nuworld_test_canon tests/c/test_canon.c)
+  target_compile_options(nuworld_test_canon PRIVATE -Wall -Wextra)
+  target_link_libraries(nuworld_test_canon PRIVATE nuworld_vfs)
+  add_test(NAME canon COMMAND nuworld_test_canon ${CMAKE_CURRENT_BINARY_DIR}/test-canon)
+  # The disc's region.
   add_executable(nuworld_test_disc tests/c/test_disc.c)
   target_include_directories(nuworld_test_disc PRIVATE ${nw_decomp_includes})
   target_compile_definitions(nuworld_test_disc PRIVATE NW_HOST)

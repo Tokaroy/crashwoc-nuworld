@@ -10,6 +10,7 @@
 
 struct NwVfsFile {
     SDL_IOStream *io;
+    void *mem;
 };
 
 typedef struct NwVfsScan {
@@ -363,6 +364,38 @@ void nw_vfs_overlay_each(const NwVfs *vfs, const char *prefix,
     }
 }
 
+static NwVfsFile *nw_vfs_open_canon(const NwVfs *vfs, const char *key)
+{
+    const NwCanonFile *c = vfs->canon ? nw_canon_find(vfs->canon, vfs->manifest, key) : NULL;
+    int slot = 0;
+    const NwVfsEntry *e = NULL;
+    while (c && slot < NW_VFS_SLOTS && !(e = nw_vfs_lookup(&vfs->mounts[slot], key))) {
+        slot++;
+    }
+    if (!c || (c->sha256 ? !e || slot != NW_VFS_DISC : e != NULL)) {
+        return NULL;
+    }
+    char *path = NULL;
+    size_t size = 0;
+    uint8_t *data = NULL;
+    if (!e || SDL_asprintf(&path, "%s%s", vfs->mounts[slot].root, e->path) >= 0) {
+        data = nw_canon_load(vfs->canon, c, path, &size);
+    }
+    SDL_free(path);
+    SDL_IOStream *io = data ? SDL_IOFromConstMem(data, size) : NULL;
+    NwVfsFile *f = io ? SDL_malloc(sizeof(*f)) : NULL;
+    if (!f) {
+        if (io) {
+            SDL_CloseIO(io);
+        }
+        SDL_free(data);
+        return NULL;
+    }
+    f->io = io;
+    f->mem = data;
+    return f;
+}
+
 NwVfsFile *nw_vfs_open(const NwVfs *vfs, const char *game_path, NwVfsMode mode)
 {
     static const char *const modes[] = { "rb", "wb", "ab" };
@@ -380,6 +413,10 @@ NwVfsFile *nw_vfs_open(const NwVfs *vfs, const char *game_path, NwVfsMode mode)
         SDL_SetError("%s: cdrom0: is read-only", game_path);
         return NULL;
     }
+    NwVfsFile *canon = device == NW_VFS_CDROM ? nw_vfs_open_canon(vfs, key) : NULL;
+    if (canon) {
+        return canon;
+    }
     char *path = nw_vfs_resolve(vfs, game_path);
     if (!path) {
         return NULL;
@@ -396,7 +433,7 @@ NwVfsFile *nw_vfs_open(const NwVfs *vfs, const char *game_path, NwVfsMode mode)
     }
     SDL_IOStream *io = SDL_IOFromFile(path, modes[mode]);
     SDL_free(path);
-    NwVfsFile *f = io ? SDL_malloc(sizeof(*f)) : NULL;
+    NwVfsFile *f = io ? SDL_calloc(1, sizeof(*f)) : NULL;
     if (!f) {
         if (io) {
             SDL_CloseIO(io);
@@ -438,6 +475,7 @@ void nw_vfs_close(NwVfsFile *f)
 {
     if (f) {
         SDL_CloseIO(f->io);
+        SDL_free(f->mem);
         SDL_free(f);
     }
 }

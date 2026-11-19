@@ -1,0 +1,11 @@
+--- a/src/game/vehicle.c
++++ b/src/game/vehicle.c
+@@ -2597,7 +2597,7 @@ void InitWeatherBoss_a(void)
+     u16 startangle;
+ 
+     wb = &WeatherBoss;
+-    memset(&WeatherBoss, 0, 0x65C);
++    memset(&WeatherBoss, 0, sizeof(WeatherBoss));
+     if (MyInitModelNew(&wb->maindraw, 0x86, 0x32, 0, 0, &wb->pos) != 0 &&
+         MyInitModelNew(&wb->bonesdraw, 0xBE, 0xE, 0, 0, &wb->pos) != 0) {
+         BazookaIconOn = 0;

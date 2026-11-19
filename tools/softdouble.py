@@ -17,6 +17,10 @@ HELPERS = {
     ("fptrunc", "f32.f64"): ("nw_sd_to_f32", 1),
     ("sitofp", "f32.i64"): ("nw_sd_s64_to_f32", 1),
     ("uitofp", "f32.i64"): ("nw_sd_u64_to_f32", 1),
+    ("fadd", "f32"): ("nw_fpu_add", 2),
+    ("fsub", "f32"): ("nw_fpu_sub", 2),
+    ("fdiv", "f32"): ("nw_fpu_div", 2),
+    ("sqrt", "f32"): ("nw_fpu_sqrt", 1),
 }
 HELPER_DECLS = {
     "nw_sd_add": "double @nw_sd_add(double, double)",
@@ -27,6 +31,10 @@ HELPER_DECLS = {
     "nw_sd_to_f32": "float @nw_sd_to_f32(double)",
     "nw_sd_s64_to_f32": "float @nw_sd_s64_to_f32(i64)",
     "nw_sd_u64_to_f32": "float @nw_sd_u64_to_f32(i64)",
+    "nw_fpu_add": "float @nw_fpu_add(float, float)",
+    "nw_fpu_sub": "float @nw_fpu_sub(float, float)",
+    "nw_fpu_div": "float @nw_fpu_div(float, float)",
+    "nw_fpu_sqrt": "float @nw_fpu_sqrt(float)",
 }
 # Exact in any rounding.
 EXACT = {"fpext", "fcmp", "fcmps", "fptosi", "fptoui", "floor", "ceil", "trunc", "round", "roundeven", "maxnum",
@@ -43,6 +51,12 @@ HOST_FP = ("sin", "cos", "tan", "asin", "acos", "atan", "atan2", "sinh", "cosh",
            "log", "log2", "log10", "log1p", "pow", "fmod", "remainder", "cbrt", "hypot")
 HOST = {*HOST_FP, *(f + "f" for f in HOST_FP), "atof", "strtod", "strtof"}
 HOST_REF = re.compile(r"@(" + "|".join(sorted(HOST, key=len, reverse=True)) + r")(?![\w.$])")
+
+
+FPU = {"fadd", "fsub", "fdiv", "sqrt"}
+PLAIN_FLOAT = re.compile(r"=\s*f(?:add|sub|div)\b[^=]*\bfloat\b|@llvm\.sqrt\.v\d+f32\(")
+SQRT = "@llvm.sqrt.f32("
+VU0 = re.compile(r"vu0", re.I)
 
 
 class Unsupported(Exception):
@@ -66,12 +80,16 @@ def operands(text: str, start: int) -> tuple[list[str], int]:
     raise Unsupported("unterminated call")
 
 
-def rewrite_line(line: str, fn: str, used: set[str]) -> str:
+def rewrite_line(line: str, fn: str, used: set[str], fpu: bool = True) -> str:
     out, pos = [], 0
     for m in CONSTRAINED.finditer(line):
         op, over = m.group(1), m.group(2)
         helper = HELPERS.get((op, over))
+        if helper is not None and over == "f32" and not fpu:
+            continue
         if helper is None:
+            if fpu and op in FPU and over.endswith("f32"):
+                raise Unsupported(f"{fn}: no EE float for {op}.{over}")
             if "f64" in over and op not in EXACT and not (op in ("sitofp", "uitofp") and EXACT_INT.search(over)):
                 raise Unsupported(f"{fn}: no software double for {op}.{over}")
             continue
@@ -85,7 +103,7 @@ def rewrite_line(line: str, fn: str, used: set[str]) -> str:
     return "".join(out)
 
 
-def rewrite(ir: str) -> str:
+def rewrite(ir: str, fpu: bool = True) -> str:
     lines = ir.split("\n")
     defined = {m.group(1) for line in lines if (m := DEFINE.match(line))}
     used: set[str] = set()
@@ -98,8 +116,13 @@ def rewrite(ir: str) -> str:
         elif fn is not None:
             if PLAIN.search(line) or LIBM.search(line):
                 raise Unsupported(f"{fn}: no software double for {line.strip()}")
+            if fpu and PLAIN_FLOAT.search(line):
+                raise Unsupported(f"{fn}: no EE float for {line.strip()}")
+            if fpu and SQRT in line:
+                lines[i] = line = line.replace(SQRT, "@nw_fpu_sqrt(")
+                used.add("nw_fpu_sqrt")
             if "@llvm.experimental.constrained." in line:
-                lines[i] = line = rewrite_line(line, fn, used)
+                lines[i] = line = rewrite_line(line, fn, used, fpu)
         if "@" in line:
             host = HOST_REF.sub(lambda h: h.group(0) if h.group(1) in defined else "@nw_host_" + h.group(1), line)
             if host != line and line.startswith("declare dllimport "):
@@ -140,7 +163,8 @@ def main(argv: list[str]) -> int:
     if r.returncode:
         return r.returncode
     try:
-        ll.write_text(rewrite(ll.read_text(encoding="utf-8")), encoding="utf-8", newline="\n")
+        ll.write_text(rewrite(ll.read_text(encoding="utf-8"), not VU0.search(Path(src).name)), encoding="utf-8",
+                      newline="\n")
     except Unsupported as e:
         print(f"{src}: softdouble: {e}", file=sys.stderr)
         return 1

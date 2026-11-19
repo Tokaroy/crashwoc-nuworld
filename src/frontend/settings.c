@@ -319,9 +319,6 @@ static const NwSettingKey nw_settings_keys[] = {
               "Video menu (Windows); next start" },
     { .table = "game", .name = "hardware_speed", .kind = NW_SETTING_BOOL, NW_FIELD(hardware_speed),
       .help = "true: PS2 disc and sound load times" },
-    { .table = "game", .name = "pal_60hz", .kind = NW_SETTING_BOOL, NW_FIELD(pal_60hz),
-      .help = "true: PAL disc at 60 Hz like the US release; false: 50 Hz, as on PS2; US disc always 60 Hz; "
-              "next start" },
     { .table = "game", .name = "retail_menu", .kind = NW_SETTING_BOOL, NW_FIELD(retail_menu),
       .help = "true: PS2 logos and title cutscene; false: NuWorld title menu; next start" },
     { .table = "game", .name = "air_indicator", .kind = NW_SETTING_BOOL, NW_FIELD(air_indicator),
@@ -334,6 +331,8 @@ static const NwSettingKey nw_settings_keys[] = {
       .help = "true: Crunch on the warp room top floor; X next to him plays the cut loading screen minigame" },
     { .table = "game", .name = "long_time_names", .kind = NW_SETTING_BOOL, NW_FIELD(long_time_names),
       .help = "true: time trial names up to 8 letters; false: 3, as on PS2" },
+    { .table = "game", .name = "relic_spin", .kind = NW_SETTING_BOOL, NW_FIELD(relic_spin),
+      .help = "true: the relic next to a new time trial record turns, its glow widening and narrowing with it" },
     { .table = "game", .name = "camera_stability", .kind = NW_SETTING_INT, NW_FIELD(camera_stability), .lo = 0,
       .hi = 100, .help = "0-100, share of Crash's jump the camera ignores; 0: PS2, 100: holds height until landing" },
     { .table = "game", .name = "hub_gem", .kind = NW_SETTING_BOOL, NW_FIELD(hub_gem), .hidden = true },
@@ -394,7 +393,6 @@ static const NwSettingKey nw_settings_keys[] = {
 void nw_settings_defaults(NwSettings *s)
 {
     s->hardware_speed = false;
-    s->pal_60hz = false;
     s->retail_menu = false;
     s->movement = (NwMovement)NW_MOVEMENT_NHANCED;
     s->air_indicator = true;
@@ -402,6 +400,7 @@ void nw_settings_defaults(NwSettings *s)
     s->wombat = true;
     s->hub_minigame = true;
     s->long_time_names = false;
+    s->relic_spin = true;
     s->camera_stability = 50;
     s->hub_gem = true;
     s->first_boss_cut = true;

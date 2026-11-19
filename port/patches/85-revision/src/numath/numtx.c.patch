@@ -1,0 +1,22 @@
+--- a/src/numath/numtx.c
++++ b/src/numath/numtx.c
+@@ -242,13 +242,17 @@ void NuMtxInvH(struct numtx_s *mi, struct numtx_s *m0)
+             s = 0.0;
+             for (k = i; k < n; k++) {
+                 q = a[j][k];
+-                if (q < 0.0) {
++                if (NW_REV(0, 1)) {
++                    q = NuFabs(q);
++                } else if (q < 0.0) {
+                     q = -q;
+                 }
+                 s += q;
+             }
+             q = a[j][i];
+-            if (q < 0.0) {
++            if (NW_REV(0, 1)) {
++                q = NuFabs(q);
++            } else if (q < 0.0) {
+                 q = -q;
+             }
+             q = q / s;

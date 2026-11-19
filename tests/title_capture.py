@@ -40,7 +40,8 @@ def compare(port: dict, pcsx2: dict) -> list[str]:
 
 def main() -> int:
     exe, root, fixture, out = sys.argv[1], Path(sys.argv[2]), sys.argv[3], Path(sys.argv[4])
-    run = subprocess.run([exe, "--data-dir", str(root), "--capture", fixture, "--capture-dir", str(out / "port")],
+    run = subprocess.run([exe, "--data-dir", str(root), "--revision", "1.03", "--capture", fixture, "--capture-dir",
+                          str(out / "port")],
                          capture_output=True, text=True)
     if run.returncode != 0:
         sys.exit(f"capture failed ({run.returncode}):\n{run.stderr[-2000:]}")

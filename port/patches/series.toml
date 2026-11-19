@@ -30,8 +30,8 @@ name = "80-interp"
 reason = "Display-rate interpolation keys and snaps (NW_INTERP_*)."
 
 [[concern]]
-name = "90-hz"
-reason = "The attract demos at 60 Hz (NW_DEMOS); the 50/60 Hz values are rules in port/values/hz.toml."
+name = "85-revision"
+reason = "The late revision (PAL v2.01, USA v1.01) beside PAL v1.03's code (NW_REV)."
 
 [[concern]]
 name = "95-load-bounds"
@@ -52,3 +52,7 @@ reason = "NuWorld's longer names shown where the game shows a game's or a time t
 [[concern]]
 name = "99-no-cut-loading"
 reason = "No time-tunnel LOADING screen before a cutscene: BGLoadCutMovie keeps the screen black and ends as soon as the background load does."
+
+[[concern]]
+name = "99-relic-spin"
+reason = "The new time trial record's relic turns on the results like the pause panel's, and the glow behind a turning relic widens and narrows with it, with [game] relic_spin (NW_RELIC_SPIN, NW_RELIC_GLOW)."

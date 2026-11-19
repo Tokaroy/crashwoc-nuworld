@@ -488,7 +488,8 @@ static void nw_menu_title(struct cursor_s *cursor, s32 paused)
     nw_menu_draw_quit(cursor, &x, &y, &i);
     if (nw_update_available()) {
         /* DrawMenuEntry's flashing colours for the selected row */
-        s32 colour = (GlobalTimer.frame % 10 < 5) ? 0 : 3;
+        u32 period = nw_hz == 60 ? 12 : 10;
+        s32 colour = (GlobalTimer.frame % period < period / 2) ? 0 : 3;
         Text3D(nw_menu_update_notice[Game.language][0], 0.95f, 0.9f, 1.0f, 0.3f, 0.3f, 0.3f, 8, colour);
         Text3D(nw_menu_update_notice[Game.language][1], 0.95f, 0.82f, 1.0f, 0.3f, 0.3f, 0.3f, 8, colour);
     }

@@ -231,7 +231,8 @@ static NwWizardResult nw_wizard_pick(NwWizard *w)
 
     nw_wizard_title("Welcome");
     ImGui::TextWrapped("NuWorld needs a disc image of your own copy of the game:");
-    ImGui::BulletText("Crash Bandicoot: The Wrath of Cortex for PS2: PAL v1.03 (SLES-50386) or USA v1.00 (SLUS-20238)");
+    ImGui::BulletText("Crash Bandicoot: The Wrath of Cortex for PS2: PAL v1.03 or v2.01 Platinum (SLES-50386), USA "
+                      "v1.00 or v1.01 Greatest Hits (SLUS-20238)");
     ImGui::BulletText(".iso, or .bin with its .cue");
 
     if (w->had_disc) {
@@ -398,7 +399,7 @@ static NwWizardResult nw_wizard_welcome(NwWizard *w)
     nw_wizard_heading("Debug menu");
     ImGui::Bullet();
     ImGui::TextWrapped("Press F1 at any time to open the debug menu. Under Settings and Gameplay you also find video, "
-                       "audio, controls, game speed and camera, so you can set NuWorld up the way you like.");
+                       "audio, controls and camera, so you can set NuWorld up the way you like.");
     ImGui::Bullet();
     ImGui::TextWrapped("The debug menu is only for the beta. The first release will have native menus.");
     ImGui::Bullet();
@@ -489,7 +490,8 @@ static void nw_wizard_failed(NwWizard *w)
     nw_wizard_title("Import failed");
     ImGui::TextWrapped("%s", nw_wizard_basename(w->image ? w->image : ""));
     nw_wizard_wrapped(nw_wizard_bad, w->error);
-    ImGui::TextWrapped("NuWorld runs PAL v1.03 (SLES-50386) and USA v1.00 (SLUS-20238). The data folder is unchanged.");
+    ImGui::TextWrapped("NuWorld runs PAL v1.03 and v2.01 (SLES-50386) and USA v1.00 and v1.01 (SLUS-20238). The data "
+                       "folder is unchanged.");
     ImGui::Spacing();
     static const char *const buttons[] = { "Try again", "Back" };
     nw_wizard_align_right(buttons, 2);

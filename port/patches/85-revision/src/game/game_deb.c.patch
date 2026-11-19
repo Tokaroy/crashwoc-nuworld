@@ -1,0 +1,12 @@
+--- a/src/game/game_deb.c
++++ b/src/game/game_deb.c
+@@ -776,6 +776,9 @@ debris:
+         }
+         inf = ShadowInfo();
+         gindex = -1;
++        if (NW_REV(0, 1)) {
++            depth = 0;
++        }
+         if (EShadY != 2000000.0f && EShadowInfo() == 4) {
+             y = EShadY;
+             depth = 0x78;

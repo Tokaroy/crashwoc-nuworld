@@ -449,18 +449,25 @@ static void fresh(void)
     CHECK(nw_paths_remove_tree(dir) && SDL_CreateDirectory(dir));
 }
 
-#define OLDER NW_SAVE_PS2_NAME "slot00.toml" /* an older NuWorld build's file of 4 games */
-#define RAW NW_SAVE_PS2_NAME "slot00"         /* a raw PS2 save */
+#define OLDER NW_SAVE_PS2_PAL "slot00.toml" /* an older NuWorld build's file of 4 games */
+#define RAW NW_SAVE_PS2_PAL "slot00"         /* a raw PS2 save */
+#define RAW_US NW_SAVE_PS2_US "slot00"
 #define GAME NW_SAVE_GAME_SIZE
+
+static uint8_t *card_of(const char *serial, const char *file, const uint8_t *save, size_t save_size, bool ecc,
+                        uint32_t gap, size_t *size)
+{
+    static Pcb m;
+    const char *names[2] = { "icon.sys", file };
+    const void *data[2] = { "icon", save };
+    size_t lens[2] = { 4, save_size };
+    pcb_build(&m, gap, serial, save ? 2 : 1, names, data, lens);
+    return pcb_image(&m, ecc, size);
+}
 
 static uint8_t *card_with(const uint8_t *save, size_t save_size, bool ecc, uint32_t gap, size_t *size)
 {
-    static Pcb m;
-    const char *names[2] = { "icon.sys", RAW };
-    const void *data[2] = { "icon", save };
-    size_t lens[2] = { 4, save_size };
-    pcb_build(&m, gap, NW_SAVE_PS2_NAME, save ? 2 : 1, names, data, lens);
-    return pcb_image(&m, ecc, size);
+    return card_of(NW_SAVE_PS2_PAL, RAW, save, save_size, ecc, gap, size);
 }
 
 static void test_card(const uint8_t *games)
@@ -470,12 +477,12 @@ static void test_card(const uint8_t *games)
     for (int variant = 0; variant < 4; variant++) {
         uint8_t *img = card_with(games, SAVE_SIZE, variant & 1, (uint32_t)variant / 2, &size);
         CHECK(nw_ps2card_is_card(img, size));
-        uint8_t *file = nw_ps2card_file(img, size, NW_SAVE_PS2_NAME, RAW, &len, &missing);
+        uint8_t *file = nw_ps2card_file(img, size, NW_SAVE_PS2_PAL, RAW, &len, &missing);
         CHECK(file && len == SAVE_SIZE && memcmp(file, games, SAVE_SIZE) == 0 && !missing);
         SDL_free(file);
-        CHECK(!nw_ps2card_file(img, size, NW_SAVE_PS2_NAME, "nothing", &len, &missing) && missing);
+        CHECK(!nw_ps2card_file(img, size, NW_SAVE_PS2_PAL, "nothing", &len, &missing) && missing);
         CHECK(!nw_ps2card_file(img, size, "OTHER", RAW, &len, &missing) && missing);
-        CHECK(!nw_ps2card_file(img, size - 1, NW_SAVE_PS2_NAME, RAW, &len, &missing) &&
+        CHECK(!nw_ps2card_file(img, size - 1, NW_SAVE_PS2_PAL, RAW, &len, &missing) &&
               !missing);
         free(img);
     }
@@ -485,7 +492,7 @@ static void test_card(const uint8_t *games)
     const char *names[1] = { RAW };
     const void *data[1] = { games };
     size_t lens[1] = { SAVE_SIZE };
-    pcb_build(&m, 0, NW_SAVE_PS2_NAME, 1, names, data, lens);
+    pcb_build(&m, 0, NW_SAVE_PS2_PAL, 1, names, data, lens);
     uint8_t *entry = pcb_entry_at(&m, pcb_rd32(pcb_entry_at(&m, 0, 2) + 0x10), 2);
     uint32_t first = pcb_rd32(entry + 0x10), last = first;
     while (pcb_rd32(pcb_fat(&m, last)) != PCB_END) {
@@ -494,21 +501,21 @@ static void test_card(const uint8_t *games)
     pcb_le32(pcb_fat(&m, last), 0x80000000u | first);
     pcb_le32(entry + 0x04, 0x100000); /* a size longer than the card */
     uint8_t *img = pcb_image(&m, true, &size);
-    CHECK(!nw_ps2card_file(img, size, NW_SAVE_PS2_NAME, names[0], &len, &missing) && !missing);
+    CHECK(!nw_ps2card_file(img, size, NW_SAVE_PS2_PAL, names[0], &len, &missing) && !missing);
     free(img);
     pcb_le32(entry + 0x04, PCB_CLUSTERS * PCB_CLUSTER + 1); /* more clusters than the card has */
     img = pcb_image(&m, true, &size);
-    CHECK(!nw_ps2card_file(img, size, NW_SAVE_PS2_NAME, names[0], &len, &missing) && !missing &&
+    CHECK(!nw_ps2card_file(img, size, NW_SAVE_PS2_PAL, names[0], &len, &missing) && !missing &&
           strstr(SDL_GetError(), "loops"));
     free(img);
     pcb_le32(m.c[PCB_IFC], 0x7FFFFFF0u);
     img = pcb_image(&m, true, &size);
-    CHECK(!nw_ps2card_file(img, size, NW_SAVE_PS2_NAME, names[0], &len, &missing) && !missing);
+    CHECK(!nw_ps2card_file(img, size, NW_SAVE_PS2_PAL, names[0], &len, &missing) && !missing);
     free(img);
     pcb_le32(m.c[PCB_IFC], PCB_FAT);
     pcb_le16(m.c[0] + 0x2A, 0);
     img = pcb_image(&m, true, &size);
-    CHECK(!nw_ps2card_file(img, size, NW_SAVE_PS2_NAME, names[0], &len, &missing) && !missing);
+    CHECK(!nw_ps2card_file(img, size, NW_SAVE_PS2_PAL, names[0], &len, &missing) && !missing);
     free(img);
 
     uint8_t blank[4096];
@@ -681,6 +688,10 @@ static void test_convert(const uint8_t *games)
     CHECK(nw_save_convert(dir, &reg) == 3);
     CHECK(nw_save_load(dir, 0, &reg, back, NULL, NULL) == NW_SAVE_OK && memcmp(back, card, GAME) == 0);
 
+    fresh();
+    put(RAW_US, card, SAVE_SIZE);
+    CHECK(nw_save_convert(dir, &reg) == 3 && there("save004.toml") && there(RAW_US));
+
     /* nothing usable: no save, and no file made */
     fresh();
     put("x.ps2", "junk", 4);
@@ -717,6 +728,14 @@ static void test_import(const uint8_t *games, const uint8_t *other)
     put("empty.ps2", without, size);
     free(without);
     CHECK(nw_save_import(dir, path_of("empty.ps2"), &reg) == 0);
+    uint8_t *us = card_of(NW_SAVE_PS2_US, RAW_US, card, SAVE_SIZE, true, 0, &size);
+    put("us.ps2", us, size);
+    free(us);
+    uint8_t us_games[SAVE_SIZE];
+    CHECK(nw_save_card(path_of("us.ps2"), NULL, &reg, us_games) == NW_SAVE_CARD_SAVE &&
+          memcmp(us_games, card, SAVE_SIZE) == 0);
+    CHECK(nw_save_card(path_of("us.ps2"), NW_SAVE_PS2_PAL, &reg, us_games) == NW_SAVE_CARD_NONE);
+    CHECK(nw_save_import(dir, path_of("us.ps2"), &reg) == 3 && nw_save_exists(dir, 10) && !nw_save_exists(dir, 11));
     uint8_t blank[1024];
     memset(blank, 0xFF, sizeof(blank));
     put("blank.ps2", blank, sizeof(blank));
@@ -919,31 +938,31 @@ static void test_export(const uint8_t *games, const uint8_t *other)
     const char *names_other[1] = { "OTHERFILE" };
     const void *data_other[1] = { "other game" };
     size_t lens_other[1] = { 10 };
-    pcb_build(&m, 1, "BASLUS-20238", 1, names_other, data_other, lens_other);
+    pcb_build(&m, 1, "BASLUS-20000", 1, names_other, data_other, lens_other);
     uint8_t *img = pcb_image(&m, true, &size);
     put("card.ps2", img, size);
-    CHECK(nw_save_card(path_of("card.ps2"), &reg, card_games) == NW_SAVE_CARD_NONE);
+    CHECK(nw_save_card(path_of("card.ps2"), NW_SAVE_PS2_PAL, &reg, card_games) == NW_SAVE_CARD_NONE);
 
     int picks[4] = { 0, NW_SAVE_PS2_KEEP, NW_SAVE_PS2_EMPTY, 4 };
-    CHECK(nw_save_export(dir, &reg, path_of("card.ps2"), picks, icon, sizeof(icon)));
-    CHECK(nw_save_card(path_of("card.ps2"), &reg, card_games) == NW_SAVE_CARD_SAVE);
+    CHECK(nw_save_export(dir, &reg, path_of("card.ps2"), NW_SAVE_PS2_PAL, picks, icon, sizeof(icon)));
+    CHECK(nw_save_card(path_of("card.ps2"), NW_SAVE_PS2_PAL, &reg, card_games) == NW_SAVE_CARD_SAVE);
     CHECK(memcmp(card_games, g, GAME) == 0 && memcmp(card_games + 3 * GAME, o, GAME) == 0);
     CHECK(card_games[GAME + NW_SAVE_EMPTY] && card_games[2 * GAME + NW_SAVE_EMPTY]);
     uint8_t *before = get("card.ps2.bak", &len);
     CHECK(before && len == size && memcmp(before, img, size) == 0 && !there("card.ps2.tmp"));
     SDL_free(before);
     free(img);
-    uint8_t *file = card_file("card.ps2", NW_SAVE_PS2_NAME, "crash.ico", &len);
+    uint8_t *file = card_file("card.ps2", NW_SAVE_PS2_PAL, "crash.ico", &len);
     CHECK(file && len == sizeof(icon) && memcmp(file, icon, len) == 0);
     SDL_free(file);
-    file = card_file("card.ps2", NW_SAVE_PS2_NAME, "icon.sys", &len);
+    file = card_file("card.ps2", NW_SAVE_PS2_PAL, "icon.sys", &len);
     CHECK(file && len == 0x3C4 && memcmp(file, "PS2D", 4) == 0 && file[6] == 30 && file[0xC0] == 0x82 &&
           file[0xC1] == 0x62 && strcmp((char *)file + 0x104, "crash.ico") == 0);
     SDL_free(file);
-    file = card_file("card.ps2", NW_SAVE_PS2_NAME, NW_SAVE_PS2_NAME, &len);
+    file = card_file("card.ps2", NW_SAVE_PS2_PAL, NW_SAVE_PS2_PAL, &len);
     CHECK(file && len == 4);
     SDL_free(file);
-    file = card_file("card.ps2", "BASLUS-20238", "OTHERFILE", &len);
+    file = card_file("card.ps2", "BASLUS-20000", "OTHERFILE", &len);
     CHECK(file && len == 10 && memcmp(file, "other game", 10) == 0);
     SDL_free(file);
     img = get("card.ps2", &size);
@@ -952,8 +971,8 @@ static void test_export(const uint8_t *games, const uint8_t *other)
 
     /* again over the card's save, without the icon (it has one): kept slots stay */
     int again[4] = { NW_SAVE_PS2_KEEP, 4, NW_SAVE_PS2_KEEP, NW_SAVE_PS2_EMPTY };
-    CHECK(nw_save_export(dir, &reg, path_of("card.ps2"), again, NULL, 0));
-    CHECK(nw_save_card(path_of("card.ps2"), &reg, back) == NW_SAVE_CARD_SAVE);
+    CHECK(nw_save_export(dir, &reg, path_of("card.ps2"), NW_SAVE_PS2_PAL, again, NULL, 0));
+    CHECK(nw_save_card(path_of("card.ps2"), NW_SAVE_PS2_PAL, &reg, back) == NW_SAVE_CARD_SAVE);
     CHECK(memcmp(back, g, GAME) == 0 && memcmp(back + GAME, o, GAME) == 0 && back[2 * GAME + NW_SAVE_EMPTY] &&
           back[3 * GAME + NW_SAVE_EMPTY] && memcmp(back + 3 * GAME + 1, o + 1, 16) == 0);
 
@@ -970,13 +989,24 @@ static void test_export(const uint8_t *games, const uint8_t *other)
     SDL_strlcpy(dir, keep, sizeof(dir));
     SDL_free(keep);
 
+    img = pcb_image(&m, true, &size);
+    put("us.ps2", img, size);
+    free(img);
+    CHECK(nw_save_export(dir, &reg, path_of("us.ps2"), NW_SAVE_PS2_US, picks, icon, sizeof(icon)));
+    CHECK(nw_save_card(path_of("us.ps2"), NW_SAVE_PS2_PAL, &reg, back) == NW_SAVE_CARD_NONE);
+    CHECK(nw_save_card(path_of("us.ps2"), NULL, &reg, back) == NW_SAVE_CARD_SAVE && memcmp(back, g, GAME) == 0);
+    file = card_file("us.ps2", NW_SAVE_PS2_US, RAW_US, &len);
+    CHECK(file && len == SAVE_SIZE);
+    SDL_free(file);
+
     /* refused, the card unchanged: a save that is not there, no icon for a new save, a blank card, not a card */
     img = pcb_image(&m, true, &size);
     put("other.ps2", img, size);
     int missing_save[4] = { 7, NW_SAVE_PS2_KEEP, NW_SAVE_PS2_KEEP, NW_SAVE_PS2_KEEP };
-    CHECK(!nw_save_export(dir, &reg, path_of("other.ps2"), missing_save, icon, sizeof(icon)) &&
+    CHECK(!nw_save_export(dir, &reg, path_of("other.ps2"), NW_SAVE_PS2_PAL, missing_save, icon, sizeof(icon)) &&
           strstr(SDL_GetError(), "save 8"));
-    CHECK(!nw_save_export(dir, &reg, path_of("other.ps2"), picks, NULL, 0) && strstr(SDL_GetError(), "icon"));
+    CHECK(!nw_save_export(dir, &reg, path_of("other.ps2"), NW_SAVE_PS2_PAL, picks, NULL, 0) &&
+          strstr(SDL_GetError(), "icon"));
     uint8_t *now = get("other.ps2", &len);
     CHECK(now && len == size && memcmp(now, img, size) == 0 && !there("other.ps2.bak"));
     SDL_free(now);
@@ -985,17 +1015,19 @@ static void test_export(const uint8_t *games, const uint8_t *other)
     uint8_t *blank = malloc(size);
     memset(blank, 0xFF, size);
     put("blank.ps2", blank, size);
-    CHECK(nw_save_card(path_of("blank.ps2"), &reg, back) == NW_SAVE_CARD_BLANK && strstr(SDL_GetError(), "format"));
-    CHECK(!nw_save_export(dir, &reg, path_of("blank.ps2"), picks, icon, sizeof(icon)) &&
+    CHECK(nw_save_card(path_of("blank.ps2"), NW_SAVE_PS2_PAL, &reg, back) == NW_SAVE_CARD_BLANK &&
+          strstr(SDL_GetError(), "format"));
+    CHECK(!nw_save_export(dir, &reg, path_of("blank.ps2"), NW_SAVE_PS2_PAL, picks, icon, sizeof(icon)) &&
           strstr(SDL_GetError(), "not formatted"));
     now = get("blank.ps2", &len);
     CHECK(now && len == size && memcmp(now, blank, size) == 0 && !there("blank.ps2.bak"));
     SDL_free(now);
     blank[7] = 1;
     put("junk.ps2", blank, size);
-    CHECK(nw_save_card(path_of("junk.ps2"), &reg, back) == NW_SAVE_CARD_FAILED && strstr(SDL_GetError(), "not a PS2"));
+    CHECK(nw_save_card(path_of("junk.ps2"), NW_SAVE_PS2_PAL, &reg, back) == NW_SAVE_CARD_FAILED &&
+          strstr(SDL_GetError(), "not a PS2"));
     free(blank);
-    CHECK(nw_save_card(path_of("nothing.ps2"), &reg, back) == NW_SAVE_CARD_FAILED);
+    CHECK(nw_save_card(path_of("nothing.ps2"), NW_SAVE_PS2_PAL, &reg, back) == NW_SAVE_CARD_FAILED);
 
     /* a card save that does not read: kept slots refuse, a full set of slots replaces it */
     uint8_t card[SAVE_SIZE];
@@ -1004,11 +1036,13 @@ static void test_export(const uint8_t *games, const uint8_t *other)
     img = card_with(card, SAVE_SIZE, true, 0, &size);
     put("bad.ps2", img, size);
     free(img);
-    CHECK(nw_save_card(path_of("bad.ps2"), &reg, back) == NW_SAVE_CARD_FAILED && strstr(SDL_GetError(), "language"));
-    CHECK(!nw_save_export(dir, &reg, path_of("bad.ps2"), picks, icon, sizeof(icon)));
+    CHECK(nw_save_card(path_of("bad.ps2"), NW_SAVE_PS2_PAL, &reg, back) == NW_SAVE_CARD_FAILED &&
+          strstr(SDL_GetError(), "language"));
+    CHECK(!nw_save_export(dir, &reg, path_of("bad.ps2"), NW_SAVE_PS2_PAL, picks, icon, sizeof(icon)));
     int all[4] = { 0, NW_SAVE_PS2_EMPTY, NW_SAVE_PS2_EMPTY, 4 };
-    CHECK(nw_save_export(dir, &reg, path_of("bad.ps2"), all, icon, sizeof(icon)));
-    CHECK(nw_save_card(path_of("bad.ps2"), &reg, back) == NW_SAVE_CARD_SAVE && memcmp(back, g, GAME) == 0);
+    CHECK(nw_save_export(dir, &reg, path_of("bad.ps2"), NW_SAVE_PS2_PAL, all, icon, sizeof(icon)));
+    CHECK(nw_save_card(path_of("bad.ps2"), NW_SAVE_PS2_PAL, &reg, back) == NW_SAVE_CARD_SAVE &&
+          memcmp(back, g, GAME) == 0);
 }
 
 /* Interrupt every durable I/O stage, for both save kinds. A failed update must leave the old main readable.

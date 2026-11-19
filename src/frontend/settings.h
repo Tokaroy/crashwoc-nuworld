@@ -33,7 +33,6 @@ typedef enum NwMovementPart {
 
 typedef struct NwSettings {
     bool hardware_speed; /* [game]: the PS2's disc and sound load times instead of instant loads */
-    bool pal_60hz;       /* a PAL disc at 60 Hz with the US release's values */
     bool retail_menu;    /* the PS2's logos and title cut, from the next start */
     NwMovement movement; /* [game.movement], N. Hanced Movement */
     bool air_indicator;  /* a ring under Crash where he lands while he is in the air */
@@ -41,6 +40,7 @@ typedef struct NwSettings {
     bool wombat;         /* the WOMBAT name opens everything in a new game */
     bool hub_minigame;   /* Crunch on the warp room's top floor starts the loading minigame */
     bool long_time_names; /* time trial records take names of up to 8 letters instead of 3 */
+    bool relic_spin;
     int camera_stability; /* percent of a jump the game camera ignores, 0 the PS2's */
     bool hub_gem;
     bool first_boss_cut;

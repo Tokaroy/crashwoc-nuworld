@@ -31,6 +31,7 @@ extern s32 new_level, new_mode, next_cut_movie, gamecut, logos_played;
 extern void *SpaceGameCutTab[26][2];
 extern struct game_s Game;
 extern s32 fadeval, fade_rate, fadehack;
+extern int nw_hz; /* port/hz.c */
 extern volatile s32 bgload_complete;
 s32 HubFromLevel(s32 level);
 
@@ -456,7 +457,7 @@ void nw_level_poll(void)
         nw_level.entering = NW_LEVEL_HUB;
         new_level = NW_LEVEL_HUB;
         next_cut_movie = 1;
-        fade_rate = 0xA;
+        fade_rate = nw_hz == 60 ? 8 : 0xA;
     } else if (level == NW_LEVEL_OLD_TITLE && cutmovie != 0) {
         /* The title first; the request stays for it. */
         nw_level_enter(NW_LEVEL_TITLES);

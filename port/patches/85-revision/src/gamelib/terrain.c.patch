@@ -1,0 +1,106 @@
+--- a/src/gamelib/terrain.c
++++ b/src/gamelib/terrain.c
+@@ -110,6 +110,7 @@
+ #include "nu_port.h"
+ 
+ #include "nucore/nuerror.h"
++#include "numath/nufloat.h"
+ #include "numath/nutrig.h"
+ #include "numath/nuvec.h"
+ #include "nu3d/nucamera.h"
+@@ -919,10 +920,15 @@ void TerrainPlatformNewUpdate(void) {
+                         CurTerr->platdata[situ->info].yvel +=
+                             -CurTerr->platdata[situ->info].yvel * CurTerr->platdata[situ->info].damp;
+                     }
+-                    CurTerr->platdata[situ->info].yvel = CurTerr->platdata[situ->info].yvel +
+-                        (DABS(CurTerr->platdata[situ->info].ypos) * -CurTerr->platdata[situ->info].ypos *
+-                             CurTerr->platdata[situ->info].tension * 0.5 -
+-                         CurTerr->platdata[situ->info].ypos * CurTerr->platdata[situ->info].tension);
++                    CurTerr->platdata[situ->info].yvel = NW_REV(
++                        CurTerr->platdata[situ->info].yvel +
++                            (DABS(CurTerr->platdata[situ->info].ypos) * -CurTerr->platdata[situ->info].ypos *
++                                 CurTerr->platdata[situ->info].tension * 0.5 -
++                             CurTerr->platdata[situ->info].ypos * CurTerr->platdata[situ->info].tension),
++                        CurTerr->platdata[situ->info].yvel +
++                            (NuFabs(CurTerr->platdata[situ->info].ypos) * -CurTerr->platdata[situ->info].ypos *
++                                 CurTerr->platdata[situ->info].tension * 0.5f -
++                             CurTerr->platdata[situ->info].ypos * CurTerr->platdata[situ->info].tension));
+                     CurTerr->platdata[situ->info].ypos += CurTerr->platdata[situ->info].yvel;
+                     CurTerr->platdata[situ->info].hitcnt--;
+                     CurTerr->platdata[situ->info].curmtx->_31 += CurTerr->platdata[situ->info].ypos;
+@@ -1330,7 +1336,8 @@ static __inline__ short INSIDELINEF(float _x, float _z, float _x0, float _z0,
+ 
+ short InsidePolLines(f32 x, f32 y, f32 z, f32 dx0, f32 dy0, f32 dz0, f32 dx1, f32 dy1, f32 dz1,
+                      struct nuvec_s *norm) {
+-    if ((DABS(norm->y) >= DABS(norm->x)) && (DABS(norm->y) >= DABS(norm->z))) {
++    if (NW_REV(DABS(norm->y) >= DABS(norm->x), NuFabs(norm->y) >= NuFabs(norm->x)) &&
++        NW_REV(DABS(norm->y) >= DABS(norm->z), NuFabs(norm->y) >= NuFabs(norm->z))) {
+         if (norm->y < 0.0f) {
+             if (INSIDELINEF(x, z, 0.0f, 0.0f, dx0, dz0) && INSIDELINEF(x, z, dx1, dz1, 0.0f, 0.0f) &&
+                 INSIDELINEF(x, z, dx0, dz0, dx1, dz1)) {
+@@ -1342,7 +1349,8 @@ short InsidePolLines(f32 x, f32 y, f32 z, f32 dx0, f32 dy0, f32 dz0, f32 dx1, f3
+                 return 1;
+             }
+         }
+-    } else if ((DABS(norm->x) >= DABS(norm->y)) && (DABS(norm->x) >= DABS(norm->z))) {
++    } else if (NW_REV(DABS(norm->x) >= DABS(norm->y), NuFabs(norm->x) >= NuFabs(norm->y)) &&
++               NW_REV(DABS(norm->x) >= DABS(norm->z), NuFabs(norm->x) >= NuFabs(norm->z))) {
+         if (norm->x < 0.0f) {
+             if (INSIDELINEF(y, z, dy0, dz0, 0.0f, 0.0f) && INSIDELINEF(y, z, 0.0f, 0.0f, dy1, dz1) &&
+                 INSIDELINEF(y, z, dy1, dz1, dy0, dz0)) {
+@@ -2646,8 +2654,8 @@ s32 HitWallSpline(void) {
+     }
+     hit = 0.0f;
+     for (lp = 0; lp < WallSplCount; lp += 2) {
+-        if ((DABS(TerI->curpos.x - WallSplList[lp].x) < 64.0) &&
+-            (DABS(TerI->curpos.z - WallSplList[lp].z) < 64.0)) {
++        if (NW_REV(DABS(TerI->curpos.x - WallSplList[lp].x) < 64.0, NuFabs(TerI->curpos.x - WallSplList[lp].x) < 64.0f) &&
++            NW_REV(DABS(TerI->curpos.z - WallSplList[lp].z) < 64.0, NuFabs(TerI->curpos.z - WallSplList[lp].z) < 64.0f)) {
+             norm.x = WallSplList[lp + 1].z - WallSplList[lp].z;
+             norm.z = WallSplList[lp].x - WallSplList[lp + 1].x;
+             NuVecNorm(&norm, &norm);
+@@ -2686,8 +2694,8 @@ s32 HitWallSpline(void) {
+                 }
+             }
+             radsq = (TerI->size + 0.005f + TerI->vellen) * (TerI->size + 0.005f + TerI->vellen);
+-            if ((DABS(WallSplList[lp].x - TerI->curpos.x) < 64.0) &&
+-                (DABS(WallSplList[lp].z - TerI->curpos.z) < 64.0) &&
++            if (NW_REV(DABS(WallSplList[lp].x - TerI->curpos.x) < 64.0, NuFabs(WallSplList[lp].x - TerI->curpos.x) < 64.0f) &&
++                NW_REV(DABS(WallSplList[lp].z - TerI->curpos.z) < 64.0, NuFabs(WallSplList[lp].z - TerI->curpos.z) < 64.0f) &&
+                 ((WallSplList[lp].x - TerI->curpos.x) * (WallSplList[lp].x - TerI->curpos.x) +
+                  (WallSplList[lp].z - TerI->curpos.z) * (WallSplList[lp].z - TerI->curpos.z) < radsq)) {
+                 dir.x = TerI->curvel.x;
+@@ -3654,7 +3662,8 @@ s32 PlatformChecks(s32 itterationcnt, struct nuvec_s *vvel) {
+         NuScratchRelease();
+         return itterationcnt;
+     }
+-    if (DABS(TerITemp2->tempvec[1].y - TerITemp2->tempvec[0].y - TerI->size) > 0.05f) {
++    if (NW_REV(DABS(TerITemp2->tempvec[1].y - TerITemp2->tempvec[0].y - TerI->size) > 0.05f,
++               NuFabs(TerITemp2->tempvec[1].y - TerITemp2->tempvec[0].y - TerI->size) > 0.05f)) {
+         NuScratchRelease();
+         return itterationcnt;
+     }
+@@ -4288,8 +4297,9 @@ void NewTerrain(struct nuvec_s *vpos, struct nuvec_s *vvel, u8 *flags, s32 terid
+     TerI->impactadj = 0.00001f;
+     ScanTerrain(1, 0);
+ 
+-    if ((flags[1] != 0) && (DABS(vvel->x) < stopflag) && (DABS(vvel->y) < stopflag) &&
+-        (DABS(vvel->z) < stopflag) && (platinrange == 0)) {
++    if ((flags[1] != 0) && NW_REV(DABS(vvel->x) < stopflag, NuFabs(vvel->x) < stopflag) &&
++        NW_REV(DABS(vvel->y) < stopflag, NuFabs(vvel->y) < stopflag) &&
++        NW_REV(DABS(vvel->z) < stopflag, NuFabs(vvel->z) < stopflag) && (platinrange == 0)) {
+         NuScratchRelease();
+         TerrFlush();
+         return;
+@@ -4497,8 +4507,9 @@ void NewTerrainScaleY(struct nuvec_s *vpos, struct nuvec_s *vvel, u8 *flags,
+     TerI->impactadj = 0.00001f;
+     ScanTerrain(1, 0);
+ 
+-    if ((flags[1] != 0) && (DABS(vvel->x) < stopflag) && (DABS(vvel->y) < stopflag) &&
+-        (DABS(vvel->z) < stopflag) && (platinrange == 0)) {
++    if ((flags[1] != 0) && NW_REV(DABS(vvel->x) < stopflag, NuFabs(vvel->x) < stopflag) &&
++        NW_REV(DABS(vvel->y) < stopflag, NuFabs(vvel->y) < stopflag) &&
++        NW_REV(DABS(vvel->z) < stopflag, NuFabs(vvel->z) < stopflag) && (platinrange == 0)) {
+         NuScratchRelease();
+         TerrFlush();
+         return;

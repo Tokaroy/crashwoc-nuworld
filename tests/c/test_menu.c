@@ -5,6 +5,7 @@
 
 #include "game/gametypes.h"
 #include "nups2/ps2ctl.h"
+#include "port/rev.h"
 
 extern struct game_s Game;
 extern s32 LANGUAGEOPTION, TimeTrial, Level, Paused, fadeval, editor_active, ForceRestart;
@@ -46,6 +47,7 @@ static struct cursor_s open_menu(int menu)
 
 int main(void)
 {
+    nw_rev = 0;
     CHECK(SDL_Init(SDL_INIT_EVENTS));
     struct nupad_s pad = { 0 };
     pad.paddata_db = 0x40; /* confirm */
@@ -139,6 +141,14 @@ int main(void)
             CHECK(cursor.menu == menu && cursor.y == cursor.y_max && !quit_event());
         }
     }
+
+    nw_rev = 1;
+    cursor = open_menu(0);
+    cursor.y = 0;
+    pad.paddata_db = 0x1040;
+    ProcMenu(&cursor, &pad);
+    CHECK(cursor.menu == 0 && cursor.y == cursor.y_max && !quit_event());
+    nw_rev = 0;
 
     /* Options and unrelated menus keep their retail bounds. */
     cursor = open_menu(4);

@@ -204,7 +204,7 @@ static void fuzz_card(const uint8_t *data, size_t size)
 {
     size_t len = 0;
     bool missing = false;
-    SDL_free(nw_ps2card_file(data, size, NW_SAVE_PS2_NAME, NW_SAVE_PS2_NAME "slot00", &len, &missing));
+    SDL_free(nw_ps2card_file(data, size, NW_SAVE_PS2_PAL, NW_SAVE_PS2_PAL "slot00", &len, &missing));
 }
 
 /* An RNC file unpacked into exactly its header's size: whatever the bytes, nothing outside the two ranges. */

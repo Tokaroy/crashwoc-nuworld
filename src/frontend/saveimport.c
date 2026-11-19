@@ -38,7 +38,7 @@ static void nw_saveimport_read_card(void)
 {
     const NwSaveRegistry *reg = nw_saves_levels();
     nw_saveimport.why[0] = '\0';
-    nw_saveimport.state = reg ? nw_save_card(nw_saveimport.card, reg, nw_saveimport.games) : NW_SAVE_CARD_FAILED;
+    nw_saveimport.state = reg ? nw_save_card(nw_saveimport.card, NULL, reg, nw_saveimport.games) : NW_SAVE_CARD_FAILED;
     if (nw_saveimport.state == NW_SAVE_CARD_FAILED || nw_saveimport.state == NW_SAVE_CARD_BLANK) {
         SDL_strlcpy(nw_saveimport.why, SDL_GetError(), sizeof(nw_saveimport.why));
     }

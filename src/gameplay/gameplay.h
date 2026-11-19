@@ -124,7 +124,7 @@ typedef struct NwSubMovement {
 
 /* Jeep movement */
 #define NW_JEEP_MOVEMENT(SW, FLAG, VAL) \
-    SW(steering, "Sharper steering", true, "quicker turn-in, same at 50 and 60 Hz") \
+    SW(steering, "Sharper steering", true, "quicker turn-in") \
     VAL(steer_response, "Steering response %", 120, 100, 400, "how fast it turns toward the stick") \
     VAL(steer_angle, "Steering angle %", 115, 50, 150, "max turn off the track, % of PS2") \
     SW(grip, "Grip", true, "less drift at speed in Smokey and the Bandicoot") \
@@ -159,7 +159,7 @@ typedef struct NwAtlasMovement {
     SW(lock_on, "Clear lock-on", true, "marker shows the X target, lock progress, lock, loss and reload") \
     VAL(lock_ms, "Lock time ms", 1000, 300, 1300, "X hold time to lock; PS2: 1300") \
     FLAG(lock_tap, "Quick tap fires", true, "releasing X early fires once locked; PS2 drops it") \
-    SW(steering, "Sharper steering", true, "quicker bank, level out, climb and dive, same at 50 and 60 Hz") \
+    SW(steering, "Sharper steering", true, "quicker bank, level out, climb and dive") \
     VAL(steer_response, "Steering response %", 200, 100, 400, "bank in and out speed") \
     VAL(steer_turn, "Turn rate %", 125, 100, 200, "turn rate while banked, % of PS2") \
     VAL(pitch_response, "Climb and dive response %", 250, 100, 400, "pitch speed")
@@ -170,7 +170,7 @@ typedef struct NwFireflyMovement {
 
 /* Plane movement */
 #define NW_PLANE_MOVEMENT(SW, FLAG, VAL) \
-    SW(steering, "Sharper steering", true, "quicker pitch and bank, same at 50 and 60 Hz") \
+    SW(steering, "Sharper steering", true, "quicker pitch and bank") \
     VAL(deadzone, "Stick deadzone %", 5, 5, 30, "stick deadzone; PS2: 25") \
     VAL(pitch_response, "Pitch response %", 200, 100, 500, "pitch speed, % of PS2") \
     VAL(bank_response, "Bank response %", 230, 100, 400, "bank speed, % of PS2") \
@@ -255,6 +255,7 @@ typedef struct NwProfile {
     bool wombat;        /* a new game named WOMBAT starts with everything open, as on the GameCube and Xbox */
     bool hub_minigame;  /* Crunch on the warp room's top floor starts the loading minigame */
     bool long_time_names; /* a time trial record's name takes up to 8 letters, not 3 (port/names.h) */
+    bool relic_spin;
     int camera_stability; /* percent of a jump the game camera ignores, 0 retail */
     bool hub_gem;
     bool first_boss_cut;

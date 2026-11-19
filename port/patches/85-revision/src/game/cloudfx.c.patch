@@ -1,0 +1,32 @@
+--- a/src/game/cloudfx.c
++++ b/src/game/cloudfx.c
+@@ -15,6 +15,7 @@
+  */
+ 
+ #include "nu_libc.h"
++#include "nu_port.h"
+ 
+ #include "game/cloudfx.h"
+ #include "nu3d/numtl.h"
+@@ -239,10 +240,21 @@ void InitClouds(union variptr_u *buffer, union variptr_u *buffend) {
+ }
+ 
+ 
++extern s32 loading;
++
+ void DoClouds(s32 paused) {
+     struct nuvec_s col = { 1.0f, 1.0f, 1.0f };
+     s32 i;
+ 
++#if defined(NW_HOST) || defined(NW_REV_LATEST)
++    if (NW_REV(0, 1)) {
++        f32 fade = loading / NW_HZ(50.0f, 60.0f);
++
++        col.x *= fade;
++        col.y *= fade;
++        col.z *= fade;
++    }
++#endif
+     if (disable_clouds != 0) {
+         return;
+     }

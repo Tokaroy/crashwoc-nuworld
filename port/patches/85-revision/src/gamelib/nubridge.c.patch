@@ -1,0 +1,24 @@
+--- a/src/gamelib/nubridge.c
++++ b/src/gamelib/nubridge.c
+@@ -15,9 +15,11 @@
+  */
+ 
+ #include "nu_libc.h"
++#include "nu_port.h"
+ #include "nu_types.h"
+ 
+ #include "numath/numathtypes.h"
++#include "numath/nufloat.h"
+ #include "numath/numtx.h"
+ #include "numath/nutrig.h"
+ #include "nu3d/numtl.h"
+@@ -37,7 +39,8 @@
+ #define PLANK_SUM(p, c) ((p).left.c + (p).right.c)
+ #define PLANK_SPAN(p, c) ((p).right.c - (p).left.c)
+ 
+-#define ROPE_SPRING(v, near, here, k) ((v) += fabs((near) - (here)) * ((near) - (here)) * (k) * 0.5 + ((near) - (here)) * (k))
++#define ROPE_SPRING(v, near, here, k) NW_REV((v) += fabs((near) - (here)) * ((near) - (here)) * (k) * 0.5 + ((near) - (here)) * (k), \
++                                              (v) += NuFabs((near) - (here)) * ((near) - (here)) * (k) * 0.5f + ((near) - (here)) * (k))
+ 
+ 
+ union giftag_u {

@@ -16,3 +16,12 @@
          } else {
              character = LDATA->clist[i];
          }
+@@ -2468,7 +2473,7 @@ s32 AddCreature(s32 character, s32 index, s32 i_aitab)
+     if (c->used != 0) {
+         return 0;
+     }
+-    memset(c, 0, 0xCE4);
++    memset(c, 0, sizeof(*c));
+     if (AddGameObject(&c->obj, c) == 0) {
+         return 0;
+     }

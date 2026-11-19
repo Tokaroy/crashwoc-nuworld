@@ -18,3 +18,12 @@
                  v1.x = dx * l;
                  v1.z = dz * l;
                  dp = v0.x * v1.x + v0.z * v1.z;
+@@ -781,7 +781,7 @@ inline f32 LookUpDownRail(struct obj_s *obj, u16 angle, s32 mode) {
+ void MoveGameCamera(struct cammtx_s *GameCamera, struct obj_s *obj) {
+     static f32 Blend = 0.0f;
+     RailPosition RPos;
+-    struct nuvec_s pos;          /* where the camera wants to be */
++    NW_HOST_KEPT struct nuvec_s pos;          /* where the camera wants to be */
+     struct nuvec_s look;         /* where it looks */
+     struct nuvec_s seek;         /* per-axis seek rate toward pos */
+     struct nuvec_s tmp;

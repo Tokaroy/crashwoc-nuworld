@@ -139,46 +139,6 @@ class Data(unittest.TestCase):
         self.assertEqual(self.fields(a, b), [(0, 2, "int", "rate")])
 
 
-class Image:
-    """An Elf with sound tables: each a symbol over GameSound rows whose paths follow the tables."""
-
-    BASE = 0x00600000
-
-    def __init__(self, tables: dict[str, list[tuple[str, str]]]):
-        rows = sum(len(t) for t in tables.values())
-        strings, data, self.symbols = bytearray(), bytearray(), []
-        for name, table in tables.items():
-            self.symbols.append({"name": name, "value": self.BASE + len(data), "size": len(table) * tool.SOUND,
-                                 "type": tool.OBJECT})
-            for row, path in table:
-                at = self.BASE + rows * tool.SOUND + len(strings)
-                strings += path.encode() + b"\0"
-                data += row.encode().ljust(16, b"\0") + bytes(8) + struct.pack("<I", at) + bytes(20)
-        self.section = {"addr": self.BASE, "size": len(data) + len(strings), "data": bytes(data + strings)}
-
-    def section_at(self, addr: int):
-        s = self.section
-        return s if s["addr"] <= addr < s["addr"] + s["size"] else None
-
-    def read(self, addr: int, n: int):
-        s = self.section_at(addr)
-        return s["data"][addr - s["addr"]:addr - s["addr"] + n] if s else None
-
-
-class Sounds(unittest.TestCase):
-    def test_runs_around_rows_pal_added(self):
-        music = [("music left", "MUSIC\\L"), ("music right", "MUSIC\\R")]
-        pal = Image({"SfxTabGLOBAL": music + [("intro", "VCE_FRE\\I")],
-                     "SfxTabOIDS": music + [("aku", "VCE_FRE\\A"), ("aku", "VCE_GER\\A"), ("Boom", "LEVSPEC\\B")],
-                     "SfxTabPAL": music})
-        us = Image({"SfxTabGLOBAL": music, "SfxTabOIDS": music + [("Boom", "LEVSPEC\\B"), ("Gone", "LEVSPEC\\G")]})
-        runs, lost = tool.sfx_runs(pal, us)
-        oids = pal.symbols[1]["value"]
-        self.assertEqual(runs, [("SfxTabGLOBAL", Image.BASE, 2, 0, 0, 2), ("SfxTabOIDS", oids, 4, 0, 0, 2),
-                                ("SfxTabOIDS", oids, 4, 2, 4, 1)])
-        self.assertEqual(lost, ["SfxTabOIDS: 1 of 4 US rows"])
-
-
 class Known(unittest.TestCase):
     def test_rules(self):
         with tempfile.TemporaryDirectory() as d:

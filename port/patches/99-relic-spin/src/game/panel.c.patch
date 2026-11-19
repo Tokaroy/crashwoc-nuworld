@@ -1,0 +1,20 @@
+--- a/src/game/panel.c
++++ b/src/game/panel.c
+@@ -180,7 +180,7 @@ inline s32 DrawPanel3DObject(s32 object, float x, float y, float z, float scalex
+         }
+         if (o != -1) {
+             e = &ObjTab[o];
+-            DrawPanel3DObject(o, x, y, z, scalex, scaley, scalez, 0, 0, 0,
++            DrawPanel3DObject(o, x, y, z, NW_RELIC_GLOW(scalex, yrot), scaley, scalez, 0, 0, 0,
+                               e->obj.scene, e->obj.special, 0);
+         }
+         s.x = scalex;
+@@ -1510,7 +1510,7 @@ void DrawPanel(void) {
+                                 }
+                                 if (j != -1) {
+                                     DrawPanel3DObject(j, TT_RELICX, TT_RELICY, 1.0f, 0.125f,
+-                                                      0.125f, 0.125f, 0, 0, 0,
++                                                      0.125f, 0.125f, 0, NW_RELIC_SPIN(0, yrot), 0,
+                                                       ObjTab[j].obj.scene,
+                                                       ObjTab[j].obj.special, 1);
+                                 }

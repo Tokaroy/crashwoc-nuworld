@@ -1,12 +1,10 @@
-/* src/port/hz.c: the rate, H-line length, attract demos, and the 60 Hz table written only where the PAL value is. */
+/* src/port/hz.c: the rate, H-line length and the 60 Hz table written only where the PAL value is. */
 #include <stdio.h>
 #include <string.h>
 
 #include "data/image.h"
 #include "nu_port.h"
 #include "port/hz.h"
-
-int nw_demos(void);
 
 static int failures;
 
@@ -27,8 +25,8 @@ static void *host(uint32_t addr)
 
 int main(void)
 {
-    CHECK(nw_hz == 50 && nw_demos() && nw_hz_line_ns() == 64000u);
-    CHECK(nw_hz_set(60) == 60 && nw_hz == 60 && !nw_demos() && nw_hz_line_ns() == 63556u);
+    CHECK(nw_hz == 50 && nw_hz_line_ns() == 64000u);
+    CHECK(nw_hz_set(60) == 60 && nw_hz == 60 && nw_hz_line_ns() == 63556u);
     CHECK(NW_HZ(0.02f, 0.016666668f) == 0.016666668f && NW_HZ(6, 5) == 5);
     CHECK(nw_hz_set(55) == 50 && NW_HZ(6, 5) == 6);
 

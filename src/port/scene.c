@@ -40,6 +40,7 @@ void NuRndrClear(int flags, int colour, float depth);
 void NuRndrEndScene(void);
 int NuRndrSwapScreen(int target);
 void NuMtlAnimate(float dt);
+extern int nw_hz;
 void NuCameraSet(struct nucamera_s *cam);
 struct nucamera_s *NuCameraCreate(void);
 void RotateDirectionalLight(struct nuvec_s *v, int xrot, int yrot);
@@ -328,11 +329,12 @@ int nw_scene_main(int argc, char **argv)
         SDL_UnlockMutex(nw_scene_mutex);
         nw_scene_camera(&c, &cam->mtx);
         NuCameraSet(cam);
-        NuMtlAnimate(0.02f);
+        NuMtlAnimate(nw_hz == 60 ? 0.016666668f : 0.02f);
         if (o.sc) {
             NuGScnUpdate(o.sc, 1.0f); /* in frames, as main's game loop */
         }
-        RotateDirectionalLight(ldir, -0x2000, (int)(((frame % 400) << 16) / 400));
+        unsigned turn = nw_hz == 60 ? 480 : 400;
+        RotateDirectionalLight(ldir, -0x2000, (int)(((frame % turn) << 16) / turn));
         SetLights(&lcol[0], &ldir[0], &lcol[1], &ldir[1], &lcol[2], &ldir[2], &acol);
         NuRndrBeginScene(-1);
         NuRndrClear(7, 0, 1.0f);
