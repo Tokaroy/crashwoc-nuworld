@@ -4,6 +4,7 @@
 #include "gameplay/atlasphere.h"
 #include "gameplay/bosshealth.h"
 #include "gameplay/firefly.h"
+#include "gameplay/fixes.h"
 #include "gameplay/plane.h"
 #include "gameplay/spacefighter.h"
 
@@ -18,6 +19,13 @@ void ProcessMovementAtlas(struct NEWBUGGY *Atlas, f32 DeltaTime)
 {
     ProcessMovementAtlas__retail(Atlas, DeltaTime);
     nw_atlas_move(Atlas, DeltaTime);
+}
+
+void DrawGlider(struct creature_s *c)
+{
+    nw_fix_goggles_before(c);
+    DrawGlider__retail(c);
+    nw_fix_goggles_after();
 }
 
 void ControlGlider(struct GLIDERSTRUCT *glider, struct nupad_s *pad)
