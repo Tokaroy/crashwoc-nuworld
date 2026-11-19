@@ -1,4 +1,3 @@
-/* Wrap of game/credits.c */
 #include <string.h>
 
 #include "nu_types.h"

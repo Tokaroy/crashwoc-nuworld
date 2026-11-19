@@ -1,4 +1,3 @@
-"""The fixture program of tests/fixtures/mini, generated as the build makes the real one and linked around a harness."""
 import copy
 import os
 import shutil
@@ -40,7 +39,6 @@ def fixture_db() -> dict:
 
 
 def generate(out: Path, db: dict | None = None, decomp: Path = DECOMP, units: Path = UNITS):
-    """Writes every generated file under out; returns (model, image)."""
     model = nwunits.load(decomp, units, PORT_SRC)
     assert model.errors == [], model.errors
     built = [u for u in model.units if u.kind != "none"]

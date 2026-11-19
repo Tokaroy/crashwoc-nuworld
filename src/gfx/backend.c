@@ -21,51 +21,50 @@
 #define NW_BE_SILHOUETTES 64
 #define NW_BE_SILHOUETTE_SIZES 4
 
-/* A GS surface (back or front buffer, render target) as a power-of-two texture at scale n, GS row y at rows from
-   n * (th - 1 - y). */
+/* A GS surface as a power-of-two texture at scale n, GS row y at rows from n * (th - 1 - y). */
 typedef struct NwBeSurf {
     int32_t addr; /* NW_SURF_BACK, NW_SURF_FRONT, a GS address, 0 for the targets the port does not draw */
     int tw, th;   /* GS pixels */
-    int n;        /* the internal scale it was made at */
+    int n;
     GLuint tex, depth, fbo;
     GLuint ms_fbo, ms_col, ms_depth; /* MSAA: where the draws go, resolved into tex and depth before a read */
-    int ms_w, ms_h, samples;         /* their storage */
-    bool ms;                         /* the draws go to ms_fbo */
+    int ms_w, ms_h, samples;
+    bool ms;
     bool dirty;                      /* ms_fbo holds draws tex and depth lack */
 } NwBeSurf;
 
 static struct {
     NwBeSurf surf[NW_BE_SURFS];
     uint32_t nsurf;
-    NwBeSurf copy;         /* a target a draw also reads, copied */
-    NwBeSurf zcopy;        /* the target's Z a depth CLUT reads, copied */
-    GLuint zclut;          /* a depth CLUT's entries */
-    NwBeSurf *target;      /* what the draws go to */
+    NwBeSurf copy;
+    NwBeSurf zcopy;
+    GLuint zclut;
+    NwBeSurf *target;
     bool alpha;            /* the target keeps alpha (not PSMCT24) */
-    int width, height;     /* the target's pixels */
-    int shown_w, shown_h;  /* those of the back buffer */
-    uint64_t drawn;        /* the last packet run */
-    float drawn_t;         /* at that blend */
+    int width, height;
+    int shown_w, shown_h;  /* the back buffer's size */
+    uint64_t drawn;
+    float drawn_t;
     NwGpuJob *jobs;
     uint32_t jobcap;
-    GLuint rect_vao, rect_vbo, rect_ibo; /* the packet's sprites, four vertices each */
-    GLuint ot_ibo;                       /* the packet's OT triangles */
-    GLuint pool, pool_tex;               /* the packet's joint palettes, a texture buffer on unit 3 */
-    GLuint weights, weights_tex;         /* its blend-shape weights, on unit 4 */
-    GLuint verts_vao, verts_vbo;         /* its VERTS triangles */
-    GLuint ptl_vao, ptl_vbo;             /* its particles */
+    GLuint rect_vao, rect_vbo, rect_ibo;
+    GLuint ot_ibo;
+    GLuint pool, pool_tex;               /* joint palettes, a texture buffer on unit 3 */
+    GLuint weights, weights_tex;         /* blend-shape weights, on unit 4 */
+    GLuint verts_vao, verts_vbo;
+    GLuint ptl_vao, ptl_vbo;
     NwVifVertex *rect_verts;
     uint32_t rect_cap;
     bool wireframe;
     NwRenderOptions opts;
-    uint64_t runs;           /* packets run */
-    const NwBeSurf *copy_of; /* the target copy holds */
-    uint64_t copy_run;       /* in that run */
+    uint64_t runs;
+    const NwBeSurf *copy_of;
+    uint64_t copy_run;
     uint32_t held[512];      /* the world's [video] gems draws, in NwPacket.cmds, till the scene behind them is drawn */
     uint32_t nheld;
-    bool flushing; /* drawing those */
-    int scale;          /* the frame's */
-    int samples;        /* the frame's MSAA, 0 off */
+    bool flushing;
+    int scale;
+    int samples;
     GLint max_tex;      /* GL_MAX_TEXTURE_SIZE */
     GLint max_samples;  /* GL_MAX_SAMPLES */
     GLuint present_prog, present_vao;
@@ -77,7 +76,6 @@ static struct {
     uint32_t nsil;
 } nw_be;
 
-/* A command with no material: GS defaults, untextured. */
 static const NwVuMaterial nw_be_default = { { 0 }, { 0 }, { 0 }, NULL, { .ztst = 2 }, NULL, NULL };
 
 static void nw_be_resolve(NwBeSurf *s);
@@ -431,8 +429,7 @@ static void nw_be_job(const NwGpuJob *job)
     }
 }
 
-/* A black surface with a 24-bit Z like the GS's, as a texture a depth CLUT can read (plus stencil); a rescale keeps
-   the picture. Leaves its framebuffer bound. */
+/* 24-bit Z like the GS's, readable by a depth CLUT; a rescale keeps the picture; leaves the FBO bound. */
 static void nw_be_surf_make(NwBeSurf *s, int32_t addr, int tw, int th)
 {
     int n = nw_be.scale;
@@ -480,7 +477,7 @@ static void nw_be_surf_make(NwBeSurf *s, int32_t addr, int tw, int th)
     s->addr = addr;
 }
 
-/* The surface at a GS address, made at tw x th if it is new or its size changed; NULL with none left. */
+/* Made at tw x th if it is new or its size changed; NULL with none left. */
 static NwBeSurf *nw_be_surf(int32_t addr, int tw, int th)
 {
     NwBeSurf *s = NULL;
@@ -496,7 +493,6 @@ static NwBeSurf *nw_be_surf(int32_t addr, int tw, int th)
     return s;
 }
 
-/* The draws go to s, width x height GS pixels at its top left. */
 static void nw_be_bind(NwBeSurf *s, int width, int height)
 {
     glBindFramebuffer(GL_FRAMEBUFFER, nw_be_fbo(s));
@@ -511,8 +507,7 @@ static void nw_be_bind(NwBeSurf *s, int width, int height)
     }
 }
 
-/* A target drawn under the back buffer's Z at its size shares it (and its MSAA, except the front buffer, which the
-   back buffer is copied into); otherwise it has its own. */
+/* Under the back buffer's Z at its size a target shares it and its MSAA (not the front buffer); else its own. */
 static void nw_be_target(const NwCmd *c)
 {
     NwSurf surf = c->target.surf;
@@ -550,7 +545,7 @@ static void nw_be_target(const NwCmd *c)
     }
 }
 
-/* A surface for a draw to read: the target itself is read from a copy, as a texture cannot be both. */
+/* The target itself is read from a copy, as a texture cannot be both. */
 static const NwVuTexture *nw_be_surf_tex(const NwSurf *surf, bool tcc)
 {
     static NwVuTexture tex;
@@ -577,7 +572,6 @@ static const NwVuTexture *nw_be_surf_tex(const NwSurf *surf, bool tcc)
     return &tex;
 }
 
-/* The target as a texture a draw blends over, copied. */
 static const NwVuTexture *nw_be_dst(void)
 {
     static NwVuTexture tex;
@@ -593,7 +587,6 @@ static const NwVuTexture *nw_be_dst(void)
     return &tex;
 }
 
-/* A depth CLUT for a draw on the target: its Z copied, as a texture cannot be both, and the entries uploaded. */
 static const NwVuZClut *nw_be_zclut(const NwZClut *z)
 {
     static NwVuZClut vz;
@@ -633,7 +626,6 @@ static void nw_be_gs(const NwView *v, int width, int height, float g[16])
     g[15] = 1.0f;
 }
 
-/* The view's vs, which ends in GS coordinates, then to GL clip space. */
 static void nw_be_screen(const NwView *v, int width, int height, float out[16])
 {
     float g[16];
@@ -688,7 +680,7 @@ static void nw_be_clear(const NwPacket *p, const NwCmd *c)
     glDisable(GL_SCISSOR_TEST);
 }
 
-/* Uploads the packet's sprites as quads: GS coordinates for the unlit program, s and t x4096. */
+/* GS coordinates for the unlit program, s and t x4096. */
 static void nw_be_rects(const NwPacket *p)
 {
     uint32_t n = 0;
@@ -799,8 +791,7 @@ static void nw_be_undrawn(const NwVuProg *mpg, bool skin)
     }
 }
 
-/* vu1init's state for a draw: local times screen, the VU 0x0C block (lights, or the UV matrix for xuv and glass), and
-   frag mapping GS 12.4 (x, y) from XYOFFSET to GL (x, th - 1 - y), pixel centres, n x n pixels each. */
+/* vu1init's state; frag maps GS 12.4 (x, y) from XYOFFSET to GL (x, th - 1 - y), pixel centres, n x n pixels each. */
 static void nw_be_object(const NwPacket *p, const NwCmd *c, NwVuProgram program, NwVuObject *o)
 {
     float screen[16];
@@ -962,7 +953,6 @@ static void nw_be_silhouettes(const NwPacket *p)
     }
 }
 
-/* A VERTS command's triangles, drawn by its NwVertsMode. */
 static void nw_be_tris(const NwPacket *p, const NwCmd *c)
 {
     NwVuObject o;
@@ -1038,8 +1028,7 @@ static void nw_be_tris(const NwPacket *p, const NwCmd *c)
     glDisable(GL_STENCIL_TEST);
 }
 
-/* Retail's NuLgtHSurf[1]: the back buffer's Z squeezed to the volumes' width into the target's Z, and the stencil at
-   0x7F, as retail's 0x7F sprites start its colour. */
+/* Retail's NuLgtHSurf[1]: back buffer Z squeezed to the volumes' width, stencil 0x7F as retail's 0x7F sprites. */
 static void nw_be_volumes(const NwCmd *c)
 {
     NwBeSurf *back = NULL, *s = nw_be.target;
@@ -1059,7 +1048,7 @@ static void nw_be_volumes(const NwCmd *c)
     glClear(GL_STENCIL_BUFFER_BIT);
 }
 
-/* A quad per particle: corners in GS units before the divide, texel coordinates in 1/16 of the texture's level 0. */
+/* Corners in GS units before the divide, texel coordinates in 1/16 of the texture's level 0. */
 static void nw_be_particles(const NwPacket *p, const NwCmd *c)
 {
     _Static_assert(sizeof(NwPtlList) == 132 * 16, "NwPtlList is VU 0x3C-0xBF");
@@ -1134,7 +1123,6 @@ static bool nw_be_inverse(const float m[16], float out[16])
     return true;
 }
 
-/* A clip-space point (row vector) back into the world. */
 static void nw_be_unproject(const float inv[16], float x, float y, float z, float w, float out[4])
 {
     for (int c = 0; c < 4; c++) {
@@ -1161,7 +1149,7 @@ static bool nw_be_panel_view(const NwView *v)
     return true;
 }
 
-/* What the gems see behind them: the target as the first of them since the last flush found it. */
+/* The target as the first gem since the last flush found it. */
 static GLuint nw_be_gem_backdrop(void)
 {
     if (nw_be.copy_of != nw_be.target || nw_be.copy_run != nw_be.runs) {
@@ -1170,7 +1158,7 @@ static GLuint nw_be_gem_backdrop(void)
     return nw_be.copy.tex;
 }
 
-/* A [video] gems material in the gem programs, opaque; false when the view gives no eye (draw it as the PS2). */
+/* False when the view gives no eye: draw it as the PS2. */
 static bool nw_be_gem(const NwPacket *p, const NwCmd *c, NwVuProgram program, const NwGemInfo *gem, GLsizei count,
                       const void *first)
 {
@@ -1236,7 +1224,6 @@ static bool nw_be_gem(const NwPacket *p, const NwCmd *c, NwVuProgram program, co
     return true;
 }
 
-/* The draw's [video] gems role, NW_GEM_KEEP when it draws as the PS2. */
 static NwGemRole nw_be_gem_of(const NwPacket *p, const NwCmd *c, NwGemInfo *gem)
 {
     if (!nw_be.opts.gems || c->mtl == NW_MTL_NONE) {
@@ -1246,8 +1233,7 @@ static NwGemRole nw_be_gem_of(const NwPacket *p, const NwCmd *c, NwGemInfo *gem)
     return gem->kind == NW_GEM_NONE ? NW_GEM_KEEP : (NwGemRole)gem->role;
 }
 
-/* Whether a draw waits for the rest of the scene: the PS2 sorts the world's gems ahead of what lies behind them, which
-   their stone then would not see. Menus and the HUD keep their order. */
+/* The PS2 sorts the world's gems ahead of what lies behind them, which their stone would then not see. */
 static bool nw_be_gem_hold(const NwPacket *p, const NwCmd *c)
 {
     if (nw_be.flushing || !nw_be.opts.gems || c->mtl == NW_MTL_NONE || p->mtls[c->mtl].gem.kind == NW_GEM_NONE ||
@@ -1261,8 +1247,7 @@ static bool nw_be_gem_hold(const NwPacket *p, const NwCmd *c)
 static void nw_be_draw(const NwPacket *p, const NwCmd *c);
 static void nw_be_skin(const NwPacket *p, const NwCmd *c);
 
-/* The held gems over one copy of the scene, before c: a target change, a clear, the shadows' Z, the HUD, or anything
-   under the identity camera; NULL at the run's end. */
+/* Held gems over one scene copy, before c: a target change, clear, shadows' Z or identity camera; NULL: run end. */
 static void nw_be_gems_flush(const NwPacket *p, const NwCmd *c)
 {
     if (!nw_be.nheld) {
@@ -1298,7 +1283,7 @@ static void nw_be_gems_flush(const NwPacket *p, const NwCmd *c)
     nw_be.copy_of = NULL;
 }
 
-/* A geom's mesh; an OT batch draws its triangles in the packet's order through the packet's index buffer. */
+/* An OT batch draws its triangles in the packet's order through the packet's index buffer. */
 static void nw_be_draw(const NwPacket *p, const NwCmd *c)
 {
     const NwGpuMesh *mesh = c->mesh;
@@ -1344,7 +1329,6 @@ static void nw_be_draw(const NwPacket *p, const NwCmd *c)
     }
 }
 
-/* A skin geom under its draw's palette and blend-shape weights, in the local matrix's space as vu1init sets it up. */
 static void nw_be_skin(const NwPacket *p, const NwCmd *c)
 {
     const NwGpuSkin *s = c->skin;
@@ -1404,7 +1388,7 @@ static void nw_be_weights(const NwPacket *p)
     glActiveTexture(GL_TEXTURE0);
 }
 
-/* The packet's palettes as RGBA32F texels, four rows a matrix. */
+/* RGBA32F texels, four rows a matrix. */
 static void nw_be_pool(const NwPacket *p)
 {
     nw_be_weights(p);
@@ -1424,8 +1408,7 @@ static void nw_be_pool(const NwPacket *p)
     glActiveTexture(GL_TEXTURE0);
 }
 
-/* faceon: corner sizes in GS units before the divide, scaled by VU 0x16; facey: quads along VF15, the camera's right
-   (cos yaw, 0, -sin yaw) dotted with the local rows and normalised (faceinit). */
+/* faceon: corner sizes in GS units scaled by VU 0x16; facey: along VF15, the camera's right in local space. */
 static void nw_be_sprites(const NwPacket *p, const NwCmd *c)
 {
     const NwGpuSprites *s = c->sprites;
@@ -1645,8 +1628,7 @@ const NwPacket *nw_backend_frame(int width, int height, double now)
     nw_be.shown_w = bw;
     nw_be.shown_h = bh;
 
-    /* The PS2 shows 640 pixels across at 4:3 whatever the height; a wider frame (port/wide.h) keeps that pixel shape.
-       Within 1% of the window's aspect it fills the window. */
+    /* The PS2 shows 640 pixels across at 4:3 whatever the height; within 1% of the window's aspect it fills it. */
     float aspect = 4.0f / 3.0f * (float)bw / 640.0f;
     int w = width, h = height;
     if (h > 0 && SDL_fabsf((float)w / (float)h - aspect) > 0.01f * aspect) {

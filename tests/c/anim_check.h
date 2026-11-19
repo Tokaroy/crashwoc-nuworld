@@ -1,4 +1,3 @@
-/* What the .ani and animlib tests check on a loaded anim v1: its counts, and every curve at every frame. */
 #ifndef NUWORLD_TEST_ANIM_CHECK_H
 #define NUWORLD_TEST_ANIM_CHECK_H
 
@@ -44,8 +43,7 @@ static void anim_print(const char *what, const AnimStats *st)
            st->nonfinite, st->infdt, st->bad);
 }
 
-/* Counts data into st, then evaluates every curve at every frame once the keys it reads are known to lie in
-   [lo, hi); a frame before a curve's first key or past its last reads the file bytes next to them, as on the PS2. */
+/* A frame before a curve's first key or past its last reads the file bytes next to them, as on the PS2. */
 static void anim_check(AnimStats *st, const char *path, const char *lo, const char *hi, struct nuanimdata_s *data)
 {
     st->anims++;

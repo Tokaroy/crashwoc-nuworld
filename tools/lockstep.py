@@ -1,9 +1,5 @@
 #!/usr/bin/env python3
-"""Run the game on PCSX2 and in the headless port over the same vblanks and pokes, and diff their states.
-
-The port dumps at the vblanks PCSX2's states hold, poked as the writes landed there (they stand in for pad input).
-Needs Python 3.14: pcsx2_dump.py reads the states' zstd entries.
-"""
+"""Run the game on PCSX2 and in the headless port over the same vblanks and pokes, and diff their states."""
 from __future__ import annotations
 
 import argparse

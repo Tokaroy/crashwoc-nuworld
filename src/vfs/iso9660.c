@@ -3,7 +3,7 @@
 #include <SDL3/SDL.h>
 
 #define NW_ISO_DEPTH_MAX 32
-#define NW_ISO_DIR_MAX (16u << 20) /* sanity limit for one directory extent */
+#define NW_ISO_DIR_MAX (16u << 20)
 #define NW_ISO_FLAG_DIR 0x02
 #define NW_ISO_FLAG_MULTI 0x80
 
@@ -25,7 +25,7 @@ static uint32_t nw_iso_le32(const uint8_t *p)
     return (uint32_t)p[0] | (uint32_t)p[1] << 8 | (uint32_t)p[2] << 16 | (uint32_t)p[3] << 24;
 }
 
-/* Up to the ';' version, uppercase. Refuses names that cannot be one path component. */
+/* Refuses names that cannot be one path component. */
 static bool nw_iso_name(const uint8_t *raw, uint8_t len, char out[256])
 {
     size_t n = 0;

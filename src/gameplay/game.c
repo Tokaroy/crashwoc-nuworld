@@ -1,4 +1,3 @@
-/* Menu input, committed-progress snapshots, the jeep's steering hook and the sub's shots through fruit. */
 #include "nu_types.h"
 
 #include "game/gametypes.h"

@@ -1,5 +1,4 @@
-/* What the disc loaders (src/port/nugscn.c, nuhgobj.c) copy file records with: pointer fields hold indexes, offsets
-   or -1 there, kept as integers for the fixups. */
+/* File records' pointer fields hold indexes, offsets or -1, kept as integers for the fixups. */
 #ifndef NUWORLD_PORT_XFILE_H
 #define NUWORLD_PORT_XFILE_H
 
@@ -33,7 +32,6 @@ static NwXCtx nw_file_x = { .ptr_in = nw_file_ptr_in, .addr_in = nw_file_addr_in
         nw_x_##type((dst), &nw_rec_, &nw_file_x); \
     } while (0)
 
-/* The integer a converted pointer field kept. */
 #define NW_FILE_IX(p) ((int)(intptr_t)(p))
 
 #endif

@@ -1,9 +1,5 @@
 #!/usr/bin/env python3
-"""Every disc file decoded twice: crashwoc-nuworld --check-disc against the crashwoc tooling and WrathSDK.
-
-Compares the RNC-unpacked bytes of every file and .DAT entry and the .gsc scene lines; WrathSDK formats must write
-back byte for byte, .ptl and .ghg must parse. Exits 77 (skipped) without the tooling or WrathSDK.
-"""
+"""Every disc file decoded twice: crashwoc-nuworld --check-disc against the crashwoc tooling and WrathSDK."""
 from __future__ import annotations
 
 import argparse
@@ -51,7 +47,6 @@ def load(tooling: str | None, wrathsdk: str | None) -> dict | None:
 
 
 def disc_paths() -> list[str]:
-    """The disc manifest's files in its order, NW_MANIFEST_SKIP ones left out."""
     return [m.group(1) for m in re.finditer(r'\{ "([^"]+)", (\d+)u, "[0-9a-f]{64}", ([^ ]+) \}',
                                              gsc_hash.MANIFEST.read_text()) if m.group(3) == "0"]
 
@@ -61,7 +56,6 @@ def line(kind: str, name: str, data: bytes) -> str:
 
 
 def structure(ext: str, data: bytes, mods: dict) -> str | None:
-    """What the Python readers make of a decoded file: None when none reads it, else "ok" or the failure."""
     try:
         if ext in ROUND_TRIP:
             fmt = mods["formats"][ext]
@@ -83,7 +77,6 @@ def ext_of(path: str) -> str:
 
 
 def decode(root: Path, mods: dict) -> tuple[list[str], dict, list[str]]:
-    """The FILE/DAT lines, per extension [count, structure ok], and the structure failures."""
     rnc, unpack_dat = mods["rnc"], mods["unpack_dat"]
     lines, failures = [], []
     table: dict[str, list[int]] = collections.defaultdict(lambda: [0, 0])

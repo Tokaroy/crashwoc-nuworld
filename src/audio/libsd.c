@@ -19,7 +19,6 @@ static uint32_t nw_libsd_u32(const uint8_t *p)
     return (uint32_t)p[0] | (uint32_t)p[1] << 8 | (uint32_t)p[2] << 16 | (uint32_t)p[3] << 24;
 }
 
-/* The section by name, NULL when the ELF does not have it within its size. */
 static const uint8_t *nw_libsd_section(const uint8_t *elf, size_t size, const char *name, uint32_t *len)
 {
     if (size < 0x34 || memcmp(elf, "\x7f" "ELF\x01\x01", 6) != 0) {

@@ -95,7 +95,6 @@ static short nw_mech_clamp(int a, int max)
     return (short)(a < -max ? -max : a > max ? max : a);
 }
 
-/* The nearest shootable creature in the cone round the aim pulls it. */
 static void nw_mech_assist(struct creature_s *c, const NwMechMovement *m)
 {
     static struct nuvec_s ahead = { 0.0f, 0.0f, 1.0f };

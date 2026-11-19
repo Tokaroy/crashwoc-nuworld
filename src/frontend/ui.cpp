@@ -29,7 +29,6 @@ static ImVec4 nw_ui_rgb(unsigned rgb, float a = 1.0f)
     return ImVec4((float)(rgb >> 16 & 0xff) / 255.0f, (float)(rgb >> 8 & 0xff) / 255.0f, (float)(rgb & 0xff) / 255.0f, a);
 }
 
-/* Dark blue panels with an orange accent, sized for scale (the display's content scale). */
 static void nw_ui_style(float scale)
 {
     ImGuiStyle style;
@@ -67,7 +66,6 @@ static void nw_ui_style(float scale)
     c[ImGuiCol_NavCursor] = nw_ui_rgb(0xffd23f);
     c[ImGuiCol_TextLink] = nw_ui_rgb(0xffb35c);
 
-    /* Over the running game: tight, translucent, orange only on what is set. */
     if (nw_ui_compact) {
         style.WindowPadding = ImVec2(12.0f, 10.0f);
         style.FramePadding = ImVec2(10.0f, 6.0f);

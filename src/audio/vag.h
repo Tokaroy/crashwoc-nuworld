@@ -1,5 +1,4 @@
-/* VAG files (SFX.DAT): a big-endian "VAGp" header of 48 bytes, then PS-ADPCM blocks of 16 bytes (filter/shift,
-   loop flags, 28 nibbles), decoded like the SPU2 (PCSX2 XA_decode_block). Errors via SDL_GetError(). */
+/* VAG: big-endian "VAGp" header, then PS-ADPCM blocks decoded like the SPU2 (PCSX2 XA_decode_block). */
 #ifndef NUWORLD_AUDIO_VAG_H
 #define NUWORLD_AUDIO_VAG_H
 
@@ -36,8 +35,7 @@ typedef struct NwVagPass {
     int32_t loop_start; /* where that END jumps back to when it has REPEAT (0 without a START), else -1 */
 } NwVagPass;
 
-/* Plays count blocks once, as a voice keyed on at the first: START latches the loop address, the first END ends the
-   pass. pcm has room for count * 28 samples. */
+/* As a voice keyed on at the first block: the first END ends the pass. pcm has room for count * 28 samples. */
 NwVagPass nw_vag_decode(const uint8_t *blocks, uint32_t count, int16_t *pcm);
 
 #endif

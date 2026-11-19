@@ -1,5 +1,3 @@
-/* The port's Nu render layer (src/gfx/nurndr.c, nustream.c, numtl.c, nutex.c, ps2txtr.c) under the decomp code
-   that drives it, on synthetic data. */
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -155,7 +153,6 @@ static int make_native(GscBuild *b, size_t *up)
     return NuTexCreateNative(b->buf);
 }
 
-/* NuTexCreateNative: retail's slot over the record in place, and the decoded texture. */
 static void test_native(void)
 {
     GscBuild b = { 0 };
@@ -171,13 +168,11 @@ static void test_native(void)
     CHECK(t && t->levels[0].texels[9] == 3 && t->clut[3][1] == 255 - 48);
     CHECK(nw_rndr_texture(0) == NULL && nw_rndr_texture(-1) == NULL && nw_rndr_texture(2) == NULL);
 
-    /* A texture before b goes away: its slot, reused, replaces the decoded one. */
     NuTexDestroy(tid);
     CHECK(make_native(&b, &up) == 1 && nw_rndr_texture(1) && nw_rndr_texture(1)->tex.nlevels == 2);
     gsc_free(&b);
 }
 
-/* NuTexCreate's bitmaps through NuPs2TxCreate as GenTextureLoad orders the texels. */
 static void test_bitmap(void)
 {
     static uint8_t bits[1024 * 16 * 4];
@@ -199,7 +194,7 @@ static void test_bitmap(void)
     t = &nw_rndr_texture(tid = NuTexCreate(&spec))->tex;
     CHECK(t && !t->tcc && memcmp(t->levels[0].texels + 4, (uint8_t[]){ bits[5], bits[4], bits[3], 0x80 }, 4) == 0);
 
-    /* Type 4 has the even texel in the high nibble; mmcnt levels follow each other. */
+    /* Type 4 has the even texel in the high nibble. */
     spec = (struct nutex_s){ 4, 16, 8, 2, bits, pal };
     t = &nw_rndr_texture(tid = NuTexCreate(&spec))->tex;
     CHECK(t && t->ncolours == 16 && t->nlevels == 1); /* the 8x4 second level is under 8 texels */
@@ -217,7 +212,6 @@ static void test_bitmap(void)
     CHECK(t && t->levels[0].texels[513] == bits[2048 + 2] && tinfo[tid - 1].ps2tex.tw == 10);
 }
 
-/* NuMtlUpdate with CreateStateBlock on gfx/mtl: the state block, its VU words and the microcode packages. */
 static void test_state(void)
 {
     struct numtl_s *m = NuMtlCreate(1);
@@ -260,7 +254,6 @@ static void test_state(void)
     NuMtlUpdateEx(m, 0);
     CHECK(m->vuattr.f32[0] == 0.0f);
 
-    /* TEX1's last level from the texture's mip count, with filter 2 only. */
     GscBuild b = { 0 };
     size_t up;
     m->tid = make_native(&b, &up);
@@ -300,9 +293,7 @@ static bool packet_is(const uintptr_t *ids, uint32_t n)
     return same;
 }
 
-/* Retail's stream order (descending drawpri, a later stream before an equal key), the material order (sort_pri,
-   then tid) inside mtl_sort, the ordering table back to front with the latest item first in a bin, and one sorted
-   group per flush. */
+/* Retail: descending drawpri (a later stream before an equal key), then sort_pri and tid inside mtl_sort. */
 static void test_order(void)
 {
     struct rndrstream_s *pool[] = { rndrstream_2d, rndrstream_ptl, rndrstream_fx, rndrstream_ot_sort,
@@ -365,7 +356,6 @@ static void test_mtl_stream_head(void)
     NuRndrSwapStreamBuffers();
 }
 
-/* A record keeps the view and local matrix it was made under; the packet holds each view once. */
 static void test_state_capture(void)
 {
     struct numtx_s a, b;
@@ -385,7 +375,7 @@ static void test_state_capture(void)
     mark(rndrstream_3d_l, 3);
     NuRndrEndScene();
     const NwPacket *p = nw_rndr_packet();
-    const NwCmd *c = p->cmds + 1; /* after the TARGET of NuRndrBeginScene, made before its offset and scissor */
+    const NwCmd *c = p->cmds + 1; /* after the TARGET of NuRndrBeginScene */
     CHECK(p->ncmds == 4 && p->nviews == 3 && p->cmds[0].op == NW_CMD_TARGET);
     CHECK(c[0].local[12] == 7.0f && c[1].local[12] == 8.0f && c[2].local[12] == 8.0f);
     CHECK(c[0].view == c[1].view && p->views[c[2].view].vs[0] == 2.0f);
@@ -395,7 +385,6 @@ static void test_state_capture(void)
     NuRndrSwapStreamBuffers();
 }
 
-/* Packets the compiled decomp writes into a stream itself are reported, not drawn. */
 static void test_raw(void)
 {
     CHECK(nw_rndr_raw_streams() == 0);
@@ -407,8 +396,7 @@ static void test_raw(void)
     NuRndrSwapStreamBuffers();
 }
 
-/* The decomp's NuMtlAnimate writes the UV offset into the state block (VU 0x14, the STROW row x4096), whose snapshot
-   the published packet holds: per axis none, constant, wrapped scroll, sine and cosine of the shared clock. */
+/* NuMtlAnimate writes the UV offset into the state block: VU 0x14, the STROW row x4096. */
 static void test_animate(void)
 {
     struct numtl_s *m[3];
@@ -450,8 +438,7 @@ static void test_animate(void)
     NuRndrSwapStreamBuffers();
 }
 
-/* NuRndrClear flushes what came before (flags & 4: the streams alone, so material streams wait) and clears from the
-   system stream; sprites go to the 2D stream under numtl_defaultmtl2d unless given a material. */
+/* NuRndrClear's flags & 4 flushes the streams alone, so material streams wait. */
 static void test_2d(void)
 {
     struct numtl_s *m = NuMtlCreate(1);
@@ -490,7 +477,6 @@ static void test_2d(void)
     NuRndrSwapStreamBuffers();
 }
 
-/* The command of the packet whose mesh field marks id. */
 static const NwCmd *marked(const NwPacket *p, uintptr_t id)
 {
     for (uint32_t i = 0; i < p->ncmds; i++) {
@@ -501,8 +487,6 @@ static const NwCmd *marked(const NwPacket *p, uintptr_t id)
     return NULL;
 }
 
-/* A draw into a lit material's stream latches the lights set at that point; one into an unlit material's does not;
-   the packet holds each set of lights once. */
 static void test_lights(void)
 {
     struct numtl_s *lit = NuMtlCreate(1), *unlit = NuMtlCreate(1);
@@ -533,8 +517,6 @@ static void test_lights(void)
     NuRndrSwapStreamBuffers();
 }
 
-/* An ordering-table batch: its triangles bucket by view z and draw far to near, in batch order within a bucket;
-   the batch goes into the ordering table at its nearest triangle. */
 static void test_ot_batch(void)
 {
     static const float z[4] = { 1.0f, 0.0f, 1.0f, 100.0f };
@@ -568,8 +550,7 @@ static void test_ot_batch(void)
     nw_vif_free(&mesh.mesh);
 }
 
-/* FaceYDirStream's VU 0x16 is part of the view a draw is made under: the yaw's cosine and negated sine, the
-   viewport's size scaled for faceon. */
+/* FaceYDirStream's VU 0x16: the yaw's cosine and negated sine, the viewport's size scaled for faceon. */
 static void test_faceon_dir(void)
 {
     NuVpInit();
@@ -588,7 +569,6 @@ static void test_faceon_dir(void)
     NuRndrSwapStreamBuffers();
 }
 
-/* A turn about y and a translation. */
 static void set_mtx(struct numtx_s *m, float angle, float x, float y, float z)
 {
     memset(m, 0, sizeof(*m));
@@ -621,8 +601,6 @@ static const NwCmd *drawn(const NwPacket *p, uint8_t op, const void *mesh, const
     return NULL;
 }
 
-/* An hgobj in a pose: joint gobjs under the joint's matrix times wm, the skin's passes on one palette of INV_WT x the
-   pose; a forced material skips the forced material table; deformer weights keep retail's layout. */
 static void test_hgobj(void)
 {
     set_mtx(&numtx_identity, 0.0f, 0.0f, 0.0f, 0.0f); /* retail data the test has no image of */
@@ -715,8 +693,7 @@ static void test_hgobj(void)
     NuRndrSwapStreamBuffers();
 }
 
-/* attr & 0x43 picks the VU 0x0C block: the specular UV matrix (row 2 the negated half vector of light and view, offset
-   0.5) or the fx matrix; a skin draw keeps its deformer weights. */
+/* attr & 0x43 picks the VU 0x0C block: the specular UV matrix or the fx matrix. */
 static void test_xuv(void)
 {
     struct numtl_s *spec = NuMtlCreate(1), *fx = NuMtlCreate(1), *tri = NuMtlCreate(1);
@@ -764,8 +741,6 @@ static void test_xuv(void)
     NuRndrSwapStreamBuffers();
 }
 
-/* GlassGivenMaterial's material draws through the glass package under the fx matrix, with its VU 0x14-0x15 block:
-   the texcoords of the frame's corner, the strength, the texcoords per GS unit and the far edge's. */
 static void test_glass(void)
 {
     struct numtl_s *m = NuMtlCreate(1);
@@ -790,7 +765,6 @@ static void test_glass(void)
     NuRndrSwapStreamBuffers();
 }
 
-/* The crate explosion's quad goes through the camera's VPCS matrix to whole GS units; one out of view draws nothing. */
 static void test_crate_quad(void)
 {
     static struct nuvec_s shape[4] = { { -0.25f, 0.25f, 0.0f }, { 0.25f, 0.25f, 0.0f }, { -0.25f, -0.25f, 0.0f },
@@ -827,8 +801,6 @@ static void test_crate_quad(void)
     NuRndrSwapStreamBuffers();
 }
 
-/* NuBrdigeDrawRope's sequence: three points are two segments of four faces in one fx2 VERTS record; linking the fx
-   stream after another stream leaves no raw packets. */
 static void test_rope(void)
 {
     struct nuvec_s pts[3] = { { 0.0f, 0.0f, 0.0f }, { 1.0f, 0.0f, 0.0f }, { 2.0f, 0.0f, 0.0f } };
@@ -866,8 +838,6 @@ static void test_rope(void)
     NuRndrSwapStreamBuffers();
 }
 
-/* The hub's first-frame fx, each an fx2 VERTS record: a shadow is black with its shade as alpha, a ripple takes its
-   current colour, a footprint fades with its timer below 16 and draws over ALPHA_1 0x44. */
 static void test_fx_quads(void)
 {
     struct numtl_s *mtl = NuMtlCreate(1);
@@ -921,9 +891,6 @@ static void test_fx_quads(void)
     NuRndrSwapStreamBuffers();
 }
 
-/* The hub's volume shadows: the light fan, the stencil's full-screen box, NuRndrShadow emptying the store (not with
-   testflipold's bit 4) through a 256-pixel stencil pass, the mask and ten columns under ALPHA 0x42 in NuLgtSurf[2];
-   an hgobj's joint shadows stored under the joint's matrix times wm. */
 static void test_shadows(void)
 {
     struct nuvec_s dir = { 1.0f, 0.0f, 0.0f }, pos = { 0.0f, 0.0f, 0.0f };
@@ -1046,8 +1013,7 @@ static void test_silhouette(void)
     NuRndrSwapStreamBuffers();
 }
 
-/* SetupDebris's sets and effect list as retail lays them out; three sets linked out of order make one PARTICLES record
-   of their 96 particles in link order. */
+/* SetupDebris's sets and effect list as retail lays them out. */
 static void test_particles(void)
 {
     static _Alignas(16) uint8_t buf[3 * 0x430 + 0x870];
@@ -1086,8 +1052,6 @@ static void test_particles(void)
     NuRndrSwapStreamBuffers();
 }
 
-/* cloudRender: each cloud a sprite folded into +-rng about the wrapped scroll (a cloud at rng + 1 lands at 1 - rng),
-   corners +-size by +-size / 2, colour col times density, alpha 126. */
 static void test_clouds(void)
 {
     CloudFxInit();
@@ -1112,7 +1076,6 @@ static void test_clouds(void)
     NuRndrSwapStreamBuffers();
 }
 
-/* The packet's nth TARGET command. */
 static const NwCmd *target(const NwPacket *p, int n)
 {
     for (uint32_t i = 0; i < p->ncmds; i++) {
@@ -1123,8 +1086,7 @@ static const NwCmd *target(const NwPacket *p, int n)
     return NULL;
 }
 
-/* Render targets: a TARGET at the GS address (types 11-13 reserve theirs, others take NuTexAssignAddr's); a material
-   on the target or on -1 (the back buffer) reads GS memory; palette and Z targets are not drawn. */
+/* Types 11-13 reserve their GS address, others take NuTexAssignAddr's; tid -1 is the back buffer. */
 static void test_render_target(void)
 {
     struct nutex_s spec = { 11, 256, 128, 0, NULL, NULL };
@@ -1177,10 +1139,6 @@ static void test_render_target(void)
     NuRndrSwapStreamBuffers();
 }
 
-/* NuLightFogDraw with west_a's fog and a haze: ten columns in NuLgtSurf[9] under ALPHA 0x44 over a depth CLUT
-   from the fog colour at nearly full alpha to clear at fog-near; nineteen blur rects in one record under ALPHA 0x54,
-   their Ad the composite's from the same CLUT; the haze copies the frame in 10 x 32 cells and four edge strips and
-   blends it in at half its alpha. The blends are the GS's, as As and Ad pass 0x80. */
 static void test_fog(void)
 {
     NuCameraSet(NuCameraCreate());
@@ -1243,8 +1201,6 @@ static void test_fog(void)
     NuRndrSwapStreamBuffers();
 }
 
-/* A haze poly in view: a quad of whole GS units under ALPHA 0x48 with alpha 0xA0 and its UV box, the composite in front
-   of everything; the haze after it reads the masks' alpha, not the fog's. */
 static void test_polyhaze(void)
 {
     float u[2] = { 0.25f, 0.5f }, v[2] = { 0.0f, 1.0f };
@@ -1285,9 +1241,6 @@ static void test_polyhaze(void)
     NuRndrSwapStreamBuffers();
 }
 
-/* [video] fog, blur and haze over test_fog's fog: half the fog halves the composite's alpha and the blur's Ad; without
-   blur no blur record; no fog drops the blur too but keeps the haze; without haze neither haze pass, a haze poly
-   dropped. Retail again after. */
 static void test_fog_options(void)
 {
     static const struct {
@@ -1331,8 +1284,6 @@ static void test_fog_options(void)
     nw_fog_options(100, true, true);
 }
 
-/* An arc laser two units long in half-unit segments: one GS VERTS strip of four quads, U from U1 back to U0 along a
-   segment, V0 on the left and V1 on the right; paused, the same laser again. */
 static void test_arclaser(void)
 {
     struct nuvec_s start = { -1.0f, 0.0f, 10.0f }, end = { 1.0f, 0.0f, 10.0f }, mid = { 0.0f, 1.0f, 0.0f };
@@ -1367,9 +1318,7 @@ static void test_arclaser(void)
     }
 }
 
-/* A glow (mode 0) and a light in the dark (mode 1, xspan 0x20): 64-triangle fans in NuLgtSurf[9], the centre at the
-   spot's alpha and the rim at xspan's, over a depth CLUT whose unlit entries are xspan as alpha; mode 1 adds a
-   128-triangle ring out to the screen's edges. */
+/* Mode 0 a glow, mode 1 a light in the dark (xspan 0x20) with a 128-triangle ring out to the screen's edges. */
 static void test_spot(void)
 {
     struct nuvec_s pos = { 0.0f, 0.0f, 10.0f };
@@ -1438,8 +1387,6 @@ static void test_spot_edges(void)
     PS2_REZ_W = 640;
 }
 
-/* The vertices of the volume records (+1 and -1 into the stencil) one fx2 program made, and how many lie on the unit
-   sphere or one light away from it. */
 static uint32_t volume_verts(const struct nuvec_s *light, uint32_t *on, uint32_t *moved)
 {
     NuRndrEndScene();
@@ -1467,9 +1414,6 @@ static uint32_t volume_verts(const struct nuvec_s *light, uint32_t *on, uint32_t
     return n;
 }
 
-/* fx2's volumes: a unit ellipsoid's fan of 9 points about the light (8 quads, 6 cap triangles) on the sphere and
-   moved by the light; a plain cylinder's rectangle (4 quads, 2 cap triangles); a shadow mesh's face against the light
-   by more than 2 closed into 3 quads with no cap, and a face that is not skipped with its points. */
 static void test_fx2_volumes(void)
 {
     struct numtx_s id;
@@ -1501,7 +1445,6 @@ static void test_fx2_volumes(void)
     NuRndrStreamFxMPG(0);
 }
 
-/* The WAVES command of the material whose stream the packet took, NULL for none. */
 static const NwWaves *water_waves(const NwPacket *p, const struct numtl_s *m)
 {
     for (uint32_t i = 0; p && i < p->ncmds; i++) {
@@ -1512,9 +1455,7 @@ static const NwWaves *water_waves(const NwPacket *p, const struct numtl_s *m)
     return NULL;
 }
 
-/* animateWater's table from retail's NuRandSeed(0x11) draws, a speed then a phase per axis: with the camera unturned a
-   texcoord offset is half its lift along x and 0 along y. NuRndrWater draws nothing above the water line; below it,
-   the frame warped in 10 x 14 cells, then tinted. */
+/* animateWater's table from retail's NuRandSeed(0x11) draws, a speed then a phase per axis. */
 static void test_water(void)
 {
     struct numtl_s *m = NuMtlCreate(1);

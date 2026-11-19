@@ -26,9 +26,9 @@ def check(path: Path) -> list[str]:
     if doc.get("format") != 1:
         errors.append("format is not 1")
     slots = doc.get("slot", {})
-    if set(slots) != {"0"} or slots["0"].get("empty") not in (0, False):  # one game
+    if set(slots) != {"0"} or slots["0"].get("empty") not in (0, False):
         errors.append(f"slots {sorted(slots)}")
-    if not re.fullmatch(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}", str(doc.get("saved"))):  # and when it was saved
+    if not re.fullmatch(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}", str(doc.get("saved"))):
         errors.append(f"saved {doc.get('saved')!r}")
     for index, slot in slots.items():
         where = f"slot.{index}"

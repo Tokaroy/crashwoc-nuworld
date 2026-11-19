@@ -1,6 +1,4 @@
-/* nu3d/nustream overridden whole (port/units.toml): streams keep draw records in t_base and t_ptr (retail's unused
-   path-3 texture chain) for a flush to copy in retail's order; raw packets from compiled decomp code via base and ptr
-   are reported, not drawn. */
+/* Records live in t_base/t_ptr (retail's unused path-3 chain); raw packets via base and ptr are reported, not drawn. */
 #include <stdio.h>
 #include <string.h>
 
@@ -45,7 +43,7 @@ extern struct rndrstream_s *rndrstream_faceon;
 extern struct rndrstream_s *rndrstream_3d_l;
 extern struct rndrstream_s *rndrstream_ptl;
 extern struct rndrstream_s *rndrstream_ot_sort;
-extern void *rndrstream_fx_microcode; /* the fx stream's program, NuRndrStreamFxMPG's */
+extern void *rndrstream_fx_microcode;
 
 static struct rndrstream_s rndrstream_pool[NW_STREAMS];
 static struct rndrstream_s *rndrstream_sorted[NW_STREAMS];
@@ -55,8 +53,7 @@ static int stream_outbuf_size;
 extern int rndrstream_buffid; /* flipped by NuRndrSwapStreamBuffers */
 #define rndrstream_buffer_index rndrstream_buffid
 
-/* The records and view copies of a frame, in blocks that never move; one arena per output buffer, so a material
-   stream left unflushed at a swap keeps its records for the next frame as retail keeps its packets. */
+/* Blocks never move; one arena per output buffer, so an unflushed stream keeps its records across a swap as retail. */
 typedef struct NwBlock {
     struct NwBlock *next;
     size_t used;
@@ -93,17 +90,17 @@ struct NwJointSnap {
     _Alignas(16) float mtx[][16];
 };
 
-static NwView nw_view;             /* what SetViewMtx, SetXYOffset and SetScissor set */
+static NwView nw_view;
 static NwViewSnap *nw_view_snap;   /* its copy in the arena; NULL after a change */
-static NwLights nw_lights;         /* what SetDirectionalLights and SetAmbientLight set */
+static NwLights nw_lights;
 static NwLightSnap *nw_light_snap; /* its copy in the arena; NULL after a change */
 static NwLights nw_spec, nw_fx;    /* the UV matrices of SetSpecularLight and SetFxMtx */
 static NwLightSnap *nw_spec_snap, *nw_fx_snap;
-static NwJointSnap *nw_joint_snap; /* nw_rndr_joints' */
-static const uint32_t *nw_blend;   /* nw_rndr_blend's */
+static NwJointSnap *nw_joint_snap;
+static const uint32_t *nw_blend;
 static struct nuvec_s spec_light_dir = { 0.0f, 0.0f, 1.0f }; /* retail's data */
 static struct nuvec_s spec_view_dir = { 0.0f, 0.0f, -1.0f };
-static float nw_local[16];       /* NuRndrSetLocalMtx's */
+static float nw_local[16];
 static uint64_t nw_frame;
 static const struct numtl_s **nw_snap_key; /* nw_rndr_snap's table, by material address */
 static uint32_t *nw_snap_index;
@@ -137,7 +134,6 @@ void *nw_rndr_alloc(size_t size)
     return p;
 }
 
-/* The current view and lights, copied to the arena once after each change. */
 static NwViewSnap *nw_view_now(void)
 {
     if (!nw_view_snap) {
@@ -318,7 +314,7 @@ NwVuSpriteVertex *nw_rndr_quad(NwVuSpriteVertex *v, const NwVuSpriteVertex q[4])
     return v + 6;
 }
 
-/* Raw packets in a stream: reported once per stream. */
+/* Reported once per stream. */
 static void nw_rndr_raw(const struct rndrstream_s *stream)
 {
     for (unsigned i = 0; i < nw_nraw; i++) {
@@ -360,7 +356,6 @@ unsigned nw_rndr_raw_streams(void)
     return nw_nraw;
 }
 
-/* A stream's records to the packet, its views copied once a frame. */
 static void nw_rndr_emit(struct rndrstream_s *stream)
 {
     for (NwRecord *r = stream->t_base.voidptr; r; r = r->next) {
@@ -516,8 +511,7 @@ void NuRndrStreamInit(int size)
     NuRndrInitStreams();
 }
 
-/* Each flush appends its streams to the frame in drawpri order (retail's sortstreams_enabled is 1); the pool streams
-   start over. */
+/* Appends streams in drawpri order (retail's sortstreams_enabled is 1); the pool streams start over. */
 void NuRndrStreamFlush(void)
 {
     if (rndrstream_free > stream_outbuf[rndrstream_buffer_index] + stream_outbuf_size) {
@@ -580,8 +574,7 @@ static void nw_rndr_snap(NwPacket *p)
     }
 }
 
-/* Retail sends the frame's DMA chain to VU1 here; the port hands the frame packet to the renderer, stamped with the
-   vblank count. */
+/* Retail sends the frame's DMA chain to VU1 here; the port hands the packet to the renderer instead. */
 void NuRndrVu1Draw(void)
 {
     nw_rndr_snap(nw_packet_building());
@@ -590,8 +583,7 @@ void NuRndrVu1Draw(void)
     nw_capture_published(nw_packet_publish(nuvideo_global_vbcnt), nuvideo_global_vbcnt);
 }
 
-/* Retail carves qwords from the stream buffer; the room is doubled for the pointer arrays NuHGobjEvalDwa keeps in
-   it, whose host pointers are twice as wide. */
+/* Room doubled for NuHGobjEvalDwa's pointer arrays in the stream buffer: host pointers are twice as wide. */
 void *NuRndrStreamAlloc(int qwords)
 {
     size_t size = (size_t)(qwords > 0 ? qwords : 0) * 32;
@@ -609,8 +601,7 @@ int NuRndrStreamAddMtl(struct rndrstream_s *stream, struct numtl_s *mtl)
     return 1;
 }
 
-/* What retail's stream setters write into a stream (scissor, offset, the view and local matrices, the VU 0x0C block)
-   each record takes when it is made. */
+/* Each record takes the state retail's stream setters write into a stream (scissor, offset, matrices, VU 0x0C). */
 void NuRndrStreamSetMisc(struct rndrstream_s *stream)
 {
     (void)stream;
@@ -676,8 +667,7 @@ void NuRndrSetScissor(int x0, int y0, int x1, int y1)
     nw_view_snap = NULL;
 }
 
-/* Retail keeps them transposed for the VU (dirx, diry, dirz) and gives the colours the alphas 0, 0, 1, which vu1init
-   drops. */
+/* Retail keeps them transposed for the VU with colour alphas 0, 0, 1, which vu1init drops. */
 int NuRndrSetDirectionalLights(struct nuvec_s *d0, struct nucolour3_s *c0, struct nuvec_s *d1, struct nucolour3_s *c1,
                                struct nuvec_s *d2, struct nucolour3_s *c2)
 {
@@ -704,8 +694,7 @@ int NuRndrSetAmbientLight(struct nucolour3_s *colour)
     return 1;
 }
 
-/* Retail's UV matrix: aligned to the half vector of the light and the view in camera space, its offset 0.5. Its
-   colour (VU 0x10) no program reads. */
+/* Retail's UV matrix: aligned to the light/view half vector in camera space, offset 0.5; no program reads VU 0x10. */
 int NuRndrSetSpecularLight(struct nuvec_s *dir, struct nucolour4_s *col)
 {
     struct nuvec_s v;
@@ -740,8 +729,7 @@ int NuRndrSetFxMtx(struct numtx_s *mtx)
     return 1;
 }
 
-/* VU 0x16, which faceinit and faceon read: the camera's yaw for facey, the viewport's size for faceon, its width
-   as retail's 4:3 one (nw_wide) so that a wider view keeps the sprites' shape. */
+/* VU 0x16: camera yaw for facey, viewport size for faceon (width as retail's 4:3, nw_wide, keeping sprite shape). */
 void FaceYDirStream(int angle)
 {
     struct nuviewport_s *vp = NuVpGetCurrentViewport();

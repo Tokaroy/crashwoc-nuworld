@@ -1,5 +1,3 @@
-"""typedb_probe without a compiler: STABS joining, probe source, layout compare
-(needs the decomp submodule for declib)."""
 import copy
 import sys
 import unittest

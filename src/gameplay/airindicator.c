@@ -32,7 +32,6 @@ extern struct tersurface_s TerSurface[];
 #define NW_AIR_INDICATOR_TEX 128
 
 
-/* Color and Alpha of the ring */
 #define NW_AIR_INDICATOR_RGB 0x6C, 0x68, 0x60
 #define NW_AIR_INDICATOR_ALPHA 0x46
 
@@ -79,7 +78,6 @@ static float nw_air_indicator_step(float e0, float e1, float x)
     return t * t * (3.0f - 2.0f * t);
 }
 
-/* Air indicator Ring material */
 static struct numtl_s *nw_air_indicator_material(void)
 {
     static uint8_t abgr[NW_AIR_INDICATOR_TEX * NW_AIR_INDICATOR_TEX * 4];

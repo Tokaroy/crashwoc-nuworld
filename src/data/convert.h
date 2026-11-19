@@ -1,5 +1,3 @@
-/* Runtime of the generated converters (gen/nw_convert.h): PS2 bytes in the nw_ps2types.h layout <-> host structs,
-   data pointers through the context, code pointers through the funcmap. */
 #ifndef NUWORLD_DATA_CONVERT_H
 #define NUWORLD_DATA_CONVERT_H
 
@@ -13,13 +11,11 @@ typedef struct NwType NwType;
 typedef struct NwXCtx NwXCtx;
 typedef void (*NwXFn)(void *dst, const void *src, NwXCtx *ctx);
 
-/* NwType.flags */
-#define NW_TYPE_POD 1u    /* the same bytes on both sides: offsets map 1:1 */
+#define NW_TYPE_POD 1u
 #define NW_TYPE_OPAQUE 2u /* not defined in decomp/include: only offset 0 maps */
-#define NW_TYPE_HOOK 4u   /* converted in part by a hand-written hook (src/data/xhooks.c) */
+#define NW_TYPE_HOOK 4u
 
-/* NwSpan.kind: BYTES maps byte for byte, SLOT (pointers, nuintptr) only at the start of each element,
-   RECORD through its element type. */
+/* NwSpan.kind: SLOT (pointers, nuintptr) maps only at each element's start, RECORD through its element type. */
 enum { NW_SPAN_BYTES, NW_SPAN_SLOT, NW_SPAN_RECORD };
 
 typedef struct NwSpan {
@@ -34,15 +30,14 @@ struct NwType {
     const char *name;
     uint32_t ps2_size, ps2_align, host_size, host_align;
     unsigned flags;
-    NwXFn x, xr; /* NULL for primitives and opaque types */
-    const NwSpan *spans; /* PS2 offset order; unused for POD */
+    NwXFn x, xr;
+    const NwSpan *spans;
     unsigned nspans;
 };
 
 #define NW_XCTX_DEPTH 32
 
-/* The callbacks never see 0 / NULL pointers. ptr_in only records (addr, type) for the data image's worklist
-   and returns the host address; the pointee is converted later. */
+/* The callbacks never see NULL; ptr_in only records (addr, type) and the pointee is converted later. */
 struct NwXCtx {
     void *(*ptr_in)(NwXCtx *ctx, uint32_t addr, const NwType *type, const char *site);
     uint32_t (*ptr_out)(NwXCtx *ctx, const void *p, const NwType *type, const char *site);
@@ -60,22 +55,18 @@ struct NwXCtx {
         int index;
     } path[NW_XCTX_DEPTH];
     int depth;
-    unsigned code_pointers, stub_pointers; /* nw_fn_in: through the funcmap, to stubs */
+    unsigned code_pointers, stub_pointers;
 };
 
-/* Convert one object; root names it in errors (a symbol or the type name). */
 void nw_x(NwXCtx *ctx, const NwType *type, void *dst, const void *src, const char *root);
 void nw_xr(NwXCtx *ctx, const NwType *type, void *dst, const void *src, const char *root);
-/* Element index of an array root: errors read "root[index].field". */
 void nw_x_elem(NwXCtx *ctx, const NwType *type, void *dst, const void *src, const char *root, int index);
 void nw_xr_elem(NwXCtx *ctx, const NwType *type, void *dst, const void *src, const char *root, int index);
 
-/* The host offset of a PS2 offset into type; the size (one past the end) maps too. */
+/* The size (one past the end) maps too. */
 int nw_xoff(const NwType *type, uint32_t ps2_off, uint32_t *host_off);
-/* The way back: the PS2 offset of a host offset into type. */
 int nw_xoff_host(const NwType *type, uint32_t host_off, uint32_t *ps2_off);
 
-/* "root.field[i].site" */
 void nw_xpath(const NwXCtx *ctx, const char *site, char *buf, size_t size);
 _Noreturn void nw_xfatal(NwXCtx *ctx, const char *site, const char *fmt, ...)
     __attribute__((format(printf, 3, 4)));
@@ -103,7 +94,6 @@ static inline void nw_xpush(NwXCtx *ctx, const char *name, int index)
     ctx->depth++;
 }
 
-/* A nested converter call with its field on the path. */
 #define NW_XNEST(ctx, name, index, call) \
     do { \
         nw_xpush(ctx, name, index); \

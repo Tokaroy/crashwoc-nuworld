@@ -1,4 +1,3 @@
-/* [game] retail_menu = false: NuWorld's title instead of the PS2's logos and title cut. */
 #ifndef NUWORLD_GAMEPLAY_TITLEMENU_H
 #define NUWORLD_GAMEPLAY_TITLEMENU_H
 
@@ -9,7 +8,7 @@ struct NUGCUTCHAR_s;
 struct instNUGCUTSCENE_s;
 struct instNUGCUTCHAR_s;
 
-/* After NuGCutSceneFixUp: adds the mark to a title cut. */
+/* After NuGCutSceneFixUp. */
 void nw_title_menu_fixup(struct NUGCUTSCENE_s *def);
 
 /* Instead of AppCutSceneCharacterRender; false to draw as retail. */
@@ -23,7 +22,6 @@ void nw_title_menu_started(void);
 /* After SetCutMovieRate (the cut's sound plays). */
 void nw_title_menu_rate(void);
 
-/* The title's particles play no sounds. */
 bool nw_title_menu_quiet(void);
 
 #endif

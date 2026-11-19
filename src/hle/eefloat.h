@@ -1,6 +1,4 @@
-/* The EE FPU's single precision: exponent 255 is a number (no inf or NaN), sums and products round toward zero and
-   quotients to nearest, clamp at its largest value and flush below the smallest normal to zero. Values travel between
-   operations as doubles. */
+/* EE FPU singles: no inf or NaN, add/mul round toward zero, div to nearest, clamp at the max, denormals flush to 0. */
 #ifndef NUWORLD_HLE_EEFLOAT_H
 #define NUWORLD_HLE_EEFLOAT_H
 
@@ -96,7 +94,6 @@ static inline double nw_ee_div(double a, double b)
     return nw_ee_nearest(a / b);
 }
 
-/* The host float nearest the EE's: past FLT_MAX, FLT_MAX. */
 static inline float nw_ee_out(double v)
 {
     return fabs(v) > FLT_MAX ? (v < 0.0 ? -FLT_MAX : FLT_MAX) : (float)v;

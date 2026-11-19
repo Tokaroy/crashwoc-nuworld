@@ -22,7 +22,6 @@ void NuMemFreeFn(void *ptr, char *file, int line);
 int sceGsSyncV(int mode);
 int NuPs2ScreenSwap(int vsync);
 
-/* Roots of the data image the decomp reads. */
 extern volatile int nuvideo_global_vbcnt;
 extern int PS2_REZ_W;
 extern int PS2_REZ_H;
@@ -34,8 +33,7 @@ extern int ps2video_novsync;
 
 static char nw_ps2video_file[] = "ps2video.c";
 
-/* INTC state of the two vblank interrupts; the clock thread shares vblank start (it counts it), vblank end belongs to
-   the running EE thread alone. */
+/* The clock thread shares vblank start (it counts it); vblank end belongs to the running EE thread alone. */
 #define NW_INTC_HOOKED 0x1
 #define NW_INTC_MASKED 0x2
 #define NW_INTC_PENDING_COUNT 0x4 /* a masked edge not counted yet */
@@ -94,8 +92,7 @@ static int nw_vbs_clear(int bits)
     return old;
 }
 
-/* DisableIntc / EnableIntc of INTC 2 and 3: unmasking fires a pending edge at once unless inside an interrupt (the EE
-   does not nest them); the return may switch threads between NuEnableVBlank's two unmasks, as on the PS2. */
+/* Unmasking fires a pending edge unless inside an interrupt (the EE does not nest them) and may switch threads. */
 static void nw_intc_disable(int cause)
 {
     if (cause == 2) {
@@ -319,7 +316,6 @@ static unsigned int nw_t1_count(void)
     return (unsigned int)(nw_game_time_ns() / nw_hz_line_ns()) & 0xffffu;
 }
 
-/* Retail's video state minus what only programs the GS. */
 static unsigned int nw_video_size; /* ps2_video_size: lines per field */
 static int nw_progressive_scan;    /* nuvideo_progressive_scan */
 static int nw_field_parity;
@@ -418,7 +414,7 @@ void NuPs2Init(void)
     nw_tb_main_set = nw_tbset_alloc(0);
 }
 
-/* No IOP modules: NUSOUND is src/audio/nusound.c behind the SIF shim, pads have their own shim, NuWorld saves natively (port/saves.h). */
+/* No IOP modules: NUSOUND runs behind the SIF shim, pads have their own shim, saves are native (port/saves.h). */
 void NuPs2InitIOP(void)
 {
     if (!nw_iop_initialised) {
@@ -427,7 +423,7 @@ void NuPs2InitIOP(void)
     }
 }
 
-/* The mode and the render size; the GS has no registers to program. */
+/* The GS has no registers to program. */
 void NuPs2InitVideo(int width, int height, int psm, int zpsm, int format)
 {
     (void)psm, (void)zpsm;

@@ -1,4 +1,3 @@
-/* Builds a synthetic .cut in memory as the exporter lays it out: every pointer an address from CUT_BASE. */
 #ifndef NUWORLD_TEST_CUT_BUILDER_H
 #define NUWORLD_TEST_CUT_BUILDER_H
 
@@ -9,7 +8,6 @@
 
 #define CUT_BASE 0x53020020u
 
-/* Where the test file put what the tests check. */
 typedef struct CutFile {
     size_t names, camsys, cams, bounds, cam_times, cam_values, trig_times;
     size_t camanim_flags, locanim_flags, rigidanim_flags, charanim_flags, jointanim_flags;
@@ -37,8 +35,7 @@ static void cut_putf(GscBuild *b, size_t at, float f)
     memcpy(b->buf + at, &f, 4);
 }
 
-/* An anim2 of n curves on one node over frames 1-4 in one chunk: flag 0 the constant i + 0.5, 1 a hermite from 2
-   (frame 1) to 6 (frame 3), 3 a step from 7 to 9. Returns where its curve flags went. */
+/* Flag 0 the constant i + 0.5, 1 a hermite from 2 (frame 1) to 6 (frame 3), 3 a step from 7 to 9. */
 static size_t cut_anim2(GscBuild *b, size_t field, const int8_t *flags, int n)
 {
     size_t at = cut_rec(b, 0x18);
@@ -81,7 +78,7 @@ static size_t cut_anim2(GscBuild *b, size_t field, const int8_t *flags, int n)
     return cflags;
 }
 
-/* A state anim of n keys at frames 1, 20, ...; values 0, 1, ...; returns where its times went. */
+/* Keys at frames 1, 20, ...; values 0, 1, ... */
 static size_t cut_stateanim(GscBuild *b, size_t field, int n, size_t *values)
 {
     size_t at = cut_rec(b, 0xC);
@@ -105,8 +102,6 @@ static size_t cut_stateanim(GscBuild *b, size_t field, int n, size_t *values)
     return times;
 }
 
-/* Two cameras (one animated, camera switches), two locators of two types, two rigids (one named and animated,
-   one with junk in locators), one character, one trigger and the bounds. */
 static void cut_build(GscBuild *b, CutFile *f)
 {
     memset(b, 0, sizeof(*b));

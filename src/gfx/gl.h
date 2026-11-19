@@ -1,4 +1,3 @@
-/* Minimal OpenGL 3.3 core loader on top of SDL_GL_GetProcAddress. */
 #ifndef NUWORLD_GFX_GL_H
 #define NUWORLD_GFX_GL_H
 
@@ -301,7 +300,7 @@ NW_GL_FUNCTIONS(NW_GL_DECLARE)
 #define glFramebufferRenderbuffer nw_glFramebufferRenderbuffer
 #define glBlitFramebuffer nw_glBlitFramebuffer
 
-/* Loads every function in NW_GL_FUNCTIONS; needs a current GL context. */
+/* Needs a current GL context. */
 bool nw_gl_load(void);
 
 #endif

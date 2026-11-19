@@ -1,4 +1,3 @@
-/* Wraps of game/chase. */
 #include "game/creature.h"
 #include "game/gametypes.h"
 #include "game/chase.retail.h"

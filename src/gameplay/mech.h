@@ -1,4 +1,3 @@
-/* The mech: stand_jump, shot_stop, aim_walk, aim_fast, aim_assist. */
 #ifndef NUWORLD_GAMEPLAY_MECH_H
 #define NUWORLD_GAMEPLAY_MECH_H
 
@@ -12,8 +11,7 @@ struct obj_s;
 
 /* Crash in the mech, not climbing in or out. */
 bool nw_mech_driving(const struct creature_s *c);
-/* MovePlayer, before retail: the pad retail reads (copy, left stick = right stick, while walking and aiming)
-   and the aim it eases. */
+/* MovePlayer, before retail: the pad retail reads (copy, left stick = right stick, while walking and aiming). */
 struct nupad_s *nw_mech_pad(const struct creature_s *c, struct nupad_s *pad, struct nupad_s *copy);
 void nw_mech_aim(struct creature_s *c);
 /* MoveLoopXZ, before retail: true for the mech, which retail then moves along walk at in_speed. */

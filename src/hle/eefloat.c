@@ -1,4 +1,3 @@
-/* The decomp's NW_EE_DIV, NW_EE_LERP and NW_EE_S32 (nu_port.h): EE float where retail leaves IEEE's range. */
 #include <stdint.h>
 
 #include "hle/eefloat.h"

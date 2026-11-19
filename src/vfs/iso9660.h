@@ -1,4 +1,3 @@
-/* ISO9660 file index: uppercase '/'-separated paths without the ";1" version. Errors via SDL_GetError(). */
 #ifndef NUWORLD_VFS_ISO9660_H
 #define NUWORLD_VFS_ISO9660_H
 
@@ -11,7 +10,7 @@
 #define NW_ISO_PATH_MAX 256 /* with the NUL */
 
 typedef struct NwIsoFile {
-    char *path; /* e.g. "LEVELS/B/HUB/HUB.GSC" */
+    char *path;
     uint32_t lba;
     uint32_t size;
 } NwIsoFile;
@@ -22,7 +21,7 @@ typedef struct NwIso {
     char volume_id[33];
 } NwIso;
 
-/* Walks the whole tree. Multi-extent and interleaved files and duplicate names are refused. */
+/* Multi-extent and interleaved files and duplicate names are refused. */
 bool nw_iso_index(NwIso *iso, NwDisc *disc);
 void nw_iso_free(NwIso *iso);
 

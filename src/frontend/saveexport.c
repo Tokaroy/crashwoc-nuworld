@@ -22,16 +22,14 @@ static struct {
     const NwVfs *vfs;
     bool started;
     uint64_t drawn; /* SDL_GetTicks of the panel's last frame: a gap means it was opened again */
-    /* the saves there, by number */
     int count;
     int numbers[NW_SAVE_GAMES];
     char saves[NW_SAVE_GAMES][NW_SAVEEXPORT_LABEL];
-    /* the card */
     char *card;
     NwSaveCard state;
     uint8_t games[NW_SAVE_PS2_GAMES * NW_SAVE_GAME_SIZE];
     char why[512];
-    /* each PS2 slot's choice: 0 keep, 1 empty, 2 on the saves */
+    /* 0 keep, 1 empty, 2 on the saves */
     int choice[NW_SAVE_PS2_GAMES];
     char keep[NW_SAVE_PS2_GAMES][NW_SAVEEXPORT_LABEL];
     const char *items[NW_SAVE_PS2_GAMES][NW_SAVEEXPORT_CHOICES];
@@ -75,7 +73,6 @@ void nw_saveexport_game(const uint8_t *game, char *out, size_t size)
     SDL_snprintf(out, size, "%s  %d%%", name, game[NW_SAVE_PERCENT]);
 }
 
-/* The saves of the folder, as the slots list them. */
 static void nw_saveexport_scan(void)
 {
     const NwSaveRegistry *reg = nw_saves_levels();
@@ -106,7 +103,6 @@ static void nw_saveexport_scan(void)
     }
 }
 
-/* What the card holds, and what keeping each of its slots means. */
 static void nw_saveexport_read_card(void)
 {
     const NwSaveRegistry *reg = nw_saves_levels();

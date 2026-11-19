@@ -1,9 +1,5 @@
 #!/usr/bin/env python3
-"""Save PCSX2's EE RAM at chosen vblanks of the running game for tools/ps2_diff.py, poking it at others.
-
-Vblanks count from the title cut's start (pokes always, states unless --after). Prints the pokes as they landed (for
-the port's --poke) and the vblanks the states hold (for its --dump); a state can land later than asked.
-"""
+"""Save PCSX2's EE RAM at chosen vblanks of the running game for tools/ps2_diff.py, poking it at others."""
 from __future__ import annotations
 
 import argparse
@@ -21,7 +17,6 @@ POKE = re.compile(r"^(-?\d+):(0x[0-9a-fA-F]+|[A-Za-z_]\w*)(?:\+(0x[0-9a-fA-F]+|\
 
 
 def parse_pokes(text: str, symbols: dict[str, int]) -> list[tuple[int, str, int, int]]:
-    """(vblank, text after the vblank, address, value) per comma-separated item."""
     out = []
     for item in filter(None, (s.strip() for s in text.split(","))):
         m = POKE.match(item)

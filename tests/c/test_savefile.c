@@ -1,4 +1,3 @@
-/* Saves without the game: the TOML document, the records in it, the saves folder and synthetic PS2 card images. */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -42,7 +41,6 @@ static bool parse(NwDoc *doc, const char *text)
     return nw_doc_init(doc) && (nw_doc_parse(doc, text, strlen(text)) || (nw_doc_free(doc), false));
 }
 
-/* Whether text fails to parse with an error on that line. */
 static bool rejects(const char *text, int line)
 {
     NwDoc doc;
@@ -112,7 +110,6 @@ static void test_doc(void)
     }
     CHECK(table2(&doc, "empty", NULL) != NULL);
 
-    /* written, read back and written again: the same text */
     size_t n1 = 0, n2 = 0;
     char *w1 = nw_doc_write(&doc, "comment\n\nsecond", &n1), *w2 = NULL;
     NwDoc again;
@@ -129,7 +126,6 @@ static void test_doc(void)
     SDL_free(w1);
     SDL_free(w2);
 
-    /* a new table goes after the last one it shares the most with */
     const char *slot0[3] = { "a", "b c", "z" };
     NwDocTable *z = nw_doc_add_table(&doc, slot0, 3);
     CHECK(z && doc.count == 4 && doc.tables[2] == z);
@@ -138,7 +134,6 @@ static void test_doc(void)
     CHECK(nw_doc_add_table(&doc, other, 1) == doc.tables[4]);
     nw_doc_drop_table(&doc, z);
     CHECK(doc.count == 4 && nw_doc_table(&doc, slot0, 3) == NULL);
-    /* a key and a table cannot share a name */
     NwDocValue one = nw_doc_int(1, 0);
     CHECK(!nw_doc_set(&doc, doc.tables[0], "a", &one));
     const char *under_key[2] = { "a", "b c" };
@@ -157,7 +152,6 @@ static void test_doc(void)
         nw_doc_free(&doc);
     }
 
-    /* more hex digits than an int64 has are written as 16 */
     CHECK(parse(&doc, "a = 0x00000000000000000000000000000000000000000000000001\n"));
     w1 = failures ? NULL : nw_doc_write(&doc, NULL, NULL);
     CHECK(w1 && strcmp(w1, "a = 0x0000000000000001\n") == 0);
@@ -193,8 +187,6 @@ static void test_doc(void)
     CHECK(rejects("a = \"\\x41\"\n", 1));
 }
 
-/* A record of random bytes in what the game writes (texts end in a NUL, options in their ranges); every byte of game_s
-   is a field, so any such value has to come back. */
 static void random_record(uint8_t *g)
 {
     for (int i = 0; i < NW_SAVE_GAME_SIZE; i++) {
@@ -211,16 +203,15 @@ static void random_record(uint8_t *g)
     g[NW_SAVE_SFX_VOLUME] %= NW_SAVE_VOLUME_MAX + 1;
     g[NW_SAVE_MUSIC_VOLUME] %= NW_SAVE_VOLUME_MAX + 1;
     g[NW_SAVE_LANGUAGE] %= NW_SAVE_LANGUAGES;
-    if (rnd() & 1) { /* a name with a NUL inside and trailing NULs */
+    if (rnd() & 1) {
         memcpy(g + NW_SAVE_NAME, "AB\0\xE9z\0\0\0\0", 9);
     }
-    for (int l = 0; l < NW_SAVE_LEVELS; l += 3) { /* records that are all zero */
+    for (int l = 0; l < NW_SAVE_LEVELS; l += 3) {
         memset(g + NW_SAVE_LEVEL + l * NW_SAVE_LEVEL_SIZE, 0, NW_SAVE_LEVEL_SIZE);
     }
     memset(g + NW_SAVE_HUB + 2 * NW_SAVE_HUB_SIZE, 0, NW_SAVE_HUB_SIZE);
 }
 
-/* records -> TOML text -> records */
 static bool round_trip(const uint8_t *games, size_t count, uint8_t *out, char **text)
 {
     NwDoc doc, back;
@@ -274,14 +265,13 @@ static void test_codec(void)
         for (int s = 0; s < NW_SAVE_PS2_GAMES; s++) {
             random_record(games + s * NW_SAVE_GAME_SIZE);
         }
-        memset(games + 3 * NW_SAVE_GAME_SIZE, 0, NW_SAVE_GAME_SIZE); /* an empty slot of zeros */
+        memset(games + 3 * NW_SAVE_GAME_SIZE, 0, NW_SAVE_GAME_SIZE);
         games[3 * NW_SAVE_GAME_SIZE + NW_SAVE_EMPTY] = 1;
         CHECK(round_trip(games, NW_SAVE_PS2_GAMES, back, &text) && memcmp(games, back, SAVE_SIZE) == 0);
         SDL_free(text);
         text = NULL;
     }
 
-    /* what a real save looks like */
     uint8_t *g = games;
     memset(games, 0, SAVE_SIZE);
     memcpy(g + NW_SAVE_NAME, "CRASH   ", 8);
@@ -320,7 +310,6 @@ static void test_codec(void)
     text = NULL;
     g[NW_SAVE_MINIGAME_BEST] = 0;
 
-    /* merged into a document that holds more than the records */
     static const char more[] = "format = 1\n"
                                "note = \"kept\"\n"
                                "[mod.\"some.mod\"]\n"
@@ -353,7 +342,7 @@ static void test_codec(void)
         const NwDocTable *s0 = table2(&doc, "slot", "0");
         CHECK(s0 && (v = nw_doc_get(s0, "extra")) && v->i == 5);
         CHECK(s0 && (v = nw_doc_get(s0, "lives")) && v->i == 4);
-        CHECK(s0 && s0->keys[0].name && strcmp(s0->keys[0].name, "extra") == 0); /* in its place */
+        CHECK(s0 && s0->keys[0].name && strcmp(s0->keys[0].name, "extra") == 0);
         const char *custom[4] = { "slot", "0", "level", "custom/level" };
         CHECK((v = nw_doc_get(nw_doc_table(&doc, custom, 4), "flags")) && v->i == 0x10);
         const char *level1[4] = { "slot", "0", "level", "a/level_01/lev" };
@@ -367,7 +356,6 @@ static void test_codec(void)
     }
     SDL_free(merged);
 
-    /* a missing slot is empty, a missing field zero */
     CHECK(parse(&doc, "format = 1\n[slot.1]\nlives = 7\n"));
     if (!failures) {
         CHECK(nw_save_decode(&doc, &reg, back, 2));
@@ -376,7 +364,6 @@ static void test_codec(void)
         nw_doc_free(&doc);
     }
 
-    /* refused */
     static const char *const bad[] = {
         "[slot.0]\nlives = 1\n",
         "format = 2\n",
@@ -449,8 +436,8 @@ static void fresh(void)
     CHECK(nw_paths_remove_tree(dir) && SDL_CreateDirectory(dir));
 }
 
-#define OLDER NW_SAVE_PS2_PAL "slot00.toml" /* an older NuWorld build's file of 4 games */
-#define RAW NW_SAVE_PS2_PAL "slot00"         /* a raw PS2 save */
+#define OLDER NW_SAVE_PS2_PAL "slot00.toml"
+#define RAW NW_SAVE_PS2_PAL "slot00"
 #define RAW_US NW_SAVE_PS2_US "slot00"
 #define GAME NW_SAVE_GAME_SIZE
 
@@ -487,7 +474,6 @@ static void test_card(const uint8_t *games)
         free(img);
     }
 
-    /* a chain that loops back and a FAT outside the card */
     static Pcb m;
     const char *names[1] = { RAW };
     const void *data[1] = { games };
@@ -499,11 +485,11 @@ static void test_card(const uint8_t *games)
         last = pcb_rd32(pcb_fat(&m, last)) & 0x7FFFFFFFu;
     }
     pcb_le32(pcb_fat(&m, last), 0x80000000u | first);
-    pcb_le32(entry + 0x04, 0x100000); /* a size longer than the card */
+    pcb_le32(entry + 0x04, 0x100000);
     uint8_t *img = pcb_image(&m, true, &size);
     CHECK(!nw_ps2card_file(img, size, NW_SAVE_PS2_PAL, names[0], &len, &missing) && !missing);
     free(img);
-    pcb_le32(entry + 0x04, PCB_CLUSTERS * PCB_CLUSTER + 1); /* more clusters than the card has */
+    pcb_le32(entry + 0x04, PCB_CLUSTERS * PCB_CLUSTER + 1);
     img = pcb_image(&m, true, &size);
     CHECK(!nw_ps2card_file(img, size, NW_SAVE_PS2_PAL, names[0], &len, &missing) && !missing &&
           strstr(SDL_GetError(), "loops"));
@@ -533,7 +519,6 @@ static void as_card(uint8_t *card, const uint8_t *games)
     }
 }
 
-/* The file an older NuWorld build wrote: the codec's 4 records. */
 static void put_older(const uint8_t *card, const char *name)
 {
     NwDoc doc;
@@ -548,7 +533,6 @@ static void put_older(const uint8_t *card, const char *name)
     nw_doc_free(&doc);
 }
 
-/* A game per file with its time, kept as .bak when replaced or deleted. */
 static void test_saves(const uint8_t *games, const uint8_t *other)
 {
     uint8_t g[GAME], o[GAME], e[GAME], back[GAME];
@@ -574,7 +558,6 @@ static void test_saves(const uint8_t *games, const uint8_t *other)
           !strstr(text, "[slot.1]"));
     SDL_free(text);
 
-    /* saved now; out of range; an empty game is no save */
     CHECK(nw_save_store(dir, NW_SAVE_GAMES - 1, &reg, o, NULL, NULL) && there("save100.toml"));
     CHECK(nw_save_load(dir, NW_SAVE_GAMES - 1, &reg, back, NULL, &t) == NW_SAVE_OK && memcmp(back, o, GAME) == 0);
     CHECK(t.year >= 2024 && t.month >= 1);
@@ -588,7 +571,6 @@ static void test_saves(const uint8_t *games, const uint8_t *other)
     put("save003.toml", "format = 1\n[slot.0]\nlives = 3\n", 30);
     CHECK(nw_save_load(dir, 2, &reg, back, NULL, &t) == NW_SAVE_OK && back[NW_SAVE_LIVES] == 3 && t.year == 0);
 
-    /* replaced: the last one kept as .bak, loaded when the file does not, the next save sets the file aside */
     CHECK(nw_save_store(dir, 0, &reg, o, NULL, &when) && there("save001.toml.bak"));
     CHECK(nw_save_load(dir, 0, &reg, back, NULL, NULL) == NW_SAVE_OK && memcmp(back, o, GAME) == 0);
     put("save001.toml", "format = 1\n[slot.0\n", 19);
@@ -597,7 +579,6 @@ static void test_saves(const uint8_t *games, const uint8_t *other)
     CHECK(nw_save_store(dir, 0, &reg, o, NULL, NULL) && there("save001.toml.corrupt"));
     CHECK(nw_save_load(dir, 0, &reg, back, NULL, NULL) == NW_SAVE_OK && memcmp(back, o, GAME) == 0);
 
-    /* a newer build's file is neither loaded nor overwritten */
     static const char newer[] = "format = 2\n[slot.0]\nlives = 9\n";
     put("save004.toml", newer, sizeof(newer) - 1);
     CHECK(nw_save_load(dir, 3, &reg, back, NULL, NULL) == NW_SAVE_FAILED && strstr(SDL_GetError(), "newer"));
@@ -606,7 +587,6 @@ static void test_saves(const uint8_t *games, const uint8_t *other)
     CHECK(kept && size == sizeof(newer) - 1 && memcmp(kept, newer, size) == 0);
     SDL_free(kept);
 
-    /* NuWorld's longer names beside the record; without them their keys go; one the codec does not keep is empty */
     static NwSaveNames names, names_back;
     strcpy(names.game, "NUWORLD TEAM");
     strcpy(names.time[3][1], "ROBERTA");
@@ -629,7 +609,6 @@ static void test_saves(const uint8_t *games, const uint8_t *other)
     CHECK(nw_save_load(dir, 8, &reg, back, &names_back, NULL) == NW_SAVE_OK && !names_back.game[0]);
     CHECK(nw_save_name_ok("AB 9", 4, 4) && !nw_save_name_ok("AB 9", 4, 3) && !nw_save_name_ok("ab", 2, 8));
 
-    /* deleted to .bak: no save afterwards, and the folder has had saves */
     CHECK(nw_save_remove(dir, 0) == NW_SAVE_OK && !nw_save_exists(dir, 0) && there("save001.toml.bak"));
     CHECK(nw_save_remove(dir, 0) == NW_SAVE_NONE && nw_save_load(dir, 0, &reg, back, NULL, NULL) == NW_SAVE_NONE);
     for (int n = 1; n < NW_SAVE_GAMES; n++) {
@@ -638,7 +617,6 @@ static void test_saves(const uint8_t *games, const uint8_t *other)
     CHECK(nw_save_started(dir) && nw_save_scan(dir, &last) == -1 && last == -1);
 }
 
-/* Before the first save, once: an older NuWorld file, else the folder's PS2 save, by the games' places. */
 static void test_convert(const uint8_t *games)
 {
     uint8_t card[SAVE_SIZE], back[GAME];
@@ -649,7 +627,6 @@ static void test_convert(const uint8_t *games)
     fresh();
     CHECK(nw_save_convert(dir, &reg) == 0 && !nw_save_started(dir));
 
-    /* an older NuWorld build's file: renamed once converted, at its own time */
     fresh();
     put_older(card, OLDER);
     CHECK(nw_save_convert(dir, &reg) == 3);
@@ -658,9 +635,8 @@ static void test_convert(const uint8_t *games)
     CHECK(nw_save_load(dir, 2, &reg, back, NULL, &t) == NW_SAVE_OK && memcmp(back, card + 2 * GAME, GAME) == 0);
     CHECK(t.year >= 2024);
     put_older(card, OLDER);
-    CHECK(nw_save_convert(dir, &reg) == 0 && there(OLDER)); /* the folder has saves: never again */
+    CHECK(nw_save_convert(dir, &reg) == 0 && there(OLDER));
 
-    /* its .bak when the file does not load; a newer build's is kept and not converted */
     fresh();
     put_older(card, OLDER ".bak");
     put(OLDER, "format = 1\n[slot.0\n", 19);
@@ -670,13 +646,11 @@ static void test_convert(const uint8_t *games)
     CHECK(nw_save_convert(dir, &reg) == -1 && strstr(SDL_GetError(), "newer") && there(OLDER));
     CHECK(!nw_save_started(dir));
 
-    /* the folder's raw PS2 save, left as it is */
     fresh();
     put(RAW, card, SAVE_SIZE);
     CHECK(nw_save_convert(dir, &reg) == 3 && there("save004.toml") && there(RAW));
     CHECK(nw_save_load(dir, 3, &reg, back, NULL, NULL) == NW_SAVE_OK && memcmp(back, card + 3 * GAME, GAME) == 0);
 
-    /* card images, by name: the first that holds the save; a stray file is passed over */
     fresh();
     uint8_t *with = card_with(card, SAVE_SIZE, true, 1, &size);
     put("b.ps2", with, size);
@@ -692,14 +666,12 @@ static void test_convert(const uint8_t *games)
     put(RAW_US, card, SAVE_SIZE);
     CHECK(nw_save_convert(dir, &reg) == 3 && there("save004.toml") && there(RAW_US));
 
-    /* nothing usable: no save, and no file made */
     fresh();
     put("x.ps2", "junk", 4);
     put(RAW, card, 100);
     CHECK(nw_save_convert(dir, &reg) == 0 && !nw_save_started(dir));
 }
 
-/* A PS2 save's games into the first free saves, in their order; nothing written when one does not convert. */
 static void test_import(const uint8_t *games, const uint8_t *other)
 {
     uint8_t card[SAVE_SIZE], g[GAME], o[GAME], back[GAME];
@@ -748,7 +720,6 @@ static void test_import(const uint8_t *games, const uint8_t *other)
     free(with);
     CHECK(nw_save_import(dir, path_of("odd.ps2"), &reg) == -1);
 
-    /* crafted saves (a time name without its NUL, a language past the tables) are refused before anything is written */
     fresh();
     uint8_t *crafted = malloc(SAVE_SIZE);
     memcpy(crafted, card, SAVE_SIZE);
@@ -765,7 +736,6 @@ static void test_import(const uint8_t *games, const uint8_t *other)
     CHECK(!nw_save_started(dir));
     free(crafted);
 
-    /* no room: nothing written */
     for (int n = 0; n < NW_SAVE_GAMES - 1; n++) {
         CHECK(nw_save_store(dir, n, &reg, g, NULL, NULL));
     }
@@ -801,7 +771,6 @@ static void ecc_of(const uint8_t *chunk, uint8_t out[3])
     out[2] = lp1;
 }
 
-/* Pages with a spare that is not all zero (the builder's) carry their ECC; how many do. */
 static int ecc_pages(const uint8_t *img, size_t size)
 {
     int written = 0;
@@ -826,7 +795,6 @@ static int ecc_pages(const uint8_t *img, size_t size)
     return written;
 }
 
-/* The builder's card's free file clusters (its one FAT cluster), in an image with ECC. */
 static int free_clusters(const uint8_t *img)
 {
     int free = 0;
@@ -837,7 +805,6 @@ static int free_clusters(const uint8_t *img)
     return free;
 }
 
-/* A file of the card at path, SDL_malloc'd. */
 static uint8_t *card_file(const char *card, const char *folder, const char *name, size_t *len)
 {
     size_t size = 0;
@@ -848,7 +815,6 @@ static uint8_t *card_file(const char *card, const char *folder, const char *name
     return file;
 }
 
-/* The card writer itself: files made, grown, shrunk, kept; another folder untouched; the card full. */
 static void test_card_put(void)
 {
     static Pcb m;
@@ -874,7 +840,6 @@ static void test_card_put(void)
     SDL_free(a);
     int made = free_clusters(img);
     CHECK(before - made == 5 + 1 + 2); /* A, B, the folder's 4 entries */
-    /* shrunk (its clusters freed), then grown again; kept */
     files[0].len = 100;
     files[1].keep = true;
     files[1].data = big;
@@ -896,7 +861,6 @@ static void test_card_put(void)
     SDL_free(o);
     CHECK(ecc_pages(img, size) > 0);
 
-    /* a name too long; the card full */
     CHECK(!nw_ps2card_put(img, size, "0123456789012345678901234567890123", files, 1, 0) &&
           strstr(SDL_GetError(), "folder"));
     static uint8_t huge[PCB_CLUSTERS * PCB_CLUSTER];
@@ -904,7 +868,6 @@ static void test_card_put(void)
     CHECK(!nw_ps2card_put(img, size, "NEWDIR", &full, 1, 0) && strstr(SDL_GetError(), "full"));
     free(img);
 
-    /* without ECC, the pages are only the data */
     img = pcb_image(&m, false, &size);
     CHECK(nw_ps2card_put(img, size, "NEWDIR", files, 2, 0));
     a = nw_ps2card_file(img, size, "NEWDIR", "A", &len, &missing);
@@ -913,8 +876,6 @@ static void test_card_put(void)
     free(img);
 }
 
-/* NuWorld's saves back into a card: each PS2 slot a save, the card's game or empty; other saves stay; read back by
-   the import as they went. */
 static void test_export(const uint8_t *games, const uint8_t *other)
 {
     uint8_t g[GAME], o[GAME], back[SAVE_SIZE], card_games[SAVE_SIZE], icon[3000];
@@ -933,7 +894,6 @@ static void test_export(const uint8_t *games, const uint8_t *other)
 
     fresh();
     CHECK(nw_save_store(dir, 0, &reg, g, &names, NULL) && nw_save_store(dir, 4, &reg, o, NULL, NULL));
-    /* a card with another game's save, none of this one */
     static Pcb m;
     const char *names_other[1] = { "OTHERFILE" };
     const void *data_other[1] = { "other game" };
@@ -969,14 +929,12 @@ static void test_export(const uint8_t *games, const uint8_t *other)
     CHECK(img && ecc_pages(img, size) > 0);
     SDL_free(img);
 
-    /* again over the card's save, without the icon (it has one): kept slots stay */
     int again[4] = { NW_SAVE_PS2_KEEP, 4, NW_SAVE_PS2_KEEP, NW_SAVE_PS2_EMPTY };
     CHECK(nw_save_export(dir, &reg, path_of("card.ps2"), NW_SAVE_PS2_PAL, again, NULL, 0));
     CHECK(nw_save_card(path_of("card.ps2"), NW_SAVE_PS2_PAL, &reg, back) == NW_SAVE_CARD_SAVE);
     CHECK(memcmp(back, g, GAME) == 0 && memcmp(back + GAME, o, GAME) == 0 && back[2 * GAME + NW_SAVE_EMPTY] &&
           back[3 * GAME + NW_SAVE_EMPTY] && memcmp(back + 3 * GAME + 1, o + 1, 16) == 0);
 
-    /* imported back: the games as they went, the game's own names */
     char *keep = SDL_strdup(dir);
     SDL_snprintf(dir, sizeof(dir), "%sback/", keep);
     CHECK(SDL_CreateDirectory(dir));
@@ -999,7 +957,6 @@ static void test_export(const uint8_t *games, const uint8_t *other)
     CHECK(file && len == SAVE_SIZE);
     SDL_free(file);
 
-    /* refused, the card unchanged: a save that is not there, no icon for a new save, a blank card, not a card */
     img = pcb_image(&m, true, &size);
     put("other.ps2", img, size);
     int missing_save[4] = { 7, NW_SAVE_PS2_KEEP, NW_SAVE_PS2_KEEP, NW_SAVE_PS2_KEEP };
@@ -1029,7 +986,6 @@ static void test_export(const uint8_t *games, const uint8_t *other)
     free(blank);
     CHECK(nw_save_card(path_of("nothing.ps2"), NW_SAVE_PS2_PAL, &reg, back) == NW_SAVE_CARD_FAILED);
 
-    /* a card save that does not read: kept slots refuse, a full set of slots replaces it */
     uint8_t card[SAVE_SIZE];
     as_card(card, games);
     card[NW_SAVE_LANGUAGE] = 200;
@@ -1045,8 +1001,6 @@ static void test_export(const uint8_t *games, const uint8_t *other)
           memcmp(back, g, GAME) == 0);
 }
 
-/* Interrupt every durable I/O stage, for both save kinds. A failed update must leave the old main readable.
-   Also cover parseable truncation, two-generation recovery, stale temporaries and deliberate deletion. */
 static void test_save_safety(const uint8_t *games)
 {
     uint8_t first[GAME], second[GAME], third[GAME], back[GAME];
@@ -1081,7 +1035,7 @@ static void test_save_safety(const uint8_t *games)
         char *boundary = text ? strstr(text, "[slot.0.options]") : NULL;
         CHECK(boundary != NULL);
         if (boundary) {
-            put(base, text, (size_t)(boundary - text)); /* still valid TOML, but incomplete */
+            put(base, text, (size_t)(boundary - text));
             CHECK(nw_save_load_meta(dir, n, 0, &reg, back, NULL, NULL, NULL) == NW_SAVE_BACKUP);
             CHECK(back[NW_SAVE_LIVES] == 4);
         }
@@ -1091,13 +1045,13 @@ static void test_save_safety(const uint8_t *games)
         put(backup, "# NuWorld integrity 1 99 1234\nformat = 1\n", 38);
         CHECK(nw_save_load_meta(dir, n, 0, &reg, back, NULL, NULL, NULL) == NW_SAVE_BACKUP);
         CHECK(back[NW_SAVE_LIVES] == 3);
-        if (text) put(temporary, text, size); /* a completed but uncommitted write is never promoted */
+        if (text) put(temporary, text, size);
         CHECK(nw_save_load_meta(dir, n, 0, &reg, back, NULL, NULL, NULL) == NW_SAVE_BACKUP && back[NW_SAVE_LIVES] == 3);
         CHECK(nw_save_store_meta(dir, n, &reg, second, NULL, NULL, &meta));
         CHECK(nw_save_load_meta(dir, n, 0, &reg, back, NULL, NULL, NULL) == NW_SAVE_OK && back[NW_SAVE_LIVES] == 4);
         CHECK(nw_save_remove(dir, n) == NW_SAVE_OK);
         CHECK(nw_save_load_meta(dir, n, 0, &reg, back, NULL, NULL, NULL) == NW_SAVE_NONE);
-        CHECK(nw_save_load_meta(dir, n, 1, &reg, back, NULL, NULL, NULL) == NW_SAVE_OK); /* explicit recovery works */
+        CHECK(nw_save_load_meta(dir, n, 1, &reg, back, NULL, NULL, NULL) == NW_SAVE_OK);
         CHECK(nw_save_store_meta(dir, n, &reg, third, NULL, NULL, &meta));
         CHECK(nw_save_load_meta(dir, n, 0, &reg, back, NULL, NULL, NULL) == NW_SAVE_OK && back[NW_SAVE_LIVES] == 5);
         SDL_free(text);

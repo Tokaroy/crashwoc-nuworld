@@ -1,8 +1,5 @@
 #!/usr/bin/env python3
-"""ctest decomp-closure: every retail name the decomp objects leave undefined must come from the port or HOST_LIBC.
-
-The link proves it resolves; this catches a missing rename binding a host library (kernel32's CreateThread, CRT rand).
-"""
+"""ctest decomp-closure: every retail name the decomp objects leave undefined must come from the port or HOST_LIBC."""
 from __future__ import annotations
 
 import argparse

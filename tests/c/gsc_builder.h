@@ -1,4 +1,3 @@
-/* Builds a synthetic NU20 scene in memory with every block NuGScnLoadFix reads, plus an unknown one. */
 #ifndef NUWORLD_TEST_GSC_BUILDER_H
 #define NUWORLD_TEST_GSC_BUILDER_H
 
@@ -11,15 +10,14 @@
 typedef struct GscBuild {
     uint8_t *buf;
     size_t len, cap;
-    size_t blk; /* the open block's header */
+    size_t blk;
 } GscBuild;
 
-/* Where the test scene put what the tests check. */
 typedef struct GscScene {
     size_t blob[4], blob_size[4];   /* geoms: V4-32 chain, packed, OT batch, face-on */
     size_t geom0_mtl, sub0_type, geom0_size; /* fields to corrupt */
     uint32_t names[5];              /* NTBL offsets: Stencil_A, Special, Anim, Script, Node */
-    uint32_t batches[2], verts[2], tris[2]; /* what geoms 0 and 1 decode to */
+    uint32_t batches[2], verts[2], tris[2];
 } GscScene;
 
 static void gsc_bytes(GscBuild *b, const void *p, size_t n)
@@ -100,8 +98,7 @@ static inline void gsc_upload(GscBuild *b, uint32_t w, uint32_t h, const void *d
     gsc_zero(b, (16 - n % 16) % 16);
 }
 
-/* A version 1 native texture of type 2-7; level i uploads the first n / 4^i bytes of up at (uw x uh) / 2^i.
-   Returns where the upload of level 0 starts. */
+/* Level i uploads the first n / 4^i bytes of up at (uw x uh) / 2^i; returns where level 0's upload starts. */
 static inline size_t gsc_texture(GscBuild *b, uint32_t type, uint32_t w, uint32_t h, const uint8_t clut[][4],
                                  const void *up, uint32_t uw, uint32_t uh, size_t n, uint32_t tbw, uint32_t dbw,
                                  uint32_t levels)
@@ -172,7 +169,6 @@ static void gsc_vtx(VifVtx *v, uint32_t n, float z)
     }
 }
 
-/* Materials tricu, OT tric, tric; object 0 a V4-32 chain and a packed geom, object 1 an OT and a face-on geom. */
 static inline void gsc_build_scene(GscBuild *b, GscScene *s)
 {
     memset(b, 0, sizeof(*b));
@@ -292,7 +288,7 @@ static inline void gsc_build_scene(GscBuild *b, GscScene *s)
     gsc_u32(b, 0);
     gsc_zero(b, 64);
     gsc_u32(b, 2);           /* instance */
-    gsc_u32(b, name_at[1]);  /* name */
+    gsc_u32(b, name_at[1]);
     gsc_u32(b, 3);           /* flags */
     gsc_u32(b, 0);
     gsc_close(b);

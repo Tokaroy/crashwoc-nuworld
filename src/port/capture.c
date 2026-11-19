@@ -9,7 +9,7 @@
 #include "port/trace.h"
 
 #define NW_CAPTURE_MAX 512
-#define NW_CAPTURE_WAIT_MS 10000 /* a renderer that does not save a frame in time */
+#define NW_CAPTURE_WAIT_MS 10000
 
 extern volatile int nuvideo_global_vbcnt;
 

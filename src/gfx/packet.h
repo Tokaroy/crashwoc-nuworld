@@ -1,4 +1,4 @@
-/* The frame of draws the game thread hands the renderer each tick, and the GPU objects they use; GL-free. */
+/* The frame of draws the game thread hands the renderer each tick; GL-free. */
 #ifndef NUWORLD_GFX_PACKET_H
 #define NUWORLD_GFX_PACKET_H
 
@@ -13,7 +13,7 @@
 
 struct numtl_s;
 
-/* A geom's mesh and a texture: made on the game thread, uploaded and freed on the render thread. */
+/* Made on the game thread, uploaded and freed on the render thread. */
 typedef struct NwGpuMesh {
     NwVifMesh mesh;
     unsigned int vao, vbo, ibo;
@@ -32,10 +32,10 @@ typedef struct NwGpuSprites {
 typedef struct NwGpuSkin {
     NwVifSkin skin;
     unsigned int vao, vbo, ibo;
-    unsigned int deltas, delta_tex; /* the blend-shape deltas as a texture buffer */
+    unsigned int deltas, delta_tex;
 } NwGpuSkin;
 
-/* A texture in GS memory: the back or front buffer or a target's GS address (0: none), tw x th a power of two. */
+/* The back or front buffer or a target's GS address (0: none), tw x th a power of two. */
 #define NW_SURF_BACK (-1)
 #define NW_SURF_FRONT (-3)
 
@@ -46,16 +46,16 @@ typedef struct NwSurf {
 } NwSurf;
 
 typedef enum NwCmdOp {
-    NW_CMD_DRAW,    /* a geom's mesh under the local matrix */
-    NW_CMD_DRAW_OT, /* an ordering-table batch: some of its mesh's triangles, in their order in NwPacket.idx */
+    NW_CMD_DRAW,
+    NW_CMD_DRAW_OT, /* some of its mesh's triangles, in their order in NwPacket.idx */
     NW_CMD_CLEAR, /* NuRndrClear: the scissor rectangle's colour and Z */
-    NW_CMD_RECT,    /* a 2D sprite */
-    NW_CMD_SPRITES, /* a face-on geom's sprites under the local matrix */
-    NW_CMD_TARGET,  /* what the draws after it go to: the back or front buffer, or a render target */
-    NW_CMD_SKIN,    /* a skin geom under the local matrix and its joint palette */
-    NW_CMD_VERTS,   /* triangles of vertices made this frame, in NwPacket.verts */
-    NW_CMD_PARTICLES, /* particles under the local matrix, as the ptl program draws them from their effect list */
-    NW_CMD_VOLUMES, /* the volume shadows' start on the target: the back buffer's Z, squeezed, and the stencil 0x7F */
+    NW_CMD_RECT,
+    NW_CMD_SPRITES,
+    NW_CMD_TARGET,
+    NW_CMD_SKIN,
+    NW_CMD_VERTS,   /* vertices made this frame, in NwPacket.verts */
+    NW_CMD_PARTICLES,
+    NW_CMD_VOLUMES, /* the back buffer's Z, squeezed, and the stencil 0x7F */
     NW_CMD_WAVES,   /* a water material's wave table, which the draws after it read */
 } NwCmdOp;
 
@@ -64,8 +64,7 @@ typedef struct NwWaves {
     float wave[32][4];
 } NwWaves;
 
-/* An effect list as unpacked to VU 0x3C-0xBF for the ptl program; tri is 64 entries by age of corner offsets and
-   colour. */
+/* An effect list as unpacked to VU 0x3C-0xBF; tri is 64 entries by age of corner offsets and colour. */
 typedef struct NwPtlList {
     float head[4]; /* [1] the gravity, [3] the time */
     int32_t uv[4][2];
@@ -73,7 +72,7 @@ typedef struct NwPtlList {
     uint32_t tri[64][8];
 } NwPtlList;
 
-/* A particle as its set holds it; rate is how fast it ages. */
+/* As its set holds it; rate is how fast it ages. */
 typedef struct NwPtl {
     float pos[3], birth;
     float mom[3], rate;
@@ -99,7 +98,7 @@ typedef enum NwVertsMode {
     NW_VERTS_SPRITE, /* points under the local matrix, each corner moved by tex.zw GS units before the divide */
 } NwVertsMode;
 
-/* The screen state a draw is made under: NuRndrSetViewMtx's world-to-GS matrix, XYOFFSET and SCISSOR. */
+/* NuRndrSetViewMtx's world-to-GS matrix, XYOFFSET and SCISSOR. */
 typedef struct NwView {
     float vs[16];        /* row-major, row vectors (vpsmtx) */
     int32_t xyoffset[2]; /* GS 12.4 */
@@ -110,7 +109,6 @@ typedef struct NwView {
     uint32_t key; /* which SetViewMtx of the frame it is, from 1 */
 } NwView;
 
-/* A material's state block as the frame's DMA reads it. */
 typedef struct NwMtlSnap {
     NwMtlState gs;
     float diffuse[4];
@@ -120,7 +118,7 @@ typedef struct NwMtlSnap {
     NwSurf surf; /* a texture in GS memory instead of tex */
     const void *key; /* the material, for interpolation */
     uint8_t wrap;    /* 1 u, 2 v: the offset scrolls, kept in 0-1 (NuMtlAnimate's mode 2) */
-    NwGemInfo gem;   /* [video] gems: kind NW_GEM_NONE for every other material */
+    NwGemInfo gem;
 } NwMtlSnap;
 
 #define NW_MTL_NONE UINT32_MAX   /* NwCmd.mtl of a command with no material */
@@ -129,32 +127,27 @@ typedef struct NwMtlSnap {
 typedef struct NwCmd {
     uint8_t op;
     uint64_t key;                   /* the same draw in the frame before has it (src/gfx/interp.h); 0 none */
-    uint32_t view;                  /* into NwPacket.views */
+    uint32_t view;
     uint32_t mtl;                   /* into NwPacket.mtls, from material when the packet is published */
-    uint32_t light;                 /* into NwPacket.lights */
+    uint32_t light;
     const void *mpg;                /* the microcode package (an NwVuProg) */
     const struct numtl_s *material; /* game thread only */
     union {
         struct {
             union {
                 const NwGpuMesh *mesh;
-                const NwGpuSprites *sprites; /* SPRITES */
-                const NwGpuSkin *skin;       /* SKIN */
+                const NwGpuSprites *sprites;
+                const NwGpuSkin *skin;
             };
             float local[16];
-            uint32_t first, count; /* DRAW_OT: the vertex indices in NwPacket.idx; SKIN: the NwPacket.joints; VERTS:
-                                      the NwPacket.verts; PARTICLES: the NwPacket.ptls; WAVES: first, the table in
-                                      NwPacket.waves */
+            uint32_t first, count; /* into NwPacket.idx, joints, verts or ptls by op; WAVES: first into waves */
             uint32_t weights, nweights; /* SKIN: the blend-shape weights in NwPacket.weights */
             uint8_t mode;               /* VERTS: an NwVertsMode */
             uint16_t alpha;             /* VERTS: 0x100 | an ALPHA_1 written over the material's; 0 none */
             const NwGpuTex *clut;       /* VERTS: a CLUT over the material texture's, NULL none */
             uint32_t zclut;             /* VERTS: 1 + its depth CLUT in NwPacket.zcluts, 0 none */
-            bool exact;                 /* VERTS: the GS blend in the program over a copy of the target, for As past
-                                           0x80 or an ALPHA GL has no blend for (triangles that do not overlap) */
-            int8_t stencil;             /* VERTS: a shadow volume's +1 or -1, counted into the stencil alone where
-                                           the triangles pass the Z test; NW_STENCIL_SHADOWED: drawn only where the
-                                           count is 0x80 or more; 0 none */
+            bool exact;                 /* VERTS: GS blend in the program for As past 0x80; no overlapping triangles */
+            int8_t stencil;             /* VERTS: +1/-1 counted where Z passes; NW_STENCIL_SHADOWED: drawn at 0x80+ */
             uint32_t silhouette;
             float silhouette_scale;
             uint32_t ptllist;           /* PARTICLES: the effect list in NwPacket.ptllists */
@@ -173,8 +166,7 @@ typedef struct NwCmd {
             int32_t width; /* the pixels the target's Z takes the back buffer's width in */
         } volumes;
         struct {
-            NwSurf surf;          /* addr 0: one the port does not draw, whose draws go nowhere; tcc false: PSMCT24,
-                                     whose alpha the draws leave */
+            NwSurf surf;          /* addr 0: the port does not draw it; tcc false: PSMCT24, whose alpha draws leave */
             int32_t width, height; /* the target's pixels (nurndr_pixel_width, height) */
             bool zback;            /* the Z buffer is the back buffer's (-2), shared when the sizes match */
         } target;
@@ -196,13 +188,13 @@ typedef struct NwPacket {
     uint32_t nmtls, mtlcap;
     NwLights *lights;
     uint32_t nlights, lightcap;
-    uint32_t *idx; /* the DRAW_OT triangles */
+    uint32_t *idx;
     uint32_t nidx, idxcap;
     float (*joints)[16]; /* the SKIN palettes, INV_WT times the joint matrices (row-major, row vectors) */
     uint32_t njoints, jointcap;
     float *weights;
     uint32_t nweights, weightcap;
-    NwVuSpriteVertex *verts; /* the VERTS triangles */
+    NwVuSpriteVertex *verts;
     uint32_t nverts, vertcap;
     NwPtlList *ptllists;
     uint32_t nptllists, ptllistcap;
@@ -214,12 +206,11 @@ typedef struct NwPacket {
     uint32_t nwaves, wavecap;
 } NwPacket;
 
-/* Appends a command, a view, a material or lights; NULL on out of memory. */
+/* NULL on out of memory. */
 NwCmd *nw_packet_cmd(NwPacket *p);
 NwView *nw_packet_view(NwPacket *p, uint32_t *index);
 NwMtlSnap *nw_packet_mtl(NwPacket *p, uint32_t *index);
 NwLights *nw_packet_light(NwPacket *p, uint32_t *index);
-/* Appends n vertex indices, joint matrices, weights or vertices; NULL on out of memory. */
 uint32_t *nw_packet_idx(NwPacket *p, uint32_t n, uint32_t *first);
 float (*nw_packet_joints(NwPacket *p, uint32_t n, uint32_t *first))[16];
 float *nw_packet_weights(NwPacket *p, uint32_t n, uint32_t *first);
@@ -231,11 +222,10 @@ NwWaves *nw_packet_waves(NwPacket *p, uint32_t *index);
 /* Empties p, keeping its memory. */
 void nw_packet_reset(NwPacket *p);
 
-/* Game thread: the packet being built; publishing it stamps it and makes it the newest for the renderer (returns
-   its seq). */
+/* Game thread; publishing stamps it and makes it the newest for the renderer (returns its seq). */
 NwPacket *nw_packet_building(void);
 uint64_t nw_packet_publish(int32_t vbcnt);
-/* Render thread: the newest published packet, the one it took last if none is newer; NULL before the first. */
+/* Render thread: the newest published packet, else the last one taken; NULL before the first. */
 const NwPacket *nw_packet_take(void);
 /* The same, and the packet it took before that one at *prev (NULL: none). */
 const NwPacket *nw_packet_take_pair(const NwPacket **prev);

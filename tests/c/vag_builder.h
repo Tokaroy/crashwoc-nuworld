@@ -1,4 +1,3 @@
-/* Synthetic VAG files and an SFX.DAT-style archive for the tests (no game data). */
 #ifndef NUWORLD_TESTS_VAG_BUILDER_H
 #define NUWORLD_TESTS_VAG_BUILDER_H
 
@@ -33,8 +32,7 @@ static inline void vag_block_fill(uint8_t *b, int filter, int shift, unsigned fl
     vag_block(b, filter, shift, flags, n);
 }
 
-/* What a voice should decode from count blocks, 4 samples at a time: from the first on, after the last back to
-   block loop (-1: the end), the ADPCM history going on across the jump. */
+/* After the last block, back to block loop (-1: the end), the ADPCM history going on across the jump. */
 typedef struct VagWalk {
     const uint8_t *blocks;
     uint32_t count, at, pos;
@@ -71,7 +69,6 @@ static inline void vag_walk_word(VagWalk *w, const int16_t s[4])
     }
 }
 
-/* Header and count blocks into out (NW_VAG_HEADER + count * 16 bytes); returns the file size. */
 static inline size_t vag_file(uint8_t *out, uint32_t rate, const uint8_t *blocks, uint32_t count)
 {
     memset(out, 0, NW_VAG_HEADER);
@@ -86,7 +83,7 @@ static inline size_t vag_file(uint8_t *out, uint32_t rate, const uint8_t *blocks
 
 #define SFX_DAT_ALIGN 2048 /* entries start on sectors, as in SFX.DAT */
 #define SFX_DAT_FILES 4
-#define SFX_DAT_DIR 256 /* room for the directory */
+#define SFX_DAT_DIR 256
 
 static inline void vag_le32(uint8_t *p, uint32_t v)
 {
@@ -101,7 +98,6 @@ static inline size_t sfx_dat_aligned(size_t n)
     return (n + SFX_DAT_ALIGN - 1) / SFX_DAT_ALIGN * SFX_DAT_ALIGN;
 }
 
-/* The bytes sfx_dat needs for files of these sizes. */
 static inline size_t sfx_dat_size(const size_t sizes[SFX_DAT_FILES])
 {
     size_t n = SFX_DAT_ALIGN;
@@ -111,8 +107,6 @@ static inline size_t sfx_dat_size(const size_t sizes[SFX_DAT_FILES])
     return n + SFX_DAT_DIR;
 }
 
-/* files[0] as sfx\generic\a.vag, [1] sfx\music\bl.vag, [2] sfx\generic\readme.txt, [3] sfx\music\big.vag, each on
-   sectors of its own, into out[sfx_dat_size(sizes)]; returns the archive size. */
 static inline size_t sfx_dat(uint8_t *out, const uint8_t *const files[SFX_DAT_FILES],
                              const size_t sizes[SFX_DAT_FILES])
 {

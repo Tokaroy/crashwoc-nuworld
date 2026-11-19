@@ -1,4 +1,4 @@
-/* NU20 scene (.gsc) reader without the decomp: blocks and OBJ0 objects, a port of nus_scene.py. */
+/* .gsc reader independent of the decomp, a port of nus_scene.py. */
 #ifndef NUWORLD_GFX_GSC_H
 #define NUWORLD_GFX_GSC_H
 
@@ -21,7 +21,7 @@ typedef struct NwGscChunk {
 } NwGscChunk;
 
 typedef struct NwGscBlob {
-    uint32_t offset, size; /* the geom's DMA chain in the file */
+    uint32_t offset, size;
     uint32_t mtl;
     bool faceon; /* a face-on (sprite) geom of a type 1 sub-object */
     bool ot;     /* its material's attrib.ot: triangle blocks for the ordering table, not a DMA chain */
@@ -40,10 +40,10 @@ typedef struct NwGsc {
     size_t size;
     NwGscChunk *chunks;
     uint32_t nchunks;
-    uint32_t unknown;  /* blocks NuGScnLoadFix has no case for */
-    bool truncated;    /* the block list ran past the end of the file */
+    uint32_t unknown;
+    bool truncated;
     uint32_t mtls, nmtls;   /* offset and count of the MS00/MS02 records */
-    uint32_t insts, ninsts; /* of the INST records */
+    uint32_t insts, ninsts;
     NwGscObject *objects;
     uint32_t nobjects;
     NwGscBlob *blobs;
@@ -68,7 +68,6 @@ typedef struct NwGscInst {
     uint32_t flags; /* bit 0 visible */
 } NwGscInst;
 
-/* numtl_s.attrib fields the reader and the renderer use. */
 #define NW_GSC_ATTRIB_ALPHA(a) ((a)[0] & 15)
 #define NW_GSC_ATTRIB_FILTER(a) (((a)[0] >> 4) & 3)
 #define NW_GSC_ATTRIB_FX(a) (((a)[0] >> 6) & 3)
@@ -87,12 +86,12 @@ typedef struct NwGscTotal {
     uint64_t objects, batches, verts, tris, textures;
 } NwGscTotal;
 
-/* Reads the block list and the objects of an unpacked file; the data must outlive g. */
+/* data is an unpacked file and must outlive g. */
 bool nw_gsc_open(NwGsc *g, const void *data, size_t size);
 void nw_gsc_close(NwGsc *g);
 NwGscMtl nw_gsc_mtl(const NwGsc *g, uint32_t index);
 NwGscInst nw_gsc_inst(const NwGsc *g, uint32_t index);
-/* Decodes texture index (a material's tid); false (t empty) on a failure. */
+/* index is a material's tid; false (t empty) on a failure. */
 bool nw_gsc_texture(const NwGsc *g, uint32_t index, NwTex *t);
 /* The microcode package NuMtlUpdateEx gives a material ("vu_load_tric_mpg", ...). */
 const char *nw_gsc_mtl_package(const NwGscMtl *m);

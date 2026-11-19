@@ -1,4 +1,3 @@
-/* The GS state of a material, from numtl_s.attrib as CreateStateBlock and NuTexWriteMaterialSettings set it. */
 #ifndef NUWORLD_GFX_MTL_H
 #define NUWORLD_GFX_MTL_H
 
@@ -37,7 +36,6 @@ typedef struct NwMtlBlend {
     bool as_colour;
 } NwMtlBlend;
 
-/* One draw of a material's triangles: the pixels it keeps by the alpha test and the buffers it writes. */
 typedef struct NwMtlPass {
     bool failed; /* keeps the pixels that fail the test, not the ones that pass */
     bool rgb, alpha, z;

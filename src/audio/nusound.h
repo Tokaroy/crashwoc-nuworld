@@ -1,5 +1,4 @@
-/* NUSOUND.IRX, the IOP side of decomp nusound.c's sound RPC 0x12345, ported from the disc's SYS/NUSOUND.IRX. It
-   runs on the calling thread; its stream thread's ticks catch up at each call. */
+/* NUSOUND.IRX runs on the calling thread; its stream thread's ticks catch up at each call. */
 #ifndef NUWORLD_AUDIO_NUSOUND_H
 #define NUWORLD_AUDIO_NUSOUND_H
 
@@ -12,13 +11,12 @@
 
 struct NwVfs;
 
-/* The module as loaded: its DATs open through vfs, now_us is its time (NULL: none passes). */
+/* now_us is the module's clock (NULL: no time passes). */
 void nw_nusound_init(const struct NwVfs *vfs, uint64_t (*now_us)(void));
 
 /* ProcessEECommand: function 0 runs the batch in send; every call copies the reply into recv. */
 void nw_nusound_rpc(unsigned fno, const void *send, size_t ssize, void *recv, size_t rsize);
 
-/* The game read the disc: the drive's head is no longer where the module left it. */
 void nw_nusound_cd_moved(void);
 
 /* On (the default) the drive and the SPU DMA take their PCSX2 time, off none. Any thread; init keeps it. */

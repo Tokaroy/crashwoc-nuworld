@@ -1,4 +1,3 @@
-/* Wraps of game/vehicle: the boss health bar's, the atlasphere's and the gliders' hooks. */
 #include "game/vehicle.h"
 #include "game/vehicle.retail.h"
 #include "gameplay/atlasphere.h"

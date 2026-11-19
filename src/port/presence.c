@@ -16,7 +16,6 @@ extern volatile s32 bgload_complete;
 static SDL_SpinLock nw_presence_lock;
 static NwPresenceSnap nw_presence_snap;
 
-/* A game text as printable ASCII. */
 static void nw_presence_copy(char *out, size_t size, const char *text)
 {
     size_t n = 0;

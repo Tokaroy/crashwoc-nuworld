@@ -21,8 +21,7 @@ float NuFsqrt(float x)
     return sqrtf(fabsf(x));
 }
 
-/* nuvec.c's with the EE's divide: 1 / 0 is FLT_MAX, so a zero vector stays zero where x86 makes it NaN (the atlas
-   trail normalises one while the ball stands still). */
+/* nuvec.c's with the EE's divide: 1 / 0 is FLT_MAX, so a zero vector stays zero where x86 makes it NaN. */
 f32 NuVecNorm(struct nuvec_s *dst, struct nuvec_s *src)
 {
     f32 len = NuFsqrt(src->x * src->x + src->y * src->y + src->z * src->z);

@@ -59,7 +59,6 @@ static int SDLCALL nw_import_cmp(const void *a, const void *b)
     return SDL_strcasecmp(*(char *const *)a, *(char *const *)b);
 }
 
-/* A .bin that a .cue of the same name in the list points at. */
 static bool nw_import_has_cue(const NwImageList *list, const char *bin)
 {
     size_t stem = SDL_strlen(bin) - 4;

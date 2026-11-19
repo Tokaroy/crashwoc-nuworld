@@ -1,5 +1,4 @@
-/* Retail's NuPPUnpack (decomp/src/nucore/rnc.c) step for step, every read checked against the packed bytes and every
-   write and back reference against the output. Its end of data (a zero chunk count) is the only stop retail has. */
+/* NuPPUnpack (decomp src/nucore/rnc.c) step for step, every read, write and back reference bounds-checked. */
 #include "vfs/rnc.h"
 
 #define NW_RNC_ID 0x524E4302u /* "RNC" 2 */

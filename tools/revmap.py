@@ -264,8 +264,7 @@ def calls(img: Image, addr: int, size: int) -> list[int]:
 
 def follow_calls(ref: Image, tgt: Image, placed: list[Placed], removed: list[Func],
                  new: list[tuple[int, int]]) -> tuple[list[Func], list[tuple[int, int]]]:
-    """A function the aligner left out: an unclaimed target function that a placed caller calls at the same site,
-    the site found between the caller's calls that agree with the map."""
+    """A function the aligner left out: an unclaimed target function that a placed caller calls at the same site."""
     lost = {f.addr: f for f in removed}
     free = dict(new)
     mapped = {p.func.addr: p.addr for p in placed}

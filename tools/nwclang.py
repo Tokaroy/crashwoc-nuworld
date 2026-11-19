@@ -39,8 +39,6 @@ class ClangError(Exception):
 
 
 class Clang:
-    """One libclang index with the flags of a view over decomp/include."""
-
     def __init__(self, decomp: Path, view: str):
         if cindex is None:
             raise ClangError("libclang is missing: python -m pip install -r tools/requirements.txt")
@@ -61,7 +59,6 @@ class Clang:
             self._tmp.cleanup()
 
     def parse(self, path: Path, text: str | None = None):
-        """Translation unit of `path`, or of `text` stored under that name."""
         unsaved = [(str(path), text)] if text is not None else None
         tu = self.index.parse(str(path), args=self.args, unsaved_files=unsaved)
         fatal = [d for d in tu.diagnostics if d.severity >= cindex.Diagnostic.Fatal]

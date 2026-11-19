@@ -1,5 +1,4 @@
 # 50/60 Hz values, wrapped as NW_HZ(pal, ntsc) after the patches; a site is the nth of `of` matches of pal in fn.
-# tools/ntsc_diff.py check proves the NTSC values.
 schema = 1
 macro = "NW_HZ"
 

@@ -1,5 +1,3 @@
-/* Audio: the VAG header and PS-ADPCM decoder, the SPU2 voices, mix and reverb, and SFX.DAT on a synthetic archive,
-   with expected values worked out by hand from PCSX2; `retail` pins SFX.DAT's census and libsd's reverb presets. */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -44,7 +42,6 @@ static void test_header(void)
     CHECK(!nw_vag_header(&h, file, size) && SDL_strstr(SDL_GetError(), "magic"));
 }
 
-/* The first n samples of one block from the history (prev1, prev2). */
 static void decode(int filter, int shift, const int8_t *nibbles, int n, int32_t prev1, int32_t prev2, int16_t *out)
 {
     int8_t all[NW_ADPCM_SAMPLES] = { 0 };
@@ -87,11 +84,9 @@ static void test_block(void)
     DECODES(2, 3, 0, 0, N(3, -5, 7, -8, 0, 1), 1536, 200, 2695, 584, -1140, -2011);
     DECODES(7, 0, 2000, 1000, N(1, 0), 4096, 0);
 
-    /* Clamped at both rails, and the history keeps the clamped sample. */
     DECODES(4, 0, 32767, 0, N(7, 0), 32767, 31743);
     DECODES(4, 0, -32768, 0, N(-8, 0), -32768, -31744);
 
-    /* Flags come back as stored; the history runs on into the next block. */
     uint8_t b[2][NW_ADPCM_BLOCK];
     int16_t pcm[2][NW_ADPCM_SAMPLES];
     NwAdpcm st = { 0, 0 };
@@ -103,7 +98,6 @@ static void test_block(void)
     CHECK(pcm[1][0] == 3840 && pcm[1][1] == 3600);
 }
 
-/* One pass over blocks with these loop flags; pcm past the pass must stay untouched. */
 static NwVagPass pass(const unsigned *flags, uint32_t count)
 {
     uint8_t blocks[8][NW_ADPCM_BLOCK];
@@ -149,7 +143,7 @@ static void spu_samples(unsigned n)
     nw_spu2_run_to(nw_spu2_cycle() + 768u * n);
 }
 
-/* Core 0 voice v from ssa: the attack in steps of 0x3800 (ADSR1 0x00ff), the fastest release. */
+/* The attack in steps of 0x3800 (ADSR1 0x00ff), the fastest release. */
 static void spu_voice(unsigned v, uint32_t ssa, uint16_t pitch)
 {
     nw_spu2_set_addr((uint16_t)(v << 1 | NW_SD_VA_SSA), ssa);
@@ -173,9 +167,7 @@ static bool spu_endx(unsigned v)
     return nw_spu2_get_switch(NW_SD_S_ENDX) >> v & 1;
 }
 
-/* SPU2 voices in time, expected values worked out by hand from PCSX2's Mixer.cpp and ADSR.cpp. At pitch 0x1000 the
-   decoder takes a word (4 samples) at each of the first 5 samples, then one every 4 (the n-th at sample 4n - 15),
-   so the 7 words of a block's data end at its 7th, 14th, 21st word. */
+/* At pitch 0x1000 a word (4 samples) at each of the first 5 samples, then one every 4 (the n-th at 4n - 15). */
 static void test_spu_voice(void)
 {
     const uint32_t one = 0x1000, loop = 0x2000;
@@ -205,15 +197,12 @@ static void test_spu_voice(void)
     spu_samples(1);
     CHECK(spu_envx(0) == 0 && spu_endx(0));
 
-    /* KON clears ENDX with its sample. */
     nw_spu2_set_switch(NW_SD_S_KON, 1u << 0);
     CHECK(spu_endx(0));
     spu_samples(1);
     CHECK(!spu_endx(0));
 
-    /* A loop: START latches the loop address, the 21st word ends the END|REPEAT block at sample 69 and the voice
-       goes on at the loop's first data word. An LSAX written after the key-on's sample holds; one written before
-       it is dropped by the key-on, and START wins. */
+    /* The 21st word ends the END|REPEAT block at sample 69; an LSAX written before the key-on's sample is dropped. */
     spu_voice(1, loop, 0x1000);
     spu_voice(2, loop, 0x1000);
     spu_voice(3, loop, 0x1000);
@@ -227,8 +216,7 @@ static void test_spu_voice(void)
     CHECK(spu_endx(1) && spu_envx(1) == 0x7fff && spu_nax(1) == loop + 2);
     CHECK(spu_nax(2) == loop + 2 && spu_nax(3) == loop + NW_ADPCM_BLOCK + 2);
 
-    /* The pitch stops at 0x3fff. At pitch 0 the decoder fills up (4 words, NAX = SSA + 5 words) and waits, while the
-       envelope rises. */
+    /* At pitch 0 the decoder fills up (4 words, NAX = SSA + 5 words) and waits. */
     spu_voice(4, loop, 0x3fff);
     spu_voice(5, loop, 0x4000);
     spu_voice(6, loop, 0);
@@ -245,7 +233,6 @@ static void test_spu_voice(void)
     spu_samples(1);
     CHECK(spu_envx(1) == 0);
 
-    /* KOFF and KON for the same sample: the release comes first, then the voice starts again. */
     nw_spu2_set_switch(NW_SD_S_KOFF, 1u << 3);
     nw_spu2_set_switch(NW_SD_S_KON, 1u << 3);
     spu_samples(1);
@@ -257,8 +244,8 @@ static void test_spu_voice(void)
 static struct {
     int16_t frame[MIX_FRAMES][2];
     unsigned count;
-    unsigned tapped[2 * NW_SPU2_VOICES]; /* words per voice */
-    VagWalk walk[2];                     /* voices 0 and 1, once set */
+    unsigned tapped[2 * NW_SPU2_VOICES];
+    VagWalk walk[2];
 } mix;
 
 static void mix_out(void *user, const int16_t *frames, unsigned count)
@@ -279,7 +266,6 @@ static void mix_tap(void *user, unsigned voice, const int16_t samples[4])
     }
 }
 
-/* Voice v (0-47) from ssa at pitch 0x1000 with volumes l and r, keyed on. */
 static void mix_voice(unsigned v, uint32_t ssa, uint16_t l, uint16_t r)
 {
     uint16_t id = (uint16_t)((v >= NW_SPU2_VOICES) | (v % NW_SPU2_VOICES) << 1);
@@ -292,7 +278,6 @@ static void mix_voice(unsigned v, uint32_t ssa, uint16_t l, uint16_t r)
     nw_spu2_set_switch((uint16_t)((v >= NW_SPU2_VOICES) | NW_SD_S_KON), 1u << (v % NW_SPU2_VOICES));
 }
 
-/* sceSdInit, then the IRX's master volumes (0x3fff); the next n frames go to mix. */
 static void mix_reset(void)
 {
     nw_spu2_init();
@@ -315,9 +300,7 @@ static bool mix_all(int16_t l, int16_t r)
     return mix.count > 0;
 }
 
-/* The mix, worked out by hand from PCSX2's Mixer.cpp. A looping block of 4096s (nibble 1, shift 0) at pitch 0x1000
-   reads phase 0 of the gaussian table: 600 + 2870 + 608 - 1 = 4077, ENVX 0x7fff makes 4076, VOL 0x3fff (0x7ffe)
-   4075. Core 0 goes through its MVOL (4074) and core 1's AVOL (4073) into core 1, which takes its MVOL (4072). */
+/* Gaussian phase 0: 600 + 2870 + 608 - 1 = 4077; ENVX 4076, VOL 4075, MVOL 4074, AVOL 4073, core 1 MVOL 4072. */
 static void test_spu_mix(void)
 {
     const uint32_t loud = 0x3000, quiet = 0x3010;
@@ -336,7 +319,6 @@ static void test_spu_mix(void)
     CHECK(mix_all(4072, 0));
     CHECK(mix.tapped[0] > 0 && mix.tapped[1] == 0);
 
-    /* Core 1's voices skip core 0's MVOL and core 1's AVOL. */
     mix_reset();
     mix_voice(NW_SPU2_VOICES + 5, loud, 0, 0x3fff);
     spu_samples(40);
@@ -359,7 +341,6 @@ static void test_spu_mix(void)
     spu_samples(40);
     CHECK(mix_all(12045, 12045));
 
-    /* The gates: VMIXL off for the voice, MMIX without core 0's dry voices. */
     mix_reset();
     nw_spu2_set_switch(NW_SD_S_VMIXL, 0xfffffe);
     mix_voice(0, loud, 0x3fff, 0x3fff);
@@ -371,8 +352,7 @@ static void test_spu_mix(void)
     spu_samples(40);
     CHECK(mix_all(0, 0));
 
-    /* The port's gain after the envelope: half of 4076 is 2038, through the volumes 2034; another voice's leaves
-       this one alone. */
+    /* The port's gain after the envelope: half of 4076 is 2038, through the volumes 2034. */
     mix_reset();
     nw_spu2_set_gain(0, NW_SPU2_UNITY / 2);
     nw_spu2_set_gain(1, 0);
@@ -387,11 +367,7 @@ static void test_spu_mix(void)
     nw_spu2_init();
 }
 
-/* Voice volumes as PCSX2's V_VolumeSlide runs them, on core 1's voice 0 at ENVX 0x7fff (4076 before VOL, VOL then
-   MVOL 0x3fff out). 15 bits sign extended invert the phase: 0x4001 is -32766, -4076 out. Bit 15 sweeps from the
-   volume it finds: 0x8000 (linear up, shift 0, step 7) adds 0x3800 a sample, 1782, 3565, then 4074 at the top;
-   0xe0c0 (-8000 as a looping sound behind the camera sends it: exponential down, shift 16) takes 8 every 32
-   samples from 0x7ffe, 4074 to 4073. */
+/* 0x4001 is -32766 (-4076 out); 0x8000 adds 0x3800 a sample (1782, 3565, 4074); 0xe0c0 takes 8 every 32 samples. */
 static void test_spu_sweep(void)
 {
     const uint32_t loud = 0x3000;
@@ -426,9 +402,7 @@ static void test_spu_sweep(void)
     nw_spu2_init();
 }
 
-/* The envelope scales the voice after its step: the attack of ADSR1 0x00ff gives ENVX 0x3800 and 0x7000 (1779,
-   3563 out of core 1), the IRX's fastest release (ADSR2 0x1fc0) 0x3fff (2034), then silence. The game's own release
-   (Release 0x10, ADSR2 0x1fd0) takes 8 every 32 samples. */
+/* ADSR1 0x00ff: ENVX 0x3800, 0x7000 (1779, 3563 out); ADSR2 0x1fc0: 0x3fff (2034); 0x1fd0: 8 every 32 samples. */
 static void test_spu_envelope(void)
 {
     const uint32_t loud = 0x3000;
@@ -480,9 +454,7 @@ static void revb_out(void *user, const int16_t *frames, unsigned count)
     }
 }
 
-/* Not libsd's: mode 1 and ECHO (7) are a delay line, the input written at SAME_DST and read back by COMB1 0x40
-   words (128 samples) later on the left, then through both all-pass stages at volume 0, 4 words each. No other
-   write sweeps over a word between its write and its read. */
+/* Not libsd's: modes 1 and ECHO (7) are a delay line, written at SAME_DST, read by COMB1 0x40 words later. */
 static void revb_presets(NwSpu2Presets *p)
 {
     static const uint16_t line[NW_SPU2_REVERB_REGS] = {
@@ -498,7 +470,6 @@ static void revb_presets(NwSpu2Presets *p)
     }
 }
 
-/* Core 1's voice 0 on a block of 4096s, wet only, through mode (cleared first) at EVOL evol; n frames. */
 static void revb_play(int mode, int delay, int16_t evol, bool on, unsigned n)
 {
     const uint32_t loud = 0x3000;
@@ -532,8 +503,6 @@ static bool revb_silent(void)
     return revb.count > 0 && revb_onset(0) == revb.count && revb_onset(1) == revb.count;
 }
 
-/* The work area as libsd sets it up, and the reverb in time (PCSX2's DoReverb): silent without EVOL, without
-   effects on (nothing is written back) or without a preset; ECHO's delay moves the line by 64 words a step. */
 static void test_spu_reverb(void)
 {
     const uint32_t esa = (0x80000 - REVB_SIZE * 4) * 2;
@@ -565,9 +534,7 @@ static void test_spu_reverb(void)
     CHECK(revb_silent());
     nw_spu2_set_presets(&presets);
 
-    /* The line's 0x48 words are 144 samples, the filters add a few. Settled, 4075 in comes out of the down filter
-       as 4074, past IN_COEF 4073, kept by SAME (its last lap's value in the IIR term), 4072 from COMB1, 4071 up,
-       4070 past EVOL, 4069 past MVOL. */
+    /* The line's 0x48 words are 144 samples; settled, 4075 in comes out as 4069 past MVOL. */
     revb_play(1, 0, 0x7fff, true, 400);
     unsigned line = revb_onset(0);
     CHECK(line >= 144 && line < 144 + NW_ADPCM_SAMPLES);
@@ -583,8 +550,6 @@ static void test_spu_reverb(void)
     nw_spu2_init();
 }
 
-/* Loops: START latches the loop block, END|REPEAT goes back to it keeping the ADPCM history, an LSAX written after the
-   key-on's sample beats START, END alone ends the voice; filters 1-3 make the history show. */
 static void test_spu_loop(void)
 {
     const uint32_t loop = 0x4000, one_shot = 0x4100;
@@ -667,7 +632,6 @@ static void test_sfx(const char *scratch)
     CHECK(!nw_sfx_read(&dat, &s, 16, adpcm, 48) && SDL_strstr(SDL_GetError(), "runs past"));
     CHECK(!nw_sfx_read(&dat, &s, 49, adpcm, 0) && SDL_strstr(SDL_GetError(), "runs past"));
 
-    /* Stream pieces of any size add up to the whole sample. */
     CHECK(nw_sfx_find(&dat, "sfx\\Music\\BL.vag", &s) && s.entry == 1 && s.vag.rate == 44100 && s.vag.size == 64);
     CHECK(nw_sfx_read(&dat, &s, 0, adpcm, s.vag.size) && memcmp(adpcm, bl + NW_VAG_HEADER, 64) == 0);
     for (uint32_t at = 0; at < s.vag.size; at += 24) {
@@ -684,8 +648,6 @@ static void test_sfx(const char *scratch)
     nw_vfs_shutdown(&vfs);
 }
 
-/* ---- Retail (local only) ------------------------------------------------------------------------------- */
-
 #define SFX_SAMPLES 782
 #define SFX_STREAM_PIECE 0x6b80 /* half of a 0xD700 stream buffer */
 static const char sfx_pcm_sha256[] = "1996556c27a4a970a41a24fd457b1552fc5df4ef1eae0e0be88389fcbb59a643";
@@ -696,7 +658,7 @@ typedef struct SfxCensus {
     NwSha256 sha;
     uint8_t *adpcm, *pieces;
     int16_t *pcm;
-    uint32_t cap; /* bytes of adpcm */
+    uint32_t cap;
     unsigned listed, version_20, rates[3], one_shots, loops, loops_played, music, music_streamed;
     unsigned filter_max, shift_max;
     uint64_t samples;
@@ -717,7 +679,6 @@ static bool census_grow(SfxCensus *c, uint32_t size)
     return c->cap != 0;
 }
 
-/* A loop in sound RAM at pitch 0x3fff: its voice decodes it twice over, back to block 1 each time. */
 static bool retail_loop_plays(const uint8_t *adpcm, uint32_t blocks)
 {
     const uint32_t at = 0x10000;

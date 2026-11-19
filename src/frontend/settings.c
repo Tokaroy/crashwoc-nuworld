@@ -11,8 +11,8 @@
 typedef enum NwSettingKind {
     NW_SETTING_BOOL,
     NW_SETTING_INT,  /* clamped to lo..hi, kept when off the step from lo; 0 also by the name zero */
-    NW_SETTING_ENUM, /* an enum (int-sized) by its names */
-    NW_SETTING_TEXT, /* a string, through parse and format */
+    NW_SETTING_ENUM, /* int-sized, by its names */
+    NW_SETTING_TEXT,
     NW_SETTING_BINDS, /* the whole table: hi targets' sources, each a name or an array of names */
 } NwSettingKind;
 
@@ -38,7 +38,6 @@ typedef struct NwSettingKey {
 
 #define NW_FIELD(f) .offset = offsetof(NwSettings, f), .size = sizeof(((NwSettings *)0)->f)
 
-/* k's table as a path; returns its depth. */
 static size_t nw_settings_header(const NwSettingKey *k, const char *header[3])
 {
     header[0] = k->table;
@@ -448,8 +447,7 @@ bool nw_settings_equal(const NwSettings *a, const NwSettings *b)
     return true;
 }
 
-/* path's document, empty when there is no file; one that is not TOML is moved to .corrupt first. Returns 1, 0 when
-   it was moved (the SDL error says why), -1 on a failure (doc is then freed). */
+/* Returns 1, 0 when a non-TOML file was moved to .corrupt, -1 on a failure (doc is then freed). */
 static int nw_settings_doc(const char *path, NwDoc *doc)
 {
     if (!nw_doc_init(doc)) {
@@ -510,7 +508,6 @@ static void nw_settings_take(const NwSettingKey *k, const NwDocValue *v, NwSetti
     }
 }
 
-/* A target's sources from a name or an array of names; names k does not know are passed over. */
 static void nw_settings_take_binds(const NwSettingKey *k, const NwDocValue *v, uint16_t *binds)
 {
     uint16_t got[NW_CONTROL_BINDS] = { 0 };
@@ -604,8 +601,7 @@ bool nw_settings_load(NwSettings *s, const char *root)
     if (retail && !nw_doc_table(&doc, spacefighter, 3)) {
         s->movement.spacefighter = ((NwMovement)NW_MOVEMENT_RETAIL).spacefighter;
     }
-    /* Version 2 changed these defaults: an older file still on the old ones takes the new ones, until a save marks
-       it. */
+    /* Version 2 changed these defaults: an older file still on the old ones takes the new ones. */
     const NwDocValue *version = nw_doc_get(doc.tables[0], "version");
     if (doc.count > 1 && !(version && version->type == NW_DOC_INT && version->i >= 2)) {
         if (s->camera_stability == 100) {
@@ -621,7 +617,6 @@ bool nw_settings_load(NwSettings *s, const char *root)
     return got > 0;
 }
 
-/* Every target's sources as an array of names. */
 static bool nw_settings_put_binds(NwDoc *doc, NwDocTable *t, const NwSettingKey *k, const uint16_t *binds)
 {
     for (int j = 0; j < k->hi; j++, binds += NW_CONTROL_BINDS) {
@@ -675,7 +670,6 @@ static bool nw_settings_put(NwDoc *doc, const NwSettingKey *k, const NwSettings 
     return nw_doc_set(doc, t, k->name, &v);
 }
 
-/* The file's header: what each key takes. */
 static char *nw_settings_help(void)
 {
     char *help = SDL_strdup(NW_APP_NAME " settings. Keys this version does not know are kept.\n\n"

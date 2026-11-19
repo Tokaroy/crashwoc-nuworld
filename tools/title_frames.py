@@ -1,9 +1,5 @@
 #!/usr/bin/env python3
-"""Pair the port's title cut frames (crashwoc-nuworld --capture) with PCSX2's (tools/pcsx2_capture.py).
-
-Each PCSX2 screen pairs with the port frame among vblank-3 .. vblank+1 whose grey thumbnail differs least; the offset
-(EE frame to shown frame) should be the same for every pair. Standard library only.
-"""
+"""Pair the port's title cut frames (crashwoc-nuworld --capture) with PCSX2's (tools/pcsx2_capture.py)."""
 from __future__ import annotations
 
 import argparse
@@ -19,7 +15,7 @@ BEFORE, AFTER = 3, 1      # port/capture.h
 
 
 def png_read(data: bytes) -> tuple[int, int, bytes]:
-    """8-bit RGB or RGBA, not interlaced; returns width, height and the RGB bytes."""
+    """8-bit RGB or RGBA, not interlaced."""
     if data[:8] != b"\x89PNG\r\n\x1a\n":
         raise ValueError("not a PNG")
     at, idat, header = 8, [], None
@@ -69,7 +65,6 @@ def png_write(width: int, height: int, rgb: bytes) -> bytes:
 
 
 def resize(width: int, height: int, rgb: bytes, to_w: int, to_h: int) -> bytes:
-    """Nearest neighbour."""
     cols = [x * width // to_w * 3 for x in range(to_w)]
     out = bytearray()
     for y in range(to_h):
@@ -102,7 +97,6 @@ def side_by_side(*images: bytes) -> bytes:
 
 
 def pair(pcsx2: Path, port: Path, out: Path | None) -> list[tuple[int, int, float]]:
-    """(vblank, offset, difference) per PCSX2 frame with port frames around it."""
     found = []
     for path in sorted(pcsx2.glob("*.png"), key=lambda p: int(p.stem)):
         vblank = int(path.stem)

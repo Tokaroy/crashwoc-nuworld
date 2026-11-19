@@ -1,4 +1,3 @@
-/* The .ghg loader override (src/port/nuhgobj.c) on a synthetic file; with `retail`, every .ghg of the disc. */
 #include <math.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -37,7 +36,6 @@ void NuHGobjEval(struct NUHGOBJ_s *hobj, int njanims, struct NUJOINTANIM_s *jani
 static int failures;
 static char ghg_buffer[4 << 20];
 
-/* A host record: beside the buffer, never in it (src/port/heap.h). */
 #define BESIDE(p) ((char *)(p) < ghg_buffer || (char *)(p) >= ghg_buffer + sizeof(ghg_buffer))
 #define ALIGN16(p) ((char *)(((uintptr_t)(p) + 0xF) & ~(uintptr_t)0xF))
 
@@ -360,8 +358,6 @@ static int retail_main(int argc, char **argv)
     return 0;
 }
 
-/* Every .ghg loads and decodes, its normals turn with the heaviest joint and it frees all it made; TTCHAR and the
-   Crash models are skinned in their default pose (INV_WT is its inverse), TTCHAR's points lie in its box. */
 static int test_retail(void)
 {
     const char *dir = getenv("NUWORLD_TEST_DATA");

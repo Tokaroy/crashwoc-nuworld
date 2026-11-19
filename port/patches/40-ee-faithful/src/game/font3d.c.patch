@@ -1,11 +1,10 @@
 --- a/src/game/font3d.c
 +++ b/src/game/font3d.c
-@@ -95,7 +95,13 @@ struct numtl_s *Font3DMtlTab[5][2] = { { 0 } };
+@@ -95,7 +95,12 @@ struct numtl_s *Font3DMtlTab[5][2] = { { 0 } };
  static char j_bd[82] =
      "85868788898A8B8C8D8E8F90919293999A9B9C9DC5C6C7C8C9CACBCCCDCECFD0D1D2D3D9DADBDCDD";
  static char j_bc[22] = "999A9B9C9DD9DADBDCDD";
-+/* InitFont3D stores the 0xFE and 0xF8 glyphs at Font3DRemap[-2] and [-8], into j_bc's tail and padding: the host
-+ * takes the array from the data image, at retail's place. */
++/* InitFont3D writes Font3DRemap[-2] and [-8]: the host keeps the array at retail's place in the data image. */
 +#ifdef NW_HOST
 +extern signed char Font3DRemap[256];
 +#else

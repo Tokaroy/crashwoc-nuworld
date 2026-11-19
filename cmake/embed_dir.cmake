@@ -1,6 +1,3 @@
-# Writes a C file holding every PNG of a directory, by its name without .png:
-#   cmake -DDIR=<dir> -DOUT=<file.c> -DNAME=<symbol> -P embed_dir.cmake
-# defines `const struct nw_embed_file NAME[]` ({ name, data, size }) and `const size_t NAME_count`.
 file(GLOB files RELATIVE "${DIR}" "${DIR}/*.png")
 list(SORT files)
 set(arrays "")

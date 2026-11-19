@@ -1,5 +1,3 @@
-/* Compare the optimized particle shader with the original integer-texture triangle path, including framebuffer
-   alpha and Z. Synthetic data only; skipped when an OpenGL 3.3 context is unavailable. */
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>

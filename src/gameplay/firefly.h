@@ -1,4 +1,3 @@
-/* The firefly in That Sinking Feeling: lock_on, steering. */
 #ifndef NUWORLD_GAMEPLAY_FIREFLY_H
 #define NUWORLD_GAMEPLAY_FIREFLY_H
 
@@ -21,7 +20,7 @@ typedef enum NwFireflyLock {
 bool nw_firefly_control(struct GLIDERSTRUCT *glider, struct nupad_s *pad);
 bool nw_firefly_fire(struct GLIDERSTRUCT *glider, struct nupad_s *pad);
 bool nw_firefly_marker(void);
-/* What the marker shows, where, and how far the lock, the reload or the fade has run (0-1). */
+/* progress: how far the lock, the reload or the fade has run (0-1). */
 NwFireflyLock nw_firefly_lock(struct nuvec_s *at, float *progress);
 /* NuMtlRelease freed the marker's material. */
 void nw_firefly_release(void);

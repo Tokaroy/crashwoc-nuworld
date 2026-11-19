@@ -1,7 +1,4 @@
-/* .DAT archives (ATS.DAT, CHARS.DAT, SFX.DAT), the Nu engine's packed file trees. Little-endian:
-   +0 u32 dir_offset, +4 u32 dir_size, payload from +8. At dir_offset: u32 0xFFFFFFFF, u32 nfiles,
-   nfiles x {u32 offset, size, unpacked_size, flags}, u32 nnodes, nnodes x {s16 child, s16 sibling, u32 name},
-   u32 names_size, NUL-terminated names. Errors via SDL_GetError(). */
+/* u32 dir_offset, dir_size; dir: -1, nfiles, entries, nnodes, {s16 child, s16 sibling, u32 name}, names_size, names */
 #ifndef NUWORLD_VFS_DAT_H
 #define NUWORLD_VFS_DAT_H
 
@@ -13,18 +10,18 @@
 
 #define NW_DAT_PACKED 1u      /* RNC ProPack: unpacked_size is the real size (NuPPUnpack) */
 #define NW_DAT_NODES_MAX 32768 /* node links are s16 */
-#define NW_DAT_DIR_MAX (64u << 20) /* sanity limit for the directory */
+#define NW_DAT_DIR_MAX (64u << 20)
 
 typedef struct NwDatEntry {
     uint32_t offset; /* from the start of the archive */
-    uint32_t size;   /* stored bytes */
+    uint32_t size;
     uint32_t unpacked_size;
     uint32_t flags;
 } NwDatEntry;
 
 typedef struct NwDatNode {
     int32_t child;    /* > 0: directory, first child node; <= 0: file entry -child */
-    int32_t sibling;  /* next node, 0 ends the chain */
+    int32_t sibling;  /* 0 ends the chain */
     const char *name; /* NULL for node 0 */
 } NwDatNode;
 
@@ -39,19 +36,17 @@ typedef struct NwDat {
 } NwDat;
 
 bool nw_dat_parse(NwDat *dat, const void *dir, size_t dir_size, uint64_t file_size);
-/* Opens an archive through the VFS. DUMMY.DAT is refused. */
+/* DUMMY.DAT is refused. */
 bool nw_dat_open(NwDat *dat, const NwVfs *vfs, const char *game_path);
 void nw_dat_close(NwDat *dat);
 
-/* NuDatFileFindTree: '\'-separated, case-insensitive, from node 1. Entry index, or -1 when missing or a directory. */
+/* NuDatFileFindTree: '\'-separated, case-insensitive; -1 when missing or a directory. */
 int nw_dat_find(const NwDat *dat, const char *path);
 
-/* Stored bytes of an entry (still RNC-packed when flags & NW_DAT_PACKED). Free with SDL_free. */
+/* Still RNC-packed when flags & NW_DAT_PACKED. Free with SDL_free. */
 void *nw_dat_load(NwDat *dat, int index);
-/* size stored bytes from offset into an entry; false past its end. */
 bool nw_dat_read(NwDat *dat, int index, uint32_t offset, void *dst, size_t size);
 
-/* Calls fn for every file reachable from node 1 with its '\'-separated path. */
 bool nw_dat_list(const NwDat *dat, void (*fn)(void *user, int index, const char *path), void *user);
 
 #endif

@@ -1,5 +1,4 @@
-/* game/font3d's Text3D (port/units.toml override): retail's, with the glyph codes of the pad's buttons (x o s t, and
-   the port's q r u v for L1 R1 L2 R2) drawn as the prompts nw_font3d_prompts last handed it. */
+/* Text3D override: the pad buttons' glyph codes (x o s t, the port's q r u v for L1 R1 L2 R2) draw as prompts. */
 #include "port/font3d.h"
 
 #include <string.h>
@@ -53,7 +52,7 @@ extern const struct nw_embed_file nw_prompt_icons[];
 extern const size_t nw_prompt_icons_count;
 
 #define NW_FONT3D_ICONS 64
-/* An icon over the cross model's extent, which comes out about two letters wide, and the letters it takes. */
+/* Icon scale over the cross model's extent (about two letters wide) and the letter cells it takes. */
 #define NW_FONT3D_ICON_SCALE 1.5f
 #define NW_FONT3D_ICON_CELLS 2.0f
 
@@ -62,7 +61,7 @@ static bool nw_font3d_handed;
 static NwPrompts nw_font3d_next, nw_font3d_glyphs;
 static struct {
     char name[32];
-    struct numtl_s *mtl; /* NULL when it does not load */
+    struct numtl_s *mtl;
 } nw_font3d_icons[NW_FONT3D_ICONS];
 static int nw_font3d_nicons;
 static struct numtl_s *nw_font3d_grey[2]; /* forced table: the letters' special_id 1 */
@@ -109,7 +108,7 @@ static int nw_font3d_target(char c)
     }
 }
 
-/* name's material on its first use: the PNG as a type 3 bitmap (A, B, G, R), blended over everything, unlit. */
+/* The PNG as a type 3 bitmap (A, B, G, R), blended over everything, unlit. */
 static struct numtl_s *nw_font3d_icon(const char *name)
 {
     for (int i = 0; i < nw_font3d_nicons; i++) {
@@ -159,7 +158,7 @@ void nw_font3d_release(void)
     nw_font3d_grey[1] = NULL;
 }
 
-/* NW_FONT3D_GREY's table on its first use: the menu entries' colour 2, grey at half its brightness. */
+/* The menu entries' colour 2 at half its brightness. */
 static struct numtl_s **nw_font3d_grey_table(void)
 {
     struct numtl_s *src = Font3DMtlTab[2][1];
@@ -228,7 +227,7 @@ static uint32_t nw_font3d_text(const void *site, const char *txt, f32 x, f32 y, 
     return id;
 }
 
-/* A glyph code's width in letters, 0 for another character. */
+/* In letters; 0 for another character. */
 static f32 nw_font3d_width(char c)
 {
     int t = nw_font3d_target(c);
@@ -254,7 +253,7 @@ static s32 nw_font3d_remap(char c)
     return Font3DRemap[nw_rev ? (unsigned char)c : (int)c];
 }
 
-/* Retail's draw of a letter (or a button) of Font3DTab in the cell at x. */
+/* Retail's draw of a Font3DTab letter (or button) in the cell at x. */
 static void nw_font3d_letter(char c, f32 x, f32 y, f32 z, f32 dx, f32 scalex, f32 scaley, f32 scalez)
 {
     s32 idx = nw_font3d_remap(c);

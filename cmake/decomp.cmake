@@ -1,5 +1,3 @@
-# The decomp on the host: generated wrapper and stub units (nuworld_decomp), type DB and converters (nuworld_types).
-
 # The interpreter on the PATH first (on Windows the registry would win, often one without libclang).
 set(Python3_FIND_REGISTRY LAST)
 find_package(Python3 3.11 REQUIRED COMPONENTS Interpreter)
@@ -47,7 +45,6 @@ add_custom_command(OUTPUT ${nw_tree}
   VERBATIM)
 list(APPEND nw_registries ${nw_tree} ${CMAKE_CURRENT_SOURCE_DIR}/port/units.toml)
 
-# The files a generator writes, known at configure time (nwunits only, no libclang).
 function(nw_gen_outputs tool var)
   execute_process(COMMAND ${Python3_EXECUTABLE} ${nw_tools}/${tool} --out ${nw_gen} --list-outputs ${ARGN}
     OUTPUT_VARIABLE out ERROR_VARIABLE err RESULT_VARIABLE result)
@@ -103,7 +100,6 @@ add_custom_command(OUTPUT ${nw_gen}/converters.stamp
   COMMENT "Generating the converters"
   VERBATIM)
 add_custom_target(nuworld_types DEPENDS ${nw_gen}/types.stamp ${nw_gen}/converters.stamp)
-# The data image: root definitions and tables (dataimage*.c) and the <unit>.data.inc every wrapper ends with.
 add_custom_command(OUTPUT ${nw_gen}/dataimage.stamp
   BYPRODUCTS ${nw_dataimage}
   COMMAND ${Python3_EXECUTABLE} ${nw_tools}/gen_dataimage.py --decomp ${nw_decomp} --typedb ${nw_gen}/typedb.json
@@ -174,7 +170,6 @@ list(FILTER nw_game_sources INCLUDE REGEX "\\.c$")
 add_library(nuworld_game STATIC $<TARGET_OBJECTS:nuworld_decomp> ${nw_game_sources})
 nw_embed_dir(nuworld_game nw_prompt_icons ${CMAKE_CURRENT_SOURCE_DIR}/assets/prompts)
 nw_embed(nuworld_game nw_hubgem_toml ${CMAKE_CURRENT_SOURCE_DIR}/assets/hubgem.toml)
-# The title menu's NuWorld mark.
 set(nw_title_logo ${nw_gen}/nw_title_logo.ghg)
 add_custom_command(OUTPUT ${nw_title_logo}
   COMMAND ${Python3_EXECUTABLE} ${nw_tools}/title_logo.py ${CMAKE_CURRENT_SOURCE_DIR}/assets/branding/nuworld-icon.svg
@@ -199,7 +194,6 @@ target_sources(crashwoc-nuworld PRIVATE src/frontend/cheatpanel.c src/frontend/c
 target_compile_definitions(crashwoc-nuworld PRIVATE NW_WITH_GAME)
 
 if(NUWORLD_FUZZ)
-  # The game's loaders and the port's decoders under libFuzzer (tests/fuzz/fuzz_loaders.c).
   add_executable(nuworld_fuzz_loaders tests/fuzz/fuzz_loaders.c)
   target_include_directories(nuworld_fuzz_loaders PRIVATE ${nw_decomp_includes} ${nw_gen})
   target_compile_definitions(nuworld_fuzz_loaders PRIVATE NW_HOST)
@@ -220,70 +214,62 @@ if(NUWORLD_TESTS)
   target_compile_options(nuworld_test_ps2types PRIVATE -Wall -Wextra)
   add_test(NAME ps2types COMMAND nuworld_test_ps2types)
 
-  # Local only: the data image from the imported disc of NUWORLD_TEST_DATA (skipped without it).
   add_test(NAME data-image-retail
     COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/run_local.py $<TARGET_FILE:crashwoc-nuworld>
       --data-dir {root} --check-data)
   set_tests_properties(data-image-retail PROPERTIES SKIP_RETURN_CODE 77)
-  # Local only: the game from the imported disc until it leaves its first load screen (BGLoadSfx's loader ends).
+  # --loads 1: until the first load screen ends (BGLoadSfx's loader).
   add_test(NAME boot-check
     COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/run_local.py $<TARGET_FILE:crashwoc-nuworld>
       --data-dir {root} --stepped --boot-check --loads 1)
   set_tests_properties(boot-check PROPERTIES SKIP_RETURN_CODE 77)
-  # Local only: on until the title cut movie has loaded (BGLoadCutScene's loader ends).
+  # --loads 2: until the title cut movie has loaded (BGLoadCutScene's loader).
   add_test(NAME boot-cut
     COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/run_local.py $<TARGET_FILE:crashwoc-nuworld>
       --data-dir {root} --stepped --boot-check --loads 2)
   set_tests_properties(boot-cut PROPERTIES SKIP_RETURN_CODE 77)
-  # Local only: the title cut's sound trace on the stepped clock is the same on every run.
   add_test(NAME boot-cut-trace
     COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/run_local.py ${Python3_EXECUTABLE}
       ${CMAKE_CURRENT_SOURCE_DIR}/tests/cut_trace.py $<TARGET_FILE:crashwoc-nuworld> {root})
   set_tests_properties(boot-cut-trace PROPERTIES SKIP_RETURN_CODE 77)
-  # Local only: that trace against PCSX2's (tools/pcsx2_trace.py).
   add_test(NAME boot-cut-pcsx2
     COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/run_local.py ${Python3_EXECUTABLE}
       ${CMAKE_CURRENT_SOURCE_DIR}/tests/cut_trace.py $<TARGET_FILE:crashwoc-nuworld> {root}
       --pcsx2 ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/pcsx2_title_cut.txt)
   set_tests_properties(boot-cut-pcsx2 PROPERTIES SKIP_RETURN_CODE 77)
-  # Local only: with instant loading the cut keeps PCSX2's timing from the logos key-on, and the stub hits.
   add_test(NAME boot-cut-instant
     COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/run_local.py ${Python3_EXECUTABLE}
       ${CMAKE_CURRENT_SOURCE_DIR}/tests/cut_trace.py $<TARGET_FILE:crashwoc-nuworld> {root}
       --pcsx2 ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/pcsx2_title_cut.txt --instant)
   set_tests_properties(boot-cut-instant PROPERTIES SKIP_RETURN_CODE 77)
-  # Local only: the title cut's frames (--capture) labelled as PCSX2's savestates (tools/pcsx2_capture.py).
   add_test(NAME title-frames-pcsx2
     COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/run_local.py ${Python3_EXECUTABLE}
       ${CMAKE_CURRENT_SOURCE_DIR}/tests/title_capture.py $<TARGET_FILE:crashwoc-nuworld> {root}
       ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/pcsx2_title_frames.txt ${CMAKE_CURRENT_BINARY_DIR}/title-frames)
   set_tests_properties(title-frames-pcsx2 PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 900)
-  # Local only: every .gsc of the imported disc loads with no unknown block and its geometry decodes.
   add_test(NAME check-scenes-retail
     COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/run_local.py $<TARGET_FILE:crashwoc-nuworld>
       --data-dir {root} --check-scenes)
   set_tests_properties(check-scenes-retail PROPERTIES SKIP_RETURN_CODE 77)
-  # Local only: every .gsc and .ghg of the imported disc drawn by the decomp into a frame packet.
   add_test(NAME scene-render-retail
     COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/run_local.py $<TARGET_FILE:crashwoc-nuworld>
       --data-dir {root} --scene-check all)
   set_tests_properties(scene-render-retail PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 1800)
-  # Local only: those lines against the crashwoc tooling's decode ($CRASHWOC_TOOLING; skipped without it).
+  # Needs $CRASHWOC_TOOLING (skipped without it).
   add_test(NAME scene-hashes-retail
     COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/run_local.py ${Python3_EXECUTABLE}
       ${CMAKE_CURRENT_SOURCE_DIR}/tools/gsc_hash.py --data-dir {root} --compare $<TARGET_FILE:crashwoc-nuworld>)
   set_tests_properties(scene-hashes-retail PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 1800)
-  # Local only: --check-disc / --check-scenes against the crashwoc tooling and WrathSDK ($CRASHWOC_TOOLING, $WRATHSDK).
+  # Needs $CRASHWOC_TOOLING and $WRATHSDK.
   add_test(NAME disc-decode-retail
     COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/run_local.py ${Python3_EXECUTABLE}
       ${CMAKE_CURRENT_SOURCE_DIR}/tools/disc_check.py --data-dir {root} --compare $<TARGET_FILE:crashwoc-nuworld>)
   set_tests_properties(disc-decode-retail PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 1800)
-  # Local only: the VU1 microcode of the imported boot ELF decodes and maps completely.
   add_test(NAME vu1-disasm-retail
     COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/run_local.py ${Python3_EXECUTABLE}
       ${CMAKE_CURRENT_SOURCE_DIR}/tools/vu1dis.py --data-dir {root} --check --expect 16,24,44)
   set_tests_properties(vu1-disasm-retail PROPERTIES SKIP_RETURN_CODE 77)
-  # Local only: every gameplay level (LData 0-34, 36, 37) entered headless (--level) hits no stub.
+  # Every gameplay level: LData 0-34, 36 and 37.
   add_test(NAME levels-retail
     COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/run_local.py ${Python3_EXECUTABLE}
       ${CMAKE_CURRENT_SOURCE_DIR}/tests/level_check.py $<TARGET_FILE:crashwoc-nuworld> {root} -j 8
@@ -291,7 +277,7 @@ if(NUWORLD_TESTS)
       fire_r castle_a castle_c fire_fly western droid earth_b fire_b water_b weath_b space_b space_a cast_bug west_b
       cold_b weather ballsof s_balls space_r seashell airship hub)
   set_tests_properties(levels-retail PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 900)
-  # Local only: the same levels as the PAL v1.03 PS2's game at 50 Hz, its recordings (.ppd) on the pad.
+  # The same levels as the PAL v1.03 PS2's game at 50 Hz, its recordings (.ppd) on the pad.
   add_test(NAME levels-pal103-retail
     COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/run_local.py ${Python3_EXECUTABLE}
       ${CMAKE_CURRENT_SOURCE_DIR}/tests/level_check.py $<TARGET_FILE:crashwoc-nuworld> {root} -j 8 --revision 1.03
@@ -299,14 +285,13 @@ if(NUWORLD_TESTS)
       fire_r castle_a castle_c fire_fly western droid earth_b fire_b water_b weath_b space_b space_a cast_bug west_b
       cold_b weather ballsof s_balls space_r seashell airship hub)
   set_tests_properties(levels-pal103-retail PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 900)
-  # Local only: title, intro, hub, a level and the hub again keep as many scene GPU objects alive at both hubs.
+  # Title, intro, hub, a level and the hub again keep as many scene GPU objects alive at both hubs.
   add_test(NAME scene-free-retail
     COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/run_local.py ${Python3_EXECUTABLE}
       ${CMAKE_CURRENT_SOURCE_DIR}/tests/level_check.py $<TARGET_FILE:crashwoc-nuworld> {root} --vblanks 100
       intro,farm,hub)
   set_tests_properties(scene-free-retail PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 900)
 
-  # The NuDat override under the kept nufile layer; nudat-retail is local only (NUWORLD_TEST_DATA).
   add_executable(nuworld_test_nudat tests/c/test_nudat.c)
   target_include_directories(nuworld_test_nudat PRIVATE ${nw_decomp_includes})
   target_compile_definitions(nuworld_test_nudat PRIVATE NW_HOST)
@@ -316,20 +301,17 @@ if(NUWORLD_TESTS)
   add_test(NAME nudat-retail COMMAND nuworld_test_nudat retail)
   set_tests_properties(nudat-retail PROPERTIES SKIP_RETURN_CODE 77)
 
-  # The loaders' host records beside the game's heaps.
   add_executable(nuworld_test_heap tests/c/test_heap.c)
   target_include_directories(nuworld_test_heap PRIVATE ${nw_decomp_includes})
   target_compile_options(nuworld_test_heap PRIVATE -Wall -Wextra)
   target_link_libraries(nuworld_test_heap PRIVATE $<LINK_LIBRARY:WHOLE_ARCHIVE,nuworld_game>)
   add_test(NAME heap COMMAND nuworld_test_heap)
-  # The widescreen view's frame width, camera aspect and factors for each picture aspect.
   add_executable(nuworld_test_wide tests/c/test_wide.c)
   target_include_directories(nuworld_test_wide PRIVATE ${nw_decomp_includes})
   target_compile_definitions(nuworld_test_wide PRIVATE NW_HOST)
   target_compile_options(nuworld_test_wide PRIVATE -Wall -Wextra)
   target_link_libraries(nuworld_test_wide PRIVATE $<LINK_LIBRARY:WHOLE_ARCHIVE,nuworld_game>)
   add_test(NAME wide COMMAND nuworld_test_wide)
-  # The 50/60 Hz rate, the seams it picks and the 60 Hz table's writes.
   add_executable(nuworld_test_hz tests/c/test_hz.c)
   target_include_directories(nuworld_test_hz PRIVATE ${nw_decomp_includes})
   target_compile_definitions(nuworld_test_hz PRIVATE NW_HOST)
@@ -346,20 +328,17 @@ if(NUWORLD_TESTS)
   target_compile_options(nuworld_test_canon PRIVATE -Wall -Wextra)
   target_link_libraries(nuworld_test_canon PRIVATE nuworld_vfs)
   add_test(NAME canon COMMAND nuworld_test_canon ${CMAKE_CURRENT_BINARY_DIR}/test-canon)
-  # The disc's region.
   add_executable(nuworld_test_disc tests/c/test_disc.c)
   target_include_directories(nuworld_test_disc PRIVATE ${nw_decomp_includes})
   target_compile_definitions(nuworld_test_disc PRIVATE NW_HOST)
   target_compile_options(nuworld_test_disc PRIVATE -Wall -Wextra)
   target_link_libraries(nuworld_test_disc PRIVATE $<LINK_LIBRARY:WHOLE_ARCHIVE,nuworld_game>)
   add_test(NAME disc COMMAND nuworld_test_disc)
-  # The game layer's switches: off leaves retail's values, on changes them once.
   add_executable(nuworld_test_gameplay tests/c/test_gameplay.c)
   target_include_directories(nuworld_test_gameplay PRIVATE ${nw_decomp_includes})
   target_compile_options(nuworld_test_gameplay PRIVATE ${nw_decomp_flags} -Wall -Wextra)
   target_link_libraries(nuworld_test_gameplay PRIVATE $<LINK_LIBRARY:WHOLE_ARCHIVE,nuworld_game>)
   add_test(NAME gameplay COMMAND nuworld_test_gameplay)
-  # Desktop exit: title/pause row bounds, navigation and retail's confirmation guards.
   add_executable(nuworld_test_menu tests/c/test_menu.c)
   target_include_directories(nuworld_test_menu PRIVATE ${nw_decomp_includes})
   target_compile_options(nuworld_test_menu PRIVATE ${nw_decomp_flags} -Wall -Wextra)
@@ -378,7 +357,6 @@ if(NUWORLD_TESTS)
   set_tests_properties(fp-traps-all PROPERTIES ENVIRONMENT NUWORLD_FP_TRAPS=all
     PASS_REGULAR_EXPRESSION "fp trap: invalid operation at .*fptrap: the game thread returned")
 
-  # The .gsc loader override on a synthetic scene (decomp flags for the struct layouts).
   add_executable(nuworld_test_nugscn tests/c/test_nugscn.c)
   add_dependencies(nuworld_test_nugscn nuworld_types)
   target_include_directories(nuworld_test_nugscn PRIVATE ${nw_decomp_includes} ${nw_gen})
@@ -388,7 +366,6 @@ if(NUWORLD_TESTS)
   add_test(NAME nugscn-retail COMMAND nuworld_test_nugscn retail)
   set_tests_properties(nugscn-retail PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 1800)
 
-  # The .ghg loader override on a synthetic file; nughg-retail loads every .ghg of NUWORLD_TEST_DATA.
   add_executable(nuworld_test_nughg tests/c/test_nughg.c)
   add_dependencies(nuworld_test_nughg nuworld_types)
   target_include_directories(nuworld_test_nughg PRIVATE ${nw_decomp_includes} ${nw_gen})
@@ -398,7 +375,6 @@ if(NUWORLD_TESTS)
   add_test(NAME nughg-retail COMMAND nuworld_test_nughg retail)
   set_tests_properties(nughg-retail PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 600)
 
-  # The .cut loader override on a synthetic file; nucut-retail loads every .cut of NUWORLD_TEST_DATA.
   add_executable(nuworld_test_nucut tests/c/test_nucut.c)
   add_dependencies(nuworld_test_nucut nuworld_types)
   target_include_directories(nuworld_test_nucut PRIVATE ${nw_decomp_includes} ${nw_gen})
@@ -408,7 +384,6 @@ if(NUWORLD_TESTS)
   add_test(NAME nucut-retail COMMAND nuworld_test_nucut retail)
   set_tests_properties(nucut-retail PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 600)
 
-  # The .ani loader override on a synthetic file; nuanim-retail loads every .ani and .bsa of NUWORLD_TEST_DATA.
   add_executable(nuworld_test_nuanim tests/c/test_nuanim.c)
   add_dependencies(nuworld_test_nuanim nuworld_types)
   target_include_directories(nuworld_test_nuanim PRIVATE ${nw_decomp_includes} ${nw_gen})
@@ -418,7 +393,6 @@ if(NUWORLD_TESTS)
   add_test(NAME nuanim-retail COMMAND nuworld_test_nuanim retail)
   set_tests_properties(nuanim-retail PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 600)
 
-  # The .ter loader override on a synthetic file, then under terraininit.
   add_executable(nuworld_test_terrain tests/c/test_terrain.c)
   add_dependencies(nuworld_test_terrain nuworld_types)
   target_include_directories(nuworld_test_terrain PRIVATE ${nw_decomp_includes} ${nw_gen})
@@ -428,7 +402,6 @@ if(NUWORLD_TESTS)
   add_test(NAME terrain-retail COMMAND nuworld_test_terrain retail)
   set_tests_properties(terrain-retail PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 1800)
 
-  # The .shd loader override on a synthetic file; shadcom-retail loads every .shd in CHARS.DAT of NUWORLD_TEST_DATA.
   add_executable(nuworld_test_shadcom tests/c/test_shadcom.c)
   add_dependencies(nuworld_test_shadcom nuworld_types)
   target_include_directories(nuworld_test_shadcom PRIVATE ${nw_decomp_includes} ${nw_gen})
@@ -438,7 +411,6 @@ if(NUWORLD_TESTS)
   add_test(NAME shadcom-retail COMMAND nuworld_test_shadcom retail)
   set_tests_properties(shadcom-retail PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 600)
 
-  # The NUSOUND.IRX port under the decomp's own nusound.c.
   add_executable(nuworld_test_nusound tests/c/test_nusound.c)
   target_include_directories(nuworld_test_nusound PRIVATE ${nw_decomp_includes})
   target_compile_definitions(nuworld_test_nusound PRIVATE NW_HOST)
@@ -449,7 +421,6 @@ if(NUWORLD_TESTS)
   add_test(NAME nusound-retail-instant COMMAND nuworld_test_nusound retail instant)
   set_tests_properties(nusound-retail nusound-retail-instant PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 600)
 
-  # The port's Nu render layer under the decomp code that drives it.
   add_executable(nuworld_test_rndr tests/c/test_rndr.c)
   add_dependencies(nuworld_test_rndr nuworld_types)
   target_include_directories(nuworld_test_rndr PRIVATE ${nw_decomp_includes} ${nw_gen})
@@ -457,7 +428,6 @@ if(NUWORLD_TESTS)
   target_link_libraries(nuworld_test_rndr PRIVATE $<LINK_LIBRARY:WHOLE_ARCHIVE,nuworld_game>)
   add_test(NAME rndr COMMAND nuworld_test_rndr)
 
-  # A texanim script stepping a material's texture into the frame packet.
   add_executable(nuworld_test_texanim tests/c/test_texanim.c)
   add_dependencies(nuworld_test_texanim nuworld_types)
   target_include_directories(nuworld_test_texanim PRIVATE ${nw_decomp_includes} ${nw_gen})
@@ -467,7 +437,6 @@ if(NUWORLD_TESTS)
   add_test(NAME texanim-retail COMMAND nuworld_test_texanim retail)
   set_tests_properties(texanim-retail PROPERTIES SKIP_RETURN_CODE 77)
 
-  # Text3D's glyphs on a synthetic scene; font3d-retail loads STUFF\FONT.GSC of NUWORLD_TEST_DATA with the data image.
   add_executable(nuworld_test_font3d tests/c/test_font3d.c)
   add_dependencies(nuworld_test_font3d nuworld_types)
   target_include_directories(nuworld_test_font3d PRIVATE ${nw_decomp_includes} ${nw_gen})
@@ -477,7 +446,6 @@ if(NUWORLD_TESTS)
   add_test(NAME font3d-retail COMMAND nuworld_test_font3d retail)
   set_tests_properties(font3d-retail PROPERTIES SKIP_RETURN_CODE 77)
 
-  # The editor units' runtime half on every level file of NUWORLD_TEST_DATA, loaded over the level scene.
   add_executable(nuworld_test_edunits tests/c/test_edunits.c)
   add_dependencies(nuworld_test_edunits nuworld_types)
   target_include_directories(nuworld_test_edunits PRIVATE ${nw_decomp_includes} ${nw_gen})
@@ -488,7 +456,6 @@ if(NUWORLD_TESTS)
     set_tests_properties(${unit}-retail PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 1800)
   endforeach()
 
-  # The clock, the game thread's yield points, the vblank interrupts and the EE semaphores, on a stepped clock.
   add_executable(nuworld_test_clock tests/c/test_clock.c)
   target_include_directories(nuworld_test_clock PRIVATE ${nw_decomp_includes})
   target_compile_definitions(nuworld_test_clock PRIVATE NW_HOST)
@@ -496,7 +463,6 @@ if(NUWORLD_TESTS)
   target_link_libraries(nuworld_test_clock PRIVATE $<LINK_LIBRARY:WHOLE_ARCHIVE,nuworld_game>)
   add_test(NAME clock COMMAND nuworld_test_clock)
 
-  # The EE threads under the decomp's bgload, on a stepped clock, then on a real game thread.
   add_executable(nuworld_test_ee tests/c/test_ee.c)
   target_include_directories(nuworld_test_ee PRIVATE ${nw_decomp_includes})
   target_compile_definitions(nuworld_test_ee PRIVATE NW_HOST)
@@ -504,7 +470,6 @@ if(NUWORLD_TESTS)
   target_link_libraries(nuworld_test_ee PRIVATE $<LINK_LIBRARY:WHOLE_ARCHIVE,nuworld_game>)
   add_test(NAME ee COMMAND nuworld_test_ee)
 
-  # The pad shim under the decomp's NuPs2ReadPad, and a virtual gamepad and the keyboard as the pad.
   add_executable(nuworld_test_pad tests/c/test_pad.c src/platform/controls.c src/platform/input.c
     src/platform/prompts.c)
   target_include_directories(nuworld_test_pad PRIVATE ${nw_decomp_includes})
@@ -513,7 +478,6 @@ if(NUWORLD_TESTS)
   target_link_libraries(nuworld_test_pad PRIVATE $<LINK_LIBRARY:WHOLE_ARCHIVE,nuworld_game>)
   add_test(NAME pad COMMAND nuworld_test_pad)
 
-  # NEW GAME's name typed on the keyboard, as game/game's name entry runs it.
   add_executable(nuworld_test_nameentry tests/c/test_nameentry.c)
   add_dependencies(nuworld_test_nameentry nuworld_types)
   target_include_directories(nuworld_test_nameentry PRIVATE ${nw_decomp_includes})
@@ -521,7 +485,7 @@ if(NUWORLD_TESTS)
   target_link_libraries(nuworld_test_nameentry PRIVATE $<LINK_LIBRARY:WHOLE_ARCHIVE,nuworld_game>)
   add_test(NAME nameentry COMMAND nuworld_test_nameentry)
 
-  # The port's saves as the save menus use them; saves-ps2 converts NUWORLD_TEST_CARD (a .ps2 card image).
+  # saves-ps2 converts NUWORLD_TEST_CARD (a .ps2 card image).
   add_executable(nuworld_test_saves tests/c/test_saves.c)
   add_dependencies(nuworld_test_saves nuworld_types)
   target_include_directories(nuworld_test_saves PRIVATE ${nw_decomp_includes})
@@ -558,7 +522,7 @@ if(NUWORLD_TESTS)
         COMMAND ${CMAKE_COMMAND} -DNM=${NW_LLVM_NM} -DOBJECTS=${CMAKE_CURRENT_BINARY_DIR}/globals-objects.rsp
           -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/check_globals.cmake)
     endif()
-    # Everything the executable links for the game, listed in a file (the command line would be too long).
+    # In a file: the command line would be too long.
     file(GENERATE OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/closure-objects.txt
       CONTENT "$<JOIN:$<TARGET_OBJECTS:nuworld_decomp>;$<TARGET_OBJECTS:nuworld_game>;$<TARGET_OBJECTS:nuworld_data>;$<TARGET_OBJECTS:nuworld_port>,\n>\n")
     add_test(NAME decomp-closure

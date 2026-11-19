@@ -1,5 +1,4 @@
-/* game/text's NewLanguage (port/units.toml override): the power-up texts that name a shoulder button hold its
-   glyph code instead (Text3D's q r u v for L1 R1 L2 R2), so they show the bound button of the device in use. */
+/* NewLanguage override: shoulder-button power-up texts hold Text3D's glyph codes so they show the bound button. */
 #include "game/gametypes.h"
 
 extern s32 LANGUAGEOPTION;

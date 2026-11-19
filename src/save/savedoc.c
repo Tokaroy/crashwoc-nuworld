@@ -13,7 +13,7 @@ typedef struct NwDocParse {
     const char *p, *end;
     int line;
     NwDoc *doc;
-    NwDocTable *table; /* the one the key = value lines go to */
+    NwDocTable *table;
 } NwDocParse;
 
 static bool nw_doc_put(NwDocBuf *b, const void *data, size_t n)
@@ -155,7 +155,6 @@ void nw_doc_free(NwDoc *doc)
     SDL_zerop(doc);
 }
 
-/* How many leading header keys t shares with path. */
 static size_t nw_doc_shared(const NwDocTable *t, const char *const *path, size_t depth)
 {
     size_t n = 0;
@@ -186,7 +185,7 @@ static NwDocKey *nw_doc_key(const NwDocTable *t, const char *name)
     return NULL;
 }
 
-/* A key of a table above the header path that names one of its tables (a key and a table cannot share a name). */
+/* A key and a table cannot share a name. */
 static const char *nw_doc_header_blocked(const NwDoc *doc, const char *const *path, size_t depth)
 {
     for (size_t i = 0; i < doc->count; i++) {
@@ -198,7 +197,6 @@ static const char *nw_doc_header_blocked(const NwDoc *doc, const char *const *pa
     return NULL;
 }
 
-/* Whether a table below t is named name. */
 static bool nw_doc_key_blocked(const NwDoc *doc, const NwDocTable *t, const char *name)
 {
     for (size_t i = 0; i < doc->count; i++) {
@@ -326,7 +324,6 @@ static void nw_doc_ws(NwDocParse *ps)
     }
 }
 
-/* A line break at p, consumed; false when there is none. */
 static bool nw_doc_newline(NwDocParse *ps)
 {
     if (nw_doc_more(ps) && *ps->p == '\n') {
@@ -349,7 +346,6 @@ static void nw_doc_comment(NwDocParse *ps)
     }
 }
 
-/* Spaces, a comment and the line break or the end of the text; false when something else follows. */
 static bool nw_doc_eol(NwDocParse *ps)
 {
     nw_doc_ws(ps);
@@ -357,7 +353,6 @@ static bool nw_doc_eol(NwDocParse *ps)
     return !nw_doc_more(ps) || nw_doc_newline(ps);
 }
 
-/* Spaces, comments and line breaks (inside an array). */
 static void nw_doc_blank(NwDocParse *ps)
 {
     do {
@@ -366,7 +361,6 @@ static void nw_doc_blank(NwDocParse *ps)
     } while (nw_doc_newline(ps));
 }
 
-/* One character of a string at p as its byte: ASCII, or the UTF-8 of U+0080..U+00FF. */
 static bool nw_doc_char(NwDocParse *ps, NwDocBuf *b)
 {
     unsigned char c = (unsigned char)*ps->p;
@@ -389,7 +383,7 @@ static bool nw_doc_escape(NwDocParse *ps, NwDocBuf *b)
 {
     uint32_t cp = 0;
     int digits = 0;
-    ps->p++; /* the backslash */
+    ps->p++;
     if (!nw_doc_more(ps)) {
         return nw_doc_fail(ps, "an unterminated string");
     }
@@ -420,7 +414,6 @@ static bool nw_doc_escape(NwDocParse *ps, NwDocBuf *b)
     return nw_doc_put(b, &byte, 1) || nw_doc_fail(ps, "out of memory");
 }
 
-/* A basic ("...") or literal ('...') string at p into b. */
 static bool nw_doc_string(NwDocParse *ps, NwDocBuf *b)
 {
     char quote = *ps->p++;
@@ -446,7 +439,6 @@ static bool nw_doc_bare(char c)
     return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c == '_' || c == '-';
 }
 
-/* A bare or quoted key at p, SDL_malloc'd; NULL with an SDL error. */
 static char *nw_doc_parse_key(NwDocParse *ps)
 {
     NwDocBuf b = { 0 };
@@ -470,13 +462,11 @@ static char *nw_doc_parse_key(NwDocParse *ps)
     return (char *)b.data;
 }
 
-/* Whether the character at p is one of set (never a NUL). */
 static bool nw_doc_at(const NwDocParse *ps, const char *set)
 {
     return nw_doc_more(ps) && *ps->p && SDL_strchr(set, *ps->p);
 }
 
-/* After a scalar: what may follow it. */
 static bool nw_doc_delimited(const NwDocParse *ps)
 {
     return !nw_doc_more(ps) || nw_doc_at(ps, " \t,]#\r\n");
@@ -537,7 +527,7 @@ static bool nw_doc_array_value(NwDocParse *ps, NwDocValue *v, int nesting)
     if (nesting >= NW_DOC_DEPTH) {
         return nw_doc_fail(ps, "arrays nested too deep");
     }
-    ps->p++; /* [ */
+    ps->p++;
     for (;;) {
         nw_doc_blank(ps);
         if (nw_doc_more(ps) && *ps->p == ']') {
@@ -565,7 +555,7 @@ static bool nw_doc_array_value(NwDocParse *ps, NwDocValue *v, int nesting)
             return nw_doc_fail(ps, "expected , or ] in an array");
         }
     }
-    ps->p++; /* ] */
+    ps->p++;
     *v = items;
     return true;
 }
@@ -621,7 +611,7 @@ static bool nw_doc_header(NwDocParse *ps)
     char *path[NW_DOC_DEPTH];
     size_t depth = 0;
     bool ok = false;
-    ps->p++; /* [ */
+    ps->p++;
     if (nw_doc_more(ps) && *ps->p == '[') {
         return nw_doc_fail(ps, "arrays of tables are not supported");
     }

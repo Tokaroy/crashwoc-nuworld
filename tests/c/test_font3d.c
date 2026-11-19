@@ -1,5 +1,3 @@
-/* game/font3d's Text3D: glyph specials, colour codes, button prompts and the power-up texts' shoulder buttons;
-   `retail` pins STUFF\FONT.GSC's glyphs. */
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -76,7 +74,6 @@ static void render_init(void)
     nugscn_mtlupdate_enabled = 1;
 }
 
-/* A camera at z -20 looking down +z, which sees the panel's glyphs around the origin. */
 static void camera_init(void)
 {
     memset(&numtx_identity, 0, sizeof(numtx_identity));
@@ -119,7 +116,6 @@ static void test_synthetic(const char *scratch)
     if (!sc) {
         return;
     }
-    /* Object 0 (the special's) draws material 0, its next material 2, and material 2. */
     sc->mtls[0]->special_id = 1;
     sc->mtls[1]->special_id = 3;
     Font3DTab[0] = (struct font3dtab_s){ 'A', { NULL, NULL }, "special" };
@@ -188,7 +184,6 @@ static void test_synthetic(const char *scratch)
     nw_prompts_retail(&prompts);
     nw_font3d_prompts(&prompts);
 
-    /* NewLanguage: the shoulder buttons of the power-up texts are glyph codes in every language. */
     for (int lang = 0; lang < 6; lang++) {
         NewLanguage(lang);
         const struct { int power; char code; } shoulders[3] = { { 0, 'u' }, { 3, 'q' }, { 4, 'v' } };
@@ -215,7 +210,6 @@ static NwVfs retail_vfs;
 static unsigned retail_glyphs, retail_found, retail_accents, retail_colours, retail_draws, retail_places;
 static int retail_bad;
 
-/* On the game thread, as LoadFont3D: the scene, InitFont3D, then "NEW GAME" as the title menu draws it. */
 static int retail_main(int argc, char **argv)
 {
     (void)argc;

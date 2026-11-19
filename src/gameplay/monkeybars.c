@@ -13,7 +13,7 @@
 extern struct MoveInfo CrashMoveInfo;
 extern struct MoveInfo CocoMoveInfo;
 
-static int nw_monkey_bars_speed = 100; // <- actual speed modifier
+static int nw_monkey_bars_speed = 100;
 static float nw_monkey_bars_rate = 1.0f; /* what hngwalk's speed holds */
 
 /* Retail's DANGLESPEED at this rate, at speed percent. */
@@ -22,7 +22,6 @@ static float nw_monkey_bars_value(int speed)
     return NW_HZ(0.015599999f, 0.013f) * ((float)speed / 100.0f);
 }
 
-/* nw_profile's speed, 100 when it is retail's. */
 static int nw_monkey_bars_target(void)
 {
     int speed = nw_profile.movement.monkey_bar_speed;
@@ -50,7 +49,6 @@ void nw_monkey_bars_apply(void)
 /* The arms' rate grows as the speed to this power: 1 keeps the hands on the bar, 0 is retail's rate. */
 #define NW_MONKEY_BARS_CADENCE 0.6f
 
-/* hngwalk's rate from Crash's speed this frame */
 void nw_monkey_bars_animate(struct creature_s *plr)
 {
     int speed = nw_monkey_bars_target();

@@ -1,4 +1,3 @@
-/* F1's Help: the data folder, a summary of the PC for bug reports and the GitHub issue forms. Main thread. */
 #ifndef NUWORLD_FRONTEND_HELP_H
 #define NUWORLD_FRONTEND_HELP_H
 

@@ -27,7 +27,6 @@ KINDS = ("retail", "patched", "copy", "wrap", "port", "stub", "shim")
 
 
 def touched(pristine: Path, series: Path, values: Path = patches.VALUES) -> dict[tuple[str, str], list[str]]:
-    """{(source, function): the concerns and value files that change its body}, in the order they apply."""
     concerns, _ = patches.load_series(series)
     tree = patches.worktree_files(pristine)
     out: dict[tuple[str, str], list[str]] = defaultdict(list)
@@ -49,7 +48,6 @@ def touched(pristine: Path, series: Path, values: Path = patches.VALUES) -> dict
 
 
 def port_definitions(port_src: Path) -> dict[str, str]:
-    """{function: the NuWorld file that defines it}."""
     out = {}
     for p in sorted(port_src.rglob("*.c")):
         rel = p.relative_to(port_src.parent).as_posix()

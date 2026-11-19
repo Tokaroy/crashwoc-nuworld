@@ -40,7 +40,7 @@ extern s32 PickGliderTarget(struct nuvec_s **pos, struct nuvec_s **vel, s32 *typ
 #define NW_FIREFLY_LOCK_TIME 1.3f /* FireFlyReset's */
 #define NW_FIREFLY_PITCH 0.2f     /* ControlGlider's half-life */
 #define NW_FIREFLY_FADE 0.4f
-/* The marker: this far from the camera toward the target as retail's, so always the same size. */
+/* This far from the camera toward the target as retail's, so always the same size. */
 #define NW_FIREFLY_AHEAD 10.0f
 #define NW_FIREFLY_RADIUS 0.6f
 #define NW_FIREFLY_THIN 0.04f
@@ -170,7 +170,6 @@ static struct numtl_s *nw_firefly_material(void)
     return mtl;
 }
 
-/* share of the ring from the top round, radius r, width w. */
 static void nw_firefly_arc(float share, float r, float w, struct nucolour_s c)
 {
     struct nuvtx_tc1_s v[2 * (NW_FIREFLY_SEGMENTS + 1)];

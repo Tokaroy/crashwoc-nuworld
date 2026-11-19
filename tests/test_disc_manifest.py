@@ -1,4 +1,3 @@
-"""The committed disc manifests are valid generator output; gen_disc_manifest reads directories and JSON."""
 import json
 import sys
 import tempfile

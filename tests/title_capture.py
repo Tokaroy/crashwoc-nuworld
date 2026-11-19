@@ -1,10 +1,4 @@
-"""The title cut's frame labels against PCSX2's (local only): world and texanim frame exact, time within 0.05.
-
-The EE rounds every time step toward zero, so PCSX2's time drifts 0.02 below the port's (#91). PCSX2 screens in
-<root>/captures/pcsx2 are paired with the port's into <out>/pairs; the pixels are reported, never checked.
-
-    run_local.py python tests/title_capture.py <crashwoc-nuworld> {root} <fixture> <out>
-"""
+"""Title cut frame labels vs PCSX2's: the EE rounds time steps toward zero, so PCSX2's time drifts 0.02 below (#91)."""
 import re
 import subprocess
 import sys

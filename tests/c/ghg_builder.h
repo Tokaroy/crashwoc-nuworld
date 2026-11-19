@@ -1,4 +1,3 @@
-/* Builds a synthetic .ghg in memory as NuGHGWrite lays it out: every pointer an offset from the file's start. */
 #ifndef NUWORLD_TEST_GHG_BUILDER_H
 #define NUWORLD_TEST_GHG_BUILDER_H
 
@@ -8,7 +7,6 @@
 #include "gsc_builder.h"
 #include "skin_builder.h"
 
-/* Where the test file put what the tests check. */
 typedef struct GhgFile {
     size_t size;
     size_t tex, mtl[2], strings, T, INV_WT, joint_ixs, poi_ixs, layer;
@@ -35,8 +33,7 @@ static void ghg_mtx(GscBuild *b, float x, float y, float z)
     gsc_bytes(b, m, sizeof(m));
 }
 
-/* A file gobj (nugobj_s up to origin), its geoms right after it as the writer puts them; each geom a rigid chain
-   (n vertices), or the skin list when n is 0. */
+/* Each geom a rigid chain of n vertices, or the skin list when n is 0. */
 static size_t ghg_gobj(GscBuild *b, uint32_t mtl, const uint32_t *n, int ngeoms, size_t next_gobj)
 {
     size_t at = ghg_rec(b, 0x5C);
@@ -88,8 +85,6 @@ static size_t ghg_gobj(GscBuild *b, uint32_t mtl, const uint32_t *n, int ngeoms,
     return at;
 }
 
-/* Three joints (root, arm, hand), a POI on the hand, one layer: a chain of two gobjs on the root, none on the arm,
-   one on the hand and a skin object; a textured and an untextured material, a texanim, collision and a shadow. */
 static inline void ghg_build(GscBuild *b, GhgFile *f)
 {
     memset(b, 0, sizeof(*b));

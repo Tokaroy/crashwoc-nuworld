@@ -22,7 +22,6 @@ const SDL_DisplayMode *nw_display_pick(SDL_DisplayMode *const *modes, int count,
     return best;
 }
 
-/* The exclusive mode for res on window's display: the listed one, else SDL's closest. */
 static bool nw_display_exclusive(SDL_Window *window, NwResolution res, SDL_DisplayMode *out)
 {
     SDL_DisplayID display = SDL_GetDisplayForWindow(window);

@@ -1,4 +1,3 @@
-/* SHA-256 (FIPS 180-4). */
 #ifndef NUWORLD_VFS_SHA256_H
 #define NUWORLD_VFS_SHA256_H
 

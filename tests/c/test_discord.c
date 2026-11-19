@@ -1,5 +1,3 @@
-/* platform/discord.c: the frame and JSON wire format, and the worker against a local stand-in for the client:
-   handshake, READY, the newest activity, PING, reconnects, switching off and the client closing. */
 #include <stdio.h>
 #include <string.h>
 
@@ -134,7 +132,6 @@ static void server_close(Server *s)
 }
 #endif
 
-/* The next frame within ms; false when none came or the client closed. */
 static bool server_read(Server *s, uint32_t *op, char *json, size_t cap, int ms)
 {
     for (uint64_t until = SDL_GetTicks() + ms;; SDL_Delay(5)) {
@@ -163,7 +160,6 @@ static bool server_write(Server *s, NwDiscordOp op, const char *json)
     return n && server_send(s, frame, n);
 }
 
-/* The client closed within ms. */
 static bool server_closed(Server *s, int ms)
 {
     for (uint64_t until = SDL_GetTicks() + ms; SDL_GetTicks() < until; SDL_Delay(5)) {
@@ -246,7 +242,6 @@ static void test_wire(void)
     CHECK(nw_discord_field("{\"message\":\"0123456789\"}", "message", value, 5) && strcmp(value, "0123") == 0);
 }
 
-/* Handshake to READY; false when the worker did not come. */
 static bool serve_handshake(Server *s)
 {
     uint32_t op;
@@ -275,7 +270,7 @@ static void test_worker(void)
     CHECK(!nw_discord_start(&(NwDiscordConfig){ .app_id = "42", .endpoint = path }));
     NwActivity a = activity("First");
     nw_discord_set(&a);
-    CHECK(!server_accept(&s, 200)); /* off until enabled */
+    CHECK(!server_accept(&s, 200));
     nw_discord_enable(true);
 
     uint32_t op;
@@ -285,19 +280,17 @@ static void test_worker(void)
           SDL_strstr(json, "\"cmd\":\"SET_ACTIVITY\"") && SDL_strstr(json, "\"details\":\"First\""));
     CHECK(wait_ready(true, 1000));
 
-    /* Inside send_ms only the newest goes out. */
     a = activity("Second");
     nw_discord_set(&a);
     a = activity("Third");
     nw_discord_set(&a);
     CHECK(server_read(&s, &op, json, sizeof(json), 3000) && SDL_strstr(json, "\"details\":\"Third\""));
     nw_discord_set(&a);
-    CHECK(!server_read(&s, &op, json, sizeof(json), 1300)); /* the same activity is not sent again */
+    CHECK(!server_read(&s, &op, json, sizeof(json), 1300));
 
     CHECK(server_write(&s, NW_DISCORD_PING, "{\"p\":7}"));
     CHECK(server_read(&s, &op, json, sizeof(json), 3000) && op == NW_DISCORD_PONG && strcmp(json, "{\"p\":7}") == 0);
 
-    /* The client went away: found again, and told the activity again. */
     server_drop(&s);
     CHECK(serve_handshake(&s));
     CHECK(server_read(&s, &op, json, sizeof(json), 3000) && SDL_strstr(json, "\"details\":\"Third\""));
@@ -307,7 +300,6 @@ static void test_worker(void)
     CHECK(wait_ready(false, 1000));
     server_drop(&s);
 
-    /* The client turns the handshake down. */
     nw_discord_enable(true);
     CHECK(server_accept(&s, 3000));
     CHECK(server_read(&s, &op, json, sizeof(json), 3000) && op == NW_DISCORD_HANDSHAKE);

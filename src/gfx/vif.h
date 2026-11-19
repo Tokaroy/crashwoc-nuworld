@@ -1,4 +1,4 @@
-/* .gsc geom VIF decoder (DMA chain to vertices and tri-strip indices), a port of nus_ps2.py. */
+/* A port of nus_ps2.py. */
 #ifndef NUWORLD_GFX_VIF_H
 #define NUWORLD_GFX_VIF_H
 
@@ -13,7 +13,6 @@ typedef struct NwVifVertex {
     uint8_t col[4]; /* VF31: r, g, b, a; 0x80 = 1.0 */
 } NwVifVertex;
 
-/* Triangles index verts; both grow as geoms are appended. */
 typedef struct NwVifMesh {
     NwVifVertex *verts;
     uint32_t *tris; /* 3 per triangle */
@@ -22,7 +21,6 @@ typedef struct NwVifMesh {
     bool uvrow; /* the last geom unpacked its texcoords under STMOD 1: they add the material's STROW row */
 } NwVifMesh;
 
-/* A face-on sprite as the faceon and facey programs read it. */
 typedef struct NwVifSprite {
     float pos[3];
     float size[2]; /* faceon: -4900 width, -2300 height (GS units before the divide); facey: half width, height */
@@ -36,8 +34,7 @@ typedef struct NwVifSprites {
     bool facey; /* kicked at MSCAL 0x306 (facey), not 0x304 (faceon) */
 } NwVifSprites;
 
-/* A skinned vertex: up to 8 joint and weight pairs, the weights as the VU rounds them (FTOI15, 1.0 = 32768), the
-   joint whose matrix turns the normal, its blend-shape deltas. */
+/* Up to 8 joint/weight pairs, weights as the VU rounds them (FTOI15, 1.0 = 32768); one joint turns the normal. */
 typedef struct NwVifSkinVertex {
     float pos[3];
     float nrm[3];
@@ -50,8 +47,7 @@ typedef struct NwVifSkinVertex {
     uint32_t delta; /* the first in NwVifSkin.deltas */
 } NwVifSkinVertex;
 
-/* A geom's skin DMA list: a vertex per point the batches upload (a dupe indexes its first occurrence), triangles, and
-   the blend-shape deltas (dx, dy, dz, shape) that skinmod adds. */
+/* A dupe vertex indexes its first occurrence; deltas are (dx, dy, dz, shape) as skinmod adds them. */
 typedef struct NwVifSkin {
     NwVifSkinVertex *verts;
     uint32_t *tris; /* 3 per triangle */
@@ -63,15 +59,13 @@ typedef struct NwVifSkin {
 
 /* Appends one geom's batches; false (mesh unchanged) on a malformed chain or stream. */
 bool nw_vif_decode(NwVifMesh *mesh, const void *geom, size_t size);
-/* Appends an ordering-table geom's triangles, each one its own three vertices, in batch order; false (mesh
-   unchanged) on a malformed batch. */
+/* Each triangle its own three vertices, in batch order; false (mesh unchanged) on a malformed batch. */
 bool nw_vif_otbatch(NwVifMesh *mesh, const void *batch, size_t size);
 void nw_vif_free(NwVifMesh *mesh);
 /* A face-on geom's sprites; false (s empty) on a malformed chain or stream. */
 bool nw_vif_sprites(NwVifSprites *s, const void *geom, size_t size);
 void nw_vif_sprites_free(NwVifSprites *s);
-/* A skin DMA list as NuPs2CreateSkinDma writes it, its CALL addresses relative to the list; size bounds the list and
-   the batches it calls. False (skin empty) on a malformed list or stream. */
+/* As NuPs2CreateSkinDma writes it, CALLs relative to the list; false (skin empty) on a malformed list or stream. */
 bool nw_vif_skin(NwVifSkin *skin, const void *list, size_t size);
 void nw_vif_skin_free(NwVifSkin *skin);
 

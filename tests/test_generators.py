@@ -1,5 +1,3 @@
-"""Generator tests on the synthetic decomp in tests/fixtures/mini (libclang for
-tu_filter, clang or $CC for the end-to-end test)."""
 import os
 import shutil
 import subprocess
@@ -356,8 +354,7 @@ class TuFilter(unittest.TestCase):
                                     '#include "fixcore.stubs.inc"',
                                     '#include "fixcore.funcmap.inc"',
                                     '#include "fixcore.data.inc"', ""])
-        # Every other line maps through #line to the same source line; the only source
-        # lines left out are the overridden definition.
+        # Every other line maps through #line to the same source line; only the overridden definition is left out.
         body, cur, seen = out[4:-5], 1, set()
         for j, line in enumerate(body):
             if line.startswith("#line "):

@@ -1,4 +1,3 @@
-/* Wraps of game/cut for the title menu (gameplay/titlemenu.c). */
 #include "nu_types.h"
 #include "gamelib/gcutscn.h"
 #include "game/cut.retail.h"

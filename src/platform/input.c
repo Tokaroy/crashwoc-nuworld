@@ -4,7 +4,6 @@
 #include "port/font3d.h"
 #include "port/nameentry.h"
 
-/* By target (platform/controls.h). */
 static const uint16_t nw_input_bits[NW_CONTROL_BUTTONS] = {
     NW_PAD_CROSS, NW_PAD_CIRCLE, NW_PAD_SQUARE, NW_PAD_TRIANGLE, NW_PAD_L1,     NW_PAD_R1,   NW_PAD_L2,   NW_PAD_R2,
     NW_PAD_L3,    NW_PAD_R3,     NW_PAD_SELECT, NW_PAD_START,    NW_PAD_UP,     NW_PAD_DOWN, NW_PAD_LEFT, NW_PAD_RIGHT,
@@ -39,7 +38,6 @@ static uint8_t nw_input_axis(int v)
     return (uint8_t)((v + 32768) >> 8);
 }
 
-/* A stick from its x axis on, with deadzone percent of its reach centred and the rest stretched over all of it. */
 static void nw_input_stick(SDL_Gamepad *gamepad, SDL_GamepadAxis x, int deadzone, uint8_t *px, uint8_t *py)
 {
     int ix = SDL_GetGamepadAxis(gamepad, x), iy = SDL_GetGamepadAxis(gamepad, (SDL_GamepadAxis)(x + 1));
@@ -60,7 +58,6 @@ static uint8_t nw_input_trigger(SDL_Gamepad *gamepad, SDL_GamepadAxis axis)
     return (uint8_t)(v > 0 ? v >> 7 : 0);
 }
 
-/* A source's pressure: a button's 0x00 or 0xFF, a trigger's travel. */
 static uint8_t nw_input_source(SDL_Gamepad *gamepad, uint16_t source)
 {
     if (source >= NW_CONTROL_TRIGGER) {
@@ -176,7 +173,6 @@ const char *nw_input_pad_label(uint16_t source)
     return nw_controls_pad_label(source);
 }
 
-/* What a listen hears in event, -1 nothing. */
 static int nw_input_hear(const SDL_Event *event)
 {
     bool keys = nw_input_listening == NW_INPUT_LISTEN_KEYS;
@@ -199,8 +195,7 @@ static int nw_input_hear(const SDL_Event *event)
     return -1;
 }
 
-/* The name entry's keys (port/nameentry.h): typed characters, Backspace, Enter and Escape; any key makes the
-   keyboard the device used last. */
+/* Any key makes the keyboard the device used last. */
 static void nw_input_type(const SDL_Event *event)
 {
     if (event->type == SDL_EVENT_TEXT_INPUT) {
@@ -223,8 +218,7 @@ static void nw_input_type(const SDL_Event *event)
     nw_input_keys_used = true;
 }
 
-/* SDL's text input on while the game asks for a name, on the window with the keyboard (again if the debug UI's
-   stopped it); off when it no longer asks. Opening, the letter table hides if the keyboard was used last. */
+/* Restarted if the debug UI stopped it; opening hides the letter table if the keyboard was used last. */
 static void nw_input_text(bool wanted)
 {
     SDL_Window *window = wanted ? SDL_GetKeyboardFocus() : NULL;
@@ -289,7 +283,6 @@ NwPromptStyle nw_input_prompt_style(void)
     return nw_input_style;
 }
 
-/* The glyphs of the style the device used last stands for, to Text3D. */
 static void nw_input_prompts(void)
 {
     if (nw_input_deck < 0) {
@@ -319,7 +312,7 @@ void nw_input_poll(bool keyboard)
         if (in.buttons || in.l2 || in.r2 || nw_input_stick_used(in.lx) || nw_input_stick_used(in.ly) ||
             nw_input_stick_used(in.rx) || nw_input_stick_used(in.ry)) {
             nw_input_keys_used = false;
-            nw_nameentry_set_keyboard(false); /* the controller again: the letter table is back */
+            nw_nameentry_set_keyboard(false);
         }
     }
     if (keyboard && !naming && !nw_input_listening) { /* typing a name, the keyboard is no pad */

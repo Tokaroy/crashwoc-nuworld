@@ -5,7 +5,7 @@
  extern char temp_screen_x;
  extern char temp_screen_y;
 +#ifdef NW_HOST
-+/* NuWorld's saves (src/port/saves.h): SaveSlot shows a page of them; a result screen stays its frames */
++/* src/port/saves.h */
 +void nw_saves_write(struct game_s *slot);
 +void nw_saves_delete(struct game_s *slot);
 +void nw_saves_loaded(void);
@@ -76,7 +76,7 @@
  int NuSoundStopStream(s32 ch);
  void ResetMaskFeathers(void);
  
-@@ -926,7 +938,9 @@ void NewMenu(struct cursor_s *cur, s32 menu, s32 y, s32 level) {
+@@ -937,7 +949,9 @@ void NewMenu(struct cursor_s *cur, s32 menu, s32 y, s32 level) {
              temp_screen_y = Game.screen_y;
              break;
          case 19:
@@ -86,7 +86,7 @@
              break;
          case 31:
              lock = 0x96;
-@@ -1588,14 +1602,19 @@ void ProcMenu(struct cursor_s *cursor, struct nupad_s *pad) {
+@@ -1624,14 +1638,19 @@ void ProcMenu(struct cursor_s *cursor, struct nupad_s *pad) {
          }
          break;
      case 0:
@@ -107,7 +107,7 @@
                      NewMenu(cursor, 2, 0, -1);
                  }
                  sfx = 0x36;
-@@ -1624,8 +1643,11 @@ void ProcMenu(struct cursor_s *cursor, struct nupad_s *pad) {
+@@ -1662,8 +1681,11 @@ void ProcMenu(struct cursor_s *cursor, struct nupad_s *pad) {
              }
          }
          break;
@@ -119,7 +119,7 @@
          if (CROSS != 0) {
              NewMenu(cursor, 2, 0, -1);
              sfx = 0x36;
-@@ -1634,6 +1656,7 @@ void ProcMenu(struct cursor_s *cursor, struct nupad_s *pad) {
+@@ -1672,6 +1694,7 @@ void ProcMenu(struct cursor_s *cursor, struct nupad_s *pad) {
              sfx = 0x36;
          }
          break;
@@ -127,7 +127,7 @@
      case 2:
          if (CROSS != 0) {
              if (y == cursor->y_max - 1) {
-@@ -1799,7 +1822,9 @@ void ProcMenu(struct cursor_s *cursor, struct nupad_s *pad) {
+@@ -1852,7 +1875,9 @@ void ProcMenu(struct cursor_s *cursor, struct nupad_s *pad) {
          }
          break;
      case 19:
@@ -137,7 +137,7 @@
          if (CROSS != 0) {
              switch (y) {
              case 0:
-@@ -1831,11 +1856,17 @@ void ProcMenu(struct cursor_s *cursor, struct nupad_s *pad) {
+@@ -1887,11 +1912,17 @@ void ProcMenu(struct cursor_s *cursor, struct nupad_s *pad) {
          }
          break;
      case 20:
@@ -155,7 +155,7 @@
          if (CROSS != 0) {
              if (cursor->y < cursor->y_max) {
                  game = SaveSlot + cursor->y * 2 + cursor->x;
-@@ -1852,10 +1883,14 @@ void ProcMenu(struct cursor_s *cursor, struct nupad_s *pad) {
+@@ -1908,10 +1939,14 @@ void ProcMenu(struct cursor_s *cursor, struct nupad_s *pad) {
          }
          break;
      case 21:
@@ -170,7 +170,7 @@
          if (CROSS != 0) {
              if (cursor->y == 1) {
                  NewMenu(cursor, 0x14, -1, -1);
-@@ -1865,16 +1900,29 @@ void ProcMenu(struct cursor_s *cursor, struct nupad_s *pad) {
+@@ -1921,16 +1956,29 @@ void ProcMenu(struct cursor_s *cursor, struct nupad_s *pad) {
                  NewLanguage(Game.language);
                  NewMenu(cursor, 0x16, 0, -1);
                  plr_lives.count = plr_lives.draw = Game.lives;
@@ -201,7 +201,7 @@
              NewMenu(cursor, -1, -1, -1);
              sfx = 0x3C;
              tumble_action = -1;
-@@ -1889,17 +1937,28 @@ void ProcMenu(struct cursor_s *cursor, struct nupad_s *pad) {
+@@ -1948,17 +1996,28 @@ void ProcMenu(struct cursor_s *cursor, struct nupad_s *pad) {
          }
          break;
      case 23:
@@ -231,7 +231,7 @@
                  if (cursor->y < cursor->y_max) {
                      game = SaveSlot + cursor->y * 2 + cursor->x;
                      NewMenu(cursor, 0x18, 1, -1);
-@@ -1912,17 +1971,25 @@ void ProcMenu(struct cursor_s *cursor, struct nupad_s *pad) {
+@@ -1971,17 +2030,25 @@ void ProcMenu(struct cursor_s *cursor, struct nupad_s *pad) {
          }
          break;
      case 24:
@@ -257,7 +257,7 @@
                  NewMenu(cursor, 0x19, 0, -1);
                  sfx = 0x36;
              }
-@@ -1930,19 +1997,33 @@ void ProcMenu(struct cursor_s *cursor, struct nupad_s *pad) {
+@@ -1989,19 +2056,33 @@ void ProcMenu(struct cursor_s *cursor, struct nupad_s *pad) {
          break;
      case 25:
      case 28:
@@ -292,7 +292,7 @@
          if (memcard_formatting != 0 || memcard_formatme != 0 || memcard_formatmessage_delay != 0) {
              memcard_saveresult_delay = 0x32;
          }
-@@ -1954,12 +2035,19 @@ void ProcMenu(struct cursor_s *cursor, struct nupad_s *pad) {
+@@ -2013,12 +2094,19 @@ void ProcMenu(struct cursor_s *cursor, struct nupad_s *pad) {
              }
          }
          break;
@@ -312,7 +312,7 @@
          if (CROSS != 0) {
              if (cursor->y < cursor->y_max) {
                  game = SaveSlot + cursor->y * 2 + cursor->x;
-@@ -1976,15 +2064,22 @@ void ProcMenu(struct cursor_s *cursor, struct nupad_s *pad) {
+@@ -2035,15 +2123,22 @@ void ProcMenu(struct cursor_s *cursor, struct nupad_s *pad) {
          }
          break;
      case 27:
@@ -335,7 +335,7 @@
                  i = 1;
                  game->empty = 1;
                  for (x = 0; x < 2; x++) {
-@@ -1999,16 +2094,22 @@ void ProcMenu(struct cursor_s *cursor, struct nupad_s *pad) {
+@@ -2058,16 +2153,22 @@ void ProcMenu(struct cursor_s *cursor, struct nupad_s *pad) {
                  } else {
                      memcard_saveneeded = 1;
                  }
@@ -358,7 +358,7 @@
          if (CROSS != 0) {
              if (cursor->y == 1) {
                  NewMenu(cursor, 0x13, 0, -1);
-@@ -2020,6 +2121,7 @@ void ProcMenu(struct cursor_s *cursor, struct nupad_s *pad) {
+@@ -2079,6 +2180,7 @@ void ProcMenu(struct cursor_s *cursor, struct nupad_s *pad) {
              }
          }
          break;
@@ -366,7 +366,7 @@
      case 31:
          if (CONFIRM != 0) {
              if (Level == 0x16 || Level == 0x18) {
-@@ -2238,17 +2340,10 @@ extern char *tSAVEGAME[];
+@@ -2311,17 +2413,10 @@ extern char *tSAVEGAME[];
  extern char *tDELETEGAME[];
  extern char *tEXIT[];
  extern char *tNODATAAVAILABLE[];
@@ -385,7 +385,7 @@
  extern char *tFAILEDTOFORMAT[];
  extern char *tSAVING[];
  extern char *tDELETING[];
-@@ -2260,6 +2355,21 @@ extern char *tCHECKINGMEMORYCARD[][2];
+@@ -2333,6 +2428,21 @@ extern char *tCHECKINGMEMORYCARD[][2];
  extern char *tDONOTREMOVEMEMORYCARD[][3];
  extern char *tNOTENOUGHSPACEONMEMORYCARD[][3];
  extern char *tMEMORYCARDISNOTFORMATTED[][3];
@@ -407,7 +407,7 @@
  extern char *tCONFIRMOVERWRITE[][2];
  extern char *HubName[6][6];
  extern char *LevelName[44][6];
-@@ -2270,12 +2380,6 @@ extern float TT_INPUTY;
+@@ -2343,12 +2453,6 @@ extern float TT_INPUTY;
  extern s32 highallocaddr;
  extern union variptr_u superbuffer_ptr;
  extern union variptr_u superbuffer_base;
@@ -420,7 +420,7 @@
  extern void DrawGameSlot(struct game_s *game, float x, float y, s32 colour);
  extern void DrawGameSlots();
  extern s32 DrawPanel3DCharacter(s32 character, float x, float y, float z,
-@@ -2324,6 +2428,7 @@ void DrawMenu(struct cursor_s *cursor, s32 paused) {
+@@ -2397,6 +2501,7 @@ void DrawMenu(struct cursor_s *cursor, s32 paused) {
          sprintf(tbuf, "%s: %s", tLANGUAGE[Game.language], LanguageName[Game.language]);
          DrawMenuEntry(cursor, tbuf, &x, &y, &i);
          break;
@@ -428,7 +428,7 @@
      case 1:
          y = -0.75f;
          Text3D(tYOUNEEDAMEMORYCARD[Game.language][0], 0.0f, 0.2f, 1.0f, 0.4f, 0.4f, 0.4f, 0, 0);
-@@ -2357,6 +2462,7 @@ void DrawMenu(struct cursor_s *cursor, s32 paused) {
+@@ -2430,6 +2535,7 @@ void DrawMenu(struct cursor_s *cursor, s32 paused) {
          Text3D(tbuf, 0.0f, -0.5f, 1.0f, 0.4f, 0.4f, 0.4f, 0, 0);
          DrawMenuEntry(cursor, tGO[Game.language], &x, &y, &i);
          break;
@@ -436,7 +436,7 @@
      case 2:
          DrawNameInputTable(cursor, 0.0f, -0.5f);
          Text3D(MakeEditText(Game.name), 0.0f, GAMENAMEY, 1.0f, 1.0f, 1.0f, 1.0f, 0, 4);
-@@ -2698,6 +2804,7 @@ void DrawMenu(struct cursor_s *cursor, s32 paused) {
+@@ -2798,6 +2904,7 @@ void DrawMenu(struct cursor_s *cursor, s32 paused) {
          break;
      case 20:
          Text3D(tLOADGAME[Game.language], 0.0f, 0.75f, 1.0f, 0.6f, 0.6f, 0.6f, 0, 0);
@@ -444,7 +444,7 @@
          if (saveload_cardtype != 2) {
              Text3D(tPLEASEINSERTMEMORYCARDSLOT1[Game.language][0], 0.0f, 0.15f, 1.0f, 0.5f,
                     0.5f, 0.5f, 0, 0);
-@@ -2726,7 +2833,14 @@ void DrawMenu(struct cursor_s *cursor, s32 paused) {
+@@ -2826,7 +2933,14 @@ void DrawMenu(struct cursor_s *cursor, s32 paused) {
          } else if (memcard_loadfailed != 0) {
              Text3D(tFAILEDTOLOAD[Game.language], 0.0f, 0.0f, 1.0f, 0.6f, 0.6f, 0.6f, 0, 0);
              cursor->y = cursor->y_max;
@@ -460,7 +460,7 @@
              Text3D(tNODATAAVAILABLE[Game.language], 0.0f, 0.0f, 1.0f, 0.6f, 0.6f, 0.6f, 0, 0);
              cursor->y = cursor->y_max;
          } else {
-@@ -2754,6 +2868,7 @@ void DrawMenu(struct cursor_s *cursor, s32 paused) {
+@@ -2854,6 +2968,7 @@ void DrawMenu(struct cursor_s *cursor, s32 paused) {
          break;
      case 23:
          Text3D(tSAVEGAME[Game.language], 0.0f, 0.75f, 1.0f, 0.6f, 0.6f, 0.6f, 0, 0);
@@ -468,7 +468,7 @@
          if (saveload_cardtype != 2) {
              Text3D(tPLEASEINSERTMEMORYCARDSLOT1[Game.language][0], 0.0f, 0.15f, 1.0f, 0.5f,
                     0.5f, 0.5f, 0, 0);
-@@ -2794,15 +2909,21 @@ void DrawMenu(struct cursor_s *cursor, s32 paused) {
+@@ -2894,15 +3009,21 @@ void DrawMenu(struct cursor_s *cursor, s32 paused) {
              }
              cursor->y = cursor->y_max;
          } else {
@@ -491,7 +491,7 @@
              Text3D(tCANCEL[Game.language], 0.0f, -0.75f, 1.0f, scale, scale, scale, 0, col);
          }
          break;
-@@ -2823,6 +2944,9 @@ void DrawMenu(struct cursor_s *cursor, s32 paused) {
+@@ -2923,6 +3044,9 @@ void DrawMenu(struct cursor_s *cursor, s32 paused) {
          break;
      case 25:
          Text3D(tSAVEGAME[Game.language], 0.0f, 0.75f, 1.0f, 0.6f, 0.6f, 0.6f, 0, 0);
@@ -501,7 +501,7 @@
          if (memcard_saveneeded != 0 || memcard_savestarted != 0 ||
              memcard_savemessage_delay != 0) {
              size = (Game.language == 'c') ? 0.5f : 0.6f;
-@@ -2833,7 +2957,9 @@ void DrawMenu(struct cursor_s *cursor, s32 paused) {
+@@ -2933,7 +3057,9 @@ void DrawMenu(struct cursor_s *cursor, s32 paused) {
                     0.5f, 0, 0);
              Text3D(tDONOTREMOVEMEMORYCARD[Game.language][2], 0.0f, -0.3f, 1.0f, 0.5f, 0.5f,
                     0.5f, 0, 0);
@@ -512,7 +512,7 @@
              Text3D(tFAILEDTOSAVE[Game.language], 0.0f, -0.3f, 1.0f, 0.6f, 0.6f, 0.6f, 0, 0);
          } else {
              Text3D(tGAMESAVED[Game.language], 0.0f, -0.3f, 1.0f, 0.6f, 0.6f, 0.6f, 0, 0);
-@@ -2841,6 +2967,7 @@ void DrawMenu(struct cursor_s *cursor, s32 paused) {
+@@ -2941,6 +3067,7 @@ void DrawMenu(struct cursor_s *cursor, s32 paused) {
          break;
      case 26:
          Text3D(tDELETEGAME[Game.language], 0.0f, 0.75f, 1.0f, 0.6f, 0.6f, 0.6f, 0, 0);
@@ -520,7 +520,7 @@
          if (saveload_cardtype != 2) {
              Text3D(tPLEASEINSERTMEMORYCARDSLOT1[Game.language][0], 0.0f, 0.15f, 1.0f, 0.5f,
                     0.5f, 0.5f, 0, 0);
-@@ -2866,7 +2993,14 @@ void DrawMenu(struct cursor_s *cursor, s32 paused) {
+@@ -2966,7 +3093,14 @@ void DrawMenu(struct cursor_s *cursor, s32 paused) {
              Text3D(tDONOTREMOVEMEMORYCARD[Game.language][2], 0.0f, -0.3f, 1.0f, 0.5f, 0.5f,
                     0.5f, 0, 0);
              cursor->y = cursor->y_max;
@@ -536,7 +536,7 @@
              Text3D(tNODATAAVAILABLE[Game.language], 0.0f, 0.0f, 1.0f, 0.6f, 0.6f, 0.6f, 0, 0);
              cursor->y = cursor->y_max;
          } else {
-@@ -2878,7 +3012,10 @@ void DrawMenu(struct cursor_s *cursor, s32 paused) {
+@@ -2978,7 +3112,10 @@ void DrawMenu(struct cursor_s *cursor, s32 paused) {
              col = 2;
          }
          scale = 0.6f;
@@ -548,7 +548,7 @@
              Text3D(tCANCEL[Game.language], 0.0f, -0.75f, 1.0f, scale, scale, scale, 0, col);
          }
          break;
-@@ -2892,6 +3029,9 @@ void DrawMenu(struct cursor_s *cursor, s32 paused) {
+@@ -2992,6 +3129,9 @@ void DrawMenu(struct cursor_s *cursor, s32 paused) {
          break;
      case 28:
          Text3D(tDELETEGAME[Game.language], 0.0f, 0.75f, 1.0f, 0.6f, 0.6f, 0.6f, 0, 0);
@@ -558,7 +558,7 @@
          if (memcard_saveneeded != 0 || memcard_savestarted != 0 || memcard_deleteneeded != 0 ||
              memcard_deletestarted != 0 || memcard_savemessage_delay != 0) {
              size = (Game.language == 'c') ? 0.5f : 0.6f;
-@@ -2902,12 +3042,15 @@ void DrawMenu(struct cursor_s *cursor, s32 paused) {
+@@ -3002,12 +3142,15 @@ void DrawMenu(struct cursor_s *cursor, s32 paused) {
                     0.5f, 0, 0);
              Text3D(tDONOTREMOVEMEMORYCARD[Game.language][2], 0.0f, -0.3f, 1.0f, 0.5f, 0.5f,
                     0.5f, 0, 0);
@@ -575,7 +575,7 @@
      case 29:
          Text3D(tSAVEGAME[Game.language], 0.0f, 0.75f, 1.0f, 0.6f, 0.6f, 0.6f, 0, 0);
          Text3D(tMEMORYCARDISNOTFORMATTED[Game.language][0], 0.0f, 0.3f, 1.0f, 0.45f, 0.45f,
-@@ -2939,6 +3082,7 @@ void DrawMenu(struct cursor_s *cursor, s32 paused) {
+@@ -3039,6 +3182,7 @@ void DrawMenu(struct cursor_s *cursor, s32 paused) {
                     0);
          }
          break;

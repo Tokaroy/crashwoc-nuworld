@@ -11,8 +11,7 @@
 #define NUANIMKEYTYPE_STEP 3
 #define NUANIMKEYTYPE_BOOLEAN 4
 
-/* nuanim.c's curve evaluators in the EE's float: the exporter writes a 1/0 dtime (two keys on one frame) and
-   FLT_MAX pads, which the EE reads as finite and saturates. BitCountTable is popcount. */
+/* The exporter writes 1/0 dtimes (two keys on one frame) and FLT_MAX pads, which the EE keeps finite and saturates. */
 
 static int nw_anim_nkey(const union nuanimmask_u *mask, const struct nuanimtime_s *atime)
 {

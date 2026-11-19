@@ -1,6 +1,6 @@
 --- a/src/game/game.c
 +++ b/src/game/game.c
-@@ -1018,6 +1018,10 @@ inline void InputNewLetter(struct cursor_s *cursor, char *name, s32 *i, s32 coun
+@@ -1036,6 +1036,10 @@ inline void InputNewLetter(struct cursor_s *cursor, char *name, s32 *i, s32 coun
      }
  }
  
@@ -11,12 +11,11 @@
  void ProcMenu(struct cursor_s *cursor, struct nupad_s *pad) {
      s32 old;
      s32 bits;
-@@ -1186,6 +1190,14 @@ void ProcMenu(struct cursor_s *cursor, struct nupad_s *pad) {
+@@ -1219,6 +1223,13 @@ void ProcMenu(struct cursor_s *cursor, struct nupad_s *pad) {
  
      x = cursor->x;
      y = cursor->y;
 +#ifdef NW_HOST
-+    /* Desktop exit: keep retail's input guards, navigation and menu sounds. */
 +    if (nw_menu_quit(cursor, CROSS, TRIANGLE)) {
 +        if (CROSS != 0) {
 +            sfx = 0x36;

@@ -4,12 +4,11 @@
 
 #include <SDL3/SDL.h>
 
-/* Four packets: the game thread builds one, the newest published one waits, the render thread draws one and keeps
-   the one it drew before. */
+/* Four slots: game thread builds one, the newest published waits, the render thread draws one and keeps its last. */
 static NwPacket nw_slots[4];
 static int nw_building = 0, nw_ready = 1, nw_drawing = 2, nw_drew = 3;
 static bool nw_fresh;      /* the ready slot holds a packet the render thread has not taken */
-static uint64_t nw_seq;    /* of the last published packet */
+static uint64_t nw_seq;
 static NwGpuJob *nw_jobs;
 static uint32_t nw_njobs, nw_jobcap;
 static SDL_Mutex *nw_lock;

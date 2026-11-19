@@ -1,4 +1,3 @@
-/* Disc import into <root>disc/: identity check, copy with hashing, then a swap. Errors via SDL_GetError(). */
 #ifndef NUWORLD_VFS_EXTRACT_H
 #define NUWORLD_VFS_EXTRACT_H
 
@@ -12,18 +11,16 @@
 #define NW_DISC_DIR "disc"
 #define NW_DISC_STAMP ".nuworld-disc"
 
-/* Copies every non-skipped manifest file to <root>disc.partial/, hashing as it goes, then swaps that in as
-   <root>disc/ with a stamp. An existing disc/ is only replaced on success; a failure leaves no disc.partial/. */
+/* An existing disc/ is only replaced on success; a failure leaves no disc.partial/. */
 const NwManifest *nw_extract_disc(NwDisc *disc, const NwIso *iso, const NwManifest *const *known, const char *root,
                                   NwProgressFn progress, void *user);
 
-/* <root>disc/ holds a finished import (its stamp exists); nothing is hashed. */
+/* Only checks the stamp; nothing is hashed. */
 bool nw_extract_has_disc(const char *root);
 
 /* The disc the stamp names; an old stamp without a name is known[0], PAL. */
 const NwManifest *nw_extract_manifest(const char *root, const NwManifest *const *known);
 
-/* Re-hashes an imported <root>disc/ against the manifest. */
 bool nw_extract_verify(const char *root, const NwManifest *m, NwProgressFn progress, void *user);
 
 #endif

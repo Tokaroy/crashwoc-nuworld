@@ -1,5 +1,4 @@
-/* nu3d/nuwater's wave tables (port/units.toml overrides): retail's waves from the same NuRandSeed(0x11) draws, each
-   material's as a WAVES record where retail unpacks them to VU 0x1B2 at the head of its stream. */
+/* Retail's waves from the same NuRandSeed(0x11) draws, as WAVES records where retail unpacks them to VU 0x1B2. */
 #include <stdint.h>
 
 #include "gfx/rndr.h"
@@ -27,8 +26,7 @@ extern float NuTrigTable[];
 
 void NuRndrStreamLink(struct rndrstream_s *stream);
 
-/* 32 waves at time freq and amplitude amp, in the camera's axes at half scale: the texcoord offset x, y, then 1 and
-   the lift along the local y, the unturned x. The two draws of each axis are its speed, then its phase. */
+/* Camera axes at half scale: texcoord offset x, y, then 1 and the local y lift; each axis draws speed, then phase. */
 static void nw_water_table(float table[32][4], float freq, float amp, struct numtx_s *mtx)
 {
     struct nuvec_s wave, pos;
@@ -80,7 +78,6 @@ void animateWaterTables(float scale, float time)
     }
 }
 
-/* Each material's own table, from its fx1 and fx4. */
 void animateWater(float scale, float time)
 {
     struct numtx_s mtx;

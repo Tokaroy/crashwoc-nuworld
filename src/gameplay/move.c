@@ -1,4 +1,3 @@
-/* Wraps of game/move: the movement features' hooks. */
 #include "game/creature.h"
 #include "game/move.retail.h"
 #include "gameplay/air.h"

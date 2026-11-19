@@ -30,7 +30,7 @@ struct nw_wide_s nw_wide = {
 };
 
 static SDL_AtomicInt nw_wide_shown = { 640 }; /* nw_wide.width for other threads */
-static SDL_AtomicInt nw_wide_asked;           /* a request waits */
+static SDL_AtomicInt nw_wide_asked;
 static SDL_AtomicInt nw_wide_asks[2];         /* its aspect and HUD reach, as float bits */
 static SDL_AtomicInt nw_wide_distance_asked = { 100 }; /* percent of retail's */
 static int nw_wide_distance = 100;
@@ -44,9 +44,7 @@ static void nw_wide_draw(void)
     nw_wide.draw2 = draw * draw;
 }
 
-/* game/panel's HUD anchors in panel x (-1 to 1 spans retail's 4:3 picture at depth 1) and the side they keep to; the
-   panel heads with their depth. The pause screen's (PAUSEPANELX) stay: it is drawn in retail's 4:3 area
-   (nw_wide_vp). */
+/* game/panel's HUD anchors in panel x (-1 to 1 spans retail's 4:3 at depth 1); PAUSEPANELX stays (nw_wide_vp). */
 extern float WUMPAOBJSX, WUMPATXTSX, BONUSWUMPAOBJSX, BONUSWUMPATXTSX, LIVESOBJSX, LIVESTXTSX, BONUSLIVESOBJSX,
     BONUSLIVESTXTSX, NEWLIFEOBJSX, NEWBONUSLIFEOBJSX, PANELCRUNCHX, PANELSINKX, PANELBLIMPX, RUMBOSSBARX, ATMBOSSBARX,
     FIREBOSSBARX, PANELRINGX;
@@ -66,8 +64,7 @@ static const struct {
 } nw_wide_heads[] = { { &PANELCRUNCHX, &PANELCRUNCHZ }, { &PANELSINKX, &PANELSINKZ }, { &PANELBLIMPX, &PANELBLIMPZ } };
 #define NW_WIDE_HEAD_IN 0.08f /* how much less the panel heads move out, so the picture's edge does not cut them */
 
-/* How far an anchor sits out for the HUD reach h: the extra reach; for a panel head a little less, over its depth
-   since the screen takes panel x over depth */
+/* A panel head moves out a little less, over its depth, since the screen takes panel x over depth */
 static float nw_wide_out(const float *x, float h)
 {
     float out = h - 1.0f;
@@ -93,8 +90,7 @@ void nw_wide_set(float aspect, float hud)
         float *x = nw_wide_anchors[i].x;
         *x += nw_wide_anchors[i].side * (nw_wide_out(x, h) - nw_wide_out(x, nw_wide.hud));
     }
-    /* A radius r around the camera reaches depth r / sqrt(1 + zx^2) at the view's side edge (zx = x clip ratio,
-       tan(fov / 2) / aspect, fov 0.75): the draw radii grow to keep retail's edge depth. */
+    /* A radius r reaches depth r / sqrt(1 + zx^2) at the side edge: the draw radii grow to keep retail's edge depth. */
     float zx0 = tanf(0.375f) / 0.75f, zx = zx0 * k;
     nw_wide_side = sqrtf(1.0f + zx * zx) / sqrtf(1.0f + zx0 * zx0);
     nw_wide_distance = SDL_GetAtomicInt(&nw_wide_distance_asked);
@@ -123,8 +119,7 @@ void nw_wide_draw_distance(int percent)
     SDL_SetAtomicInt(&nw_wide_distance_asked, percent);
 }
 
-/* Recomputes from the old width `was` what the game derived from it: main's SWIDTH, MAXVPSIZEX and video size, the
-   camera's aspect, MaxVP's viewport, the level's frame-sized targets and the glass and water materials' VU words. */
+/* Recomputes what the game derived from the old width: SWIDTH, MAXVPSIZEX, aspect, MaxVP, targets, VU words. */
 static void nw_wide_frame(int was)
 {
     int w = nw_wide.width;
@@ -170,8 +165,7 @@ void nw_wide_poll(void)
     nw_wide_frame(was);
 }
 
-/* While the pause screen shrinks the game's view (paused 1-25), its origin moves from the frame's left edge to retail's
-   4:3 area, where the pause panels are. */
+/* While paused 1-25 the view's origin moves from the frame's left edge to retail's 4:3 area, where the panels are. */
 void nw_wide_vp(int paused)
 {
     struct nuviewport_s *vp = NuVpGetCurrentViewport();
@@ -184,8 +178,7 @@ int nw_wide_vp_x(void)
     return NuVpGetCurrentViewport()->x - ((PS2_VCNTR_X - (nw_wide.width >> 1)) << 4);
 }
 
-/* The screen takes x over depth, so a model's depth smears it sideways by its centre's x over depth. Past retail's
-   picture edge (PANEL3DMULX at depth 1) that ratio is capped at the edge's: the depth's x share moves into x. */
+/* Past retail's picture edge (PANEL3DMULX at depth 1) the x-over-depth ratio is capped at the edge's. */
 float nw_wide_hud_shear(float x, float z)
 {
     if (!(z > 0.0f)) {
@@ -215,8 +208,7 @@ static int nw_wide_special(const struct nuspecial_s *specials, int n, const stru
     return 0;
 }
 
-/* An animated instance the PVS hid runs its animation while the wider view draws it, unless the game reads where it
-   is: a moving platform (CurTerr) or a special (PlayerObjectAnimCollision and the like) keeps retail's test. */
+/* A hidden instance animates while the wider view draws it, unless the game reads where it is (CurTerr, specials). */
 int nw_wide_anim(struct nuinstance_s *inst, int test)
 {
     if (test || !nw_wide.pvs_all || !inst->anim) {

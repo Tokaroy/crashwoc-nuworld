@@ -46,7 +46,7 @@ void NuHGobjEval(struct NUHGOBJ_s *hobj, int njanims, struct NUJOINTANIM_s *jani
 #define NW_BOSS_HEALTH_PHASES 8     /* more is a bar without phases */
 #define NW_BOSS_HEALTH_WIDTH 0.015f /* a line's width, of the bar's */
 #define NW_BOSS_HEALTH_RGBA 0x10, 0x10, 0x10, 0x80
-#define NW_BOSS_HEALTH_TEXT_Y 0.13f /* the percent over the bar */
+#define NW_BOSS_HEALTH_TEXT_Y 0.13f
 #define NW_BOSS_HEALTH_TEXT_SCALE 0.6f
 #define NW_BOSS_HEALTH_CORTEX 2 /* the GameCube's panel character in Crunch Time, in its idle */
 #define NW_BOSS_HEALTH_IDLE 0x22
@@ -259,7 +259,6 @@ static float nw_boss_health_span(const struct numtx_s *a, const struct numtx_s *
     return sqrtf(dx * dx + dy * dy + dz * dz);
 }
 
-/* The head joint, its ear span and their positions in tmtx; false without them. */
 static bool nw_boss_health_ears(const struct NUHGOBJ_s *o, const struct numtx_s *tmtx, int *head, struct nuvec_s *at,
                                 float *span)
 {
@@ -325,7 +324,6 @@ bool nw_boss_health_head(u16 xrot, u16 yrot, int rot, float x, float y, float z,
             tmtx[j]._33 = 1.0f;
         }
     }
-    /* The boss's head as big as the Crunch head and where its head joint would be. */
     float boss_scale = scale * crunch_span / boss_span;
     struct numtx_s turn;
     nw_boss_health_turn(&turn, 1.0f, xrot, yrot);

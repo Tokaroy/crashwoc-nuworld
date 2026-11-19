@@ -10,16 +10,16 @@
 #include "platform/log.h"
 #include "port/wide.h"
 
-#define NW_VIDEO_SIZES 32  /* resolutions the panel lists */
-#define NW_VIDEO_AUTO_H 720 /* an auto window's height */
+#define NW_VIDEO_SIZES 32
+#define NW_VIDEO_AUTO_H 720
 
 static struct {
     NwPlatform *platform;
     NwSettings *settings;
     NwWindowMode fullscreen; /* where F11 goes from windowed */
     NwResolution asked;      /* the window size the port set last, which no drag made */
-    NwVsync vsync;           /* in effect */
-    float aspect, hud;       /* the game's view, as last asked for */
+    NwVsync vsync;
+    float aspect, hud;
     char gpu[NW_GPU_NAME];
     char gpus[NW_GPU_CARDS][NW_GPU_NAME];
     int ngpus;
@@ -30,7 +30,6 @@ static bool nw_video_near(NwResolution a, NwResolution b)
     return SDL_abs(a.w - b.w) <= 2 && SDL_abs(a.h - b.h) <= 2;
 }
 
-/* The output's width over height: a windowed resolution's, else what fullscreen shows. */
 static float nw_video_shape(const NwSettings *s)
 {
     NwResolution r = s->window == NW_WINDOW_WINDOWED && s->resolution.w > 0
@@ -39,7 +38,6 @@ static float nw_video_shape(const NwSettings *s)
     return r.w > 0 && r.h > 0 ? (float)r.w / (float)r.h : 16.0f / 9.0f;
 }
 
-/* The picture's aspect: settings.toml's, or for auto the output's, shape wide over high. */
 static float nw_video_picture(const NwSettings *s, float shape)
 {
     float aspect = s->aspect > 0.0f ? s->aspect : shape;
@@ -51,7 +49,6 @@ static float nw_video_aspect(const NwSettings *s)
     return nw_video_picture(s, nw_video_shape(s));
 }
 
-/* The game's view for an output shape wide over high, asked for when it changes. */
 static void nw_video_wide(const NwSettings *s, float shape)
 {
     float aspect = nw_video_picture(s, shape);
@@ -62,7 +59,6 @@ static void nw_video_wide(const NwSettings *s, float shape)
     }
 }
 
-/* A window of auto size: the picture's aspect NW_VIDEO_AUTO_H high, narrower where it would not fit the display. */
 static void nw_video_autosize(float aspect)
 {
     SDL_Window *window = nw_video.platform->window;
@@ -104,7 +100,6 @@ static void nw_video_vsync(NwVsync vsync)
     }
 }
 
-/* The index of value in values, -1 when it is none of them. */
 static int nw_video_index(float value, const float *values, int count)
 {
     for (int i = 0; i < count; i++) {
@@ -115,7 +110,6 @@ static int nw_video_index(float value, const float *values, int count)
     return -1;
 }
 
-/* auto and the sizes the mode can take, the current one added when it is none of them. */
 static void nw_video_resolution(NwSettings *s)
 {
     static NwResolution sizes[NW_VIDEO_SIZES + 2];

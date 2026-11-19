@@ -30,10 +30,10 @@ enum { NW_BLOCK_ABS, NW_BLOCK_IN, NW_BLOCK_FREE };
 extern union variptr_u superbuffer_base;
 extern union variptr_u superbuffer_end;
 
-/* Records whose last member is a one-element array that runs on past the type (the struct hack). */
+/* Records whose last member is a one-element array running past the type (the struct hack). */
 typedef struct NwDumpHack {
     const NwType *type, *elem;
-    uint32_t ps2_off, host_off; /* of the array */
+    uint32_t ps2_off, host_off;
 } NwDumpHack;
 
 static const NwDumpHack nw_dump_hacks[] = {
@@ -46,14 +46,14 @@ static const NwDumpHack nw_dump_hacks[] = {
 typedef struct NwDumpBlock {
     uint32_t kind, parent, base;
     const char *name; /* a root's; NULL for the heap's */
-    char *path;       /* the first field that reached it */
+    char *path;
     const NwType *type; /* NULL: plain bytes */
     uint32_t count;
     const unsigned char *host;
     size_t host_size;
     const NwDumpHack *hack; /* count 1, then ntail elements of its array */
     uint32_t ntail;
-    unsigned char *out; /* typed: the PS2 bytes */
+    unsigned char *out;
     size_t out_size;
     size_t reloc, nrelocs;
     bool done;
@@ -115,7 +115,6 @@ static void *nw_dump_grow(void *p, size_t *cap, size_t need, size_t size)
     return grown;
 }
 
-/* The value of key, inserting fresh (NW_DUMP_NONE) when missing. */
 static uint32_t *nw_map_slot(NwPtrMap *m, uintptr_t key)
 {
     if (2 * (m->n + 1) > m->cap) {
@@ -152,7 +151,6 @@ static void nw_map_free(NwPtrMap *m)
     memset(m, 0, sizeof(*m));
 }
 
-/* A pointee converted element by element. */
 static bool nw_dump_typed(const NwType *type)
 {
     return type && type->ps2_size && type->xr && !(type->flags & (NW_TYPE_POD | NW_TYPE_OPAQUE));
@@ -180,7 +178,6 @@ static void nw_dump_name(NwDump *d, uint32_t b, const char *site)
     d->blocks[b].path = SDL_strdup(path);
 }
 
-/* A heap record's block, its type set (or improved while it waits) from the pointer that reached it. */
 static uint32_t nw_dump_rec(NwDump *d, const NwHeapRec *rec, const NwType *type, const char *site)
 {
     uint32_t *slot = nw_map_slot(&d->recs, (uintptr_t)rec->host);
@@ -213,7 +210,7 @@ static uint32_t nw_dump_rec(NwDump *d, const NwHeapRec *rec, const NwType *type,
     return *slot;
 }
 
-/* A typed record the decomp carved inside the superbuffer in host layout: its own block over those bytes. */
+/* A typed record the decomp carved inside the superbuffer in host layout gets its own block. */
 static uint32_t nw_dump_inheap(NwDump *d, const char *p, const NwType *type, const char *site, size_t *off)
 {
     if (!nw_dump_typed(type) || p + type->host_size > d->sb_hi) {
@@ -265,7 +262,6 @@ static uint32_t nw_dump_ptr_out(NwXCtx *ctx, const void *p, const NwType *type, 
     return nw_image_ps2(p, &ps2) ? ps2 : nw_dump_mark(ctx->user, p, type, site);
 }
 
-/* A data or code address, a heap address, else the plain value it was. */
 static uint32_t nw_dump_addr_out(NwXCtx *ctx, uintptr_t value, const char *site)
 {
     NwDump *d = ctx->user;
@@ -300,7 +296,6 @@ static void nw_dump_fatal(NwXCtx *ctx, const char *message)
     longjmp(d->fail, 1);
 }
 
-/* The marks of one converted element become relocs. */
 static void nw_dump_place(NwDump *d, unsigned char *elem, uint32_t size, uint32_t base)
 {
     uint32_t placed = 0;
@@ -364,7 +359,6 @@ static void nw_dump_convert(NwDump *d, uint32_t i)
     }
 }
 
-/* Heap bytes retail rewrites and the port does not (port/heap.h): a "hole" block of that length. */
 static void nw_dump_hole(const void *at, size_t size, const char *why, void *user)
 {
     NwDump *d = user;
@@ -421,10 +415,7 @@ static bool nw_dump_str(FILE *f, const char *s)
     return nw_dump_put(f, &n, 2) && nw_dump_put(f, s, n);
 }
 
-/* Header "NWPS2V1\0", vblank, vbcnt; per block id, kind, parent, base, size, count, name, type ("hole": count
-   bytes not compared), path (u16 length + bytes), its PS2 bytes, relocs (count, then off, target, target offset);
-   NW_DUMP_NONE; the opaque targets' host addresses (count, u64 each); the counters failed, unplaced, conflicts,
-   unmapped. tools/ps2_diff.py reads it. */
+/* Format read by tools/ps2_diff.py. */
 static bool nw_dump_emit(NwDump *d, FILE *f, int vblank, int vbcnt)
 {
     bool ok = nw_dump_put(f, NW_DUMP_MAGIC, 8) && nw_dump_u32(f, (uint32_t)vblank) && nw_dump_u32(f, (uint32_t)vbcnt);
@@ -573,7 +564,6 @@ bool nw_dump_start(const char *list, const char *dir, bool heap)
     return nw_dump.count > 0 && nw_dump.dir;
 }
 
-/* The PS2 address of a data image name, D_<address> or 0x<address>, with an optional +offset; 0 when unknown. */
 static uint32_t nw_poke_addr(const char *name, size_t len)
 {
     char buf[128];

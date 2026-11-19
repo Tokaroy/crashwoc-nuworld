@@ -1,5 +1,4 @@
-# Configures a preset only when its build folder has no CMakeCache.txt yet (used by .vscode/tasks.json):
-#   cmake -P cmake/configure_once.cmake <preset>
+# Used by .vscode/tasks.json.
 set(preset "${CMAKE_ARGV3}")
 if(NOT preset)
   message(FATAL_ERROR "usage: cmake -P configure_once.cmake <preset>")

@@ -1,5 +1,4 @@
-/* Overrides nu3d/nugscn's loader (port/units.toml) with host records beside the caller's buffer (src/port/heap.h); the
-   buffer still advances by each carved record's PS2 size. */
+/* .gsc loader override: host records beside the buffer, which still advances by each carved record's PS2 size. */
 #include <stddef.h>
 #include <stdint.h>
 #include <string.h>
@@ -47,11 +46,11 @@ extern NuMtlReadEventFunc NuMtlReadEvent;
 extern int nugscn_mtlupdate_enabled;
 extern int in_protected_bit;
 
-static char **buffer_freeptr; /* the caller's buffer cursor */
+static char **buffer_freeptr;
 static char *buffer_tmpptr;   /* the buffer's end (no temp workspace) */
 static struct nugscn_s *gscene;
 static struct nugscnload_s gsc_load_context;
-static NwHeapSide *gscene_side; /* the scene being loaded */
+static NwHeapSide *gscene_side;
 
 static void *GScnBufferAlloc(size_t size, size_t align)
 {
@@ -64,9 +63,9 @@ static void *GScnBufferAlloc(size_t size, size_t align)
     return 0;
 }
 
-static const char *nw_gscn_lo, *nw_gscn_hi; /* the scene file being fixed up */
+static const char *nw_gscn_lo, *nw_gscn_hi;
 
-/* n records of each bytes at p inside the scene file, else fatal: a damaged (or modded) file's count or offset. */
+/* Fatal for a count or offset outside the scene file (a damaged or modded file). */
 static void *nw_gscn_in(const void *p, long long n, size_t each)
 {
     const char *at = p;
@@ -76,7 +75,6 @@ static void *nw_gscn_in(const void *p, long long n, size_t each)
     return (void *)p;
 }
 
-/* An index from the file into a table of count, else fatal. */
 static int nw_gscn_ix(long long ix, int count)
 {
     if (ix < 0 || ix >= count) {
@@ -91,12 +89,11 @@ static void *nw_gscn_new(size_t ps2size, size_t size, size_t align)
     return nw_heap_side_at(gscene_side, size, align, GScnBufferAlloc(ps2size, 4));
 }
 
-/* n host records of a struct retail carves off the buffer. */
 #define NW_GSCN_NEW(tag, n) \
     ((struct tag *)nw_gscn_new((size_t)(n) * sizeof(nw_ps2_##tag), (size_t)(n) * sizeof(struct tag), \
                                _Alignof(struct tag)))
 
-/* The same for an array of pointers (4 bytes each on the EE). */
+/* Pointers are 4 bytes on the EE. */
 #define NW_GSCN_PTRS(type, n) \
     ((type **)nw_gscn_new((size_t)(n) * sizeof(uint32_t), (size_t)(n) * sizeof(type *), _Alignof(type *)))
 
@@ -112,7 +109,7 @@ static char *nw_gscn_rel(char *field)
     return off ? field + off : 0;
 }
 
-/* A decoded geom queued for the GPU, owned by the scene's heap range, or a fatal error. */
+/* Owned by the scene's heap range. */
 static void *nw_gscn_gpu_add(void *obj, bool ok, NwGpuOp upload, NwGpuOp free)
 {
     if (!ok) {
@@ -123,7 +120,6 @@ static void *nw_gscn_gpu_add(void *obj, bool ok, NwGpuOp upload, NwGpuOp free)
     return obj;
 }
 
-/* A geom's DMA chain, or an ordering-table geom's triangle batch, decoded once. */
 static NwGpuMesh *nw_gscn_mesh(void *stream, int size, bool ot)
 {
     NwGpuMesh *mesh = SDL_calloc(1, sizeof(*mesh));
@@ -132,7 +128,6 @@ static NwGpuMesh *nw_gscn_mesh(void *stream, int size, bool ot)
     return nw_gscn_gpu_add(mesh, ok, NW_GPU_UPLOAD_MESH, NW_GPU_FREE_MESH);
 }
 
-/* A face-on geom's sprites. */
 static NwGpuSprites *nw_gscn_sprites(void *stream, int size)
 {
     NwGpuSprites *sprites = SDL_calloc(1, sizeof(*sprites));
@@ -314,8 +309,7 @@ void ReadObjSet(int fh)
                         NuErrorProlog(nugscn_srcfile, 0xB95)("invalid qwc");
                     }
                     nw_gscn_in(NuMemFileAddr(fh), size, 1);
-                    /* No in-place block->data = block->qw (a host pointer does not fit the 32-bit field); an OT geom
-                       keeps its batch for XFormVuTriZ and its triangles as a mesh in dmastream for NuRndrGScnObj. */
+                    /* No in-place block->data = block->qw: a host pointer does not fit the 32-bit field. */
                     if (geom->mtl->attrib.ot == 1) {
                         geom->tristream = NuMemFileAddr(fh);
                     }
@@ -388,8 +382,7 @@ void ReadObjSet(int fh)
             NuFileReadInt(fh);
             NuFileReadInt(fh);
             NuFileReadInt(fh);
-            /* Retail's NuCvtGeoFixup rebases the colour references onto the file for NuGobjColourBlendGobj, which
-               nothing reaches; no retail scene has them. */
+            /* Retail's colour references feed NuGobjColourBlendGobj, which nothing reaches; no retail scene has any. */
             if (gscene->gobjs[i]->tricount != 0) {
                 gscene->gobjs[i]->blend = NuMemFileAddr(fh);
                 NuMemFileSeek(fh, gscene->gobjs[i]->tricount, 1);

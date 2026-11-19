@@ -1,5 +1,4 @@
-/* gamelib/gcutscn's .cut loader (port/units.toml override): retail's NuGCutSceneLoad with host copies of the records
-   it fixes in place, beside the caller's heap (src/port/heap.h). */
+/* gcutscn override: retail's NuGCutSceneLoad with host copies of the records it fixes in place, beside the heap. */
 #include <stddef.h>
 #include <stdint.h>
 #include <string.h>
@@ -40,7 +39,7 @@ static _Noreturn void nw_cut_bad(const NwCutLoad *ld, const char *what, uint32_t
     }
 }
 
-/* size bytes of the image at the exporter address v, NULL for 0. */
+/* v is an exporter address; NULL for 0. */
 static char *nw_cut_at(const NwCutLoad *ld, uint32_t v, size_t size)
 {
     uint32_t off = v - ld->addr;
@@ -53,10 +52,8 @@ static char *nw_cut_at(const NwCutLoad *ld, uint32_t v, size_t size)
     return ld->base + off;
 }
 
-/* What a converted pointer field addresses. */
 #define NW_CUT_PTR(ld, field, size) nw_cut_at((ld), (uint32_t)NW_FILE_IX(field), (size))
 
-/* The string at off in the image, NUL-terminated inside it. */
 static char *nw_cut_str(const NwCutLoad *ld, ptrdiff_t off)
 {
     if (off < 0 || (size_t)off >= ld->size ||

@@ -1,17 +1,16 @@
-/* Tables of the data image (tools/gen_dataimage.py -> gen/dataimage.c and gen/<unit>.data.inc). No includes and no
-   typedef'd integers: every decomp wrapper ends with a .data.inc, after the unit's own declarations. */
+/* No includes or typedef'd integers: every decomp wrapper ends with a .data.inc, after its own declarations. */
 #ifndef NUWORLD_DATA_IMAGE_TABLES_H
 #define NUWORLD_DATA_IMAGE_TABLES_H
 
 struct NwType;
 
-/* NwImageRoot.kind: where a root's host bytes live. */
+/* NwImageRoot.kind */
 enum {
     NW_ROOT_MIRROR,  /* plain data at its PS2 offset in the mirror of the retail image */
     NW_ROOT_COPY,    /* plain data the host declaration needs aligned better than its PS2 address */
-    NW_ROOT_CONVERT, /* data with pointer slots, converted element by element */
+    NW_ROOT_CONVERT,
     NW_ROOT_ALIAS,   /* inside another root or a C-defined object (no storage of its own) */
-    NW_ROOT_VU       /* a VU1 microcode package: its token (NwVuProg) */
+    NW_ROOT_VU
 };
 
 typedef struct NwImageRoot {
@@ -20,16 +19,14 @@ typedef struct NwImageRoot {
     unsigned int ps2_size; /* 0: unsized (mirror only) */
     void *host;
     unsigned int host_size;
-    const struct NwType *elem; /* CONVERT: the element type; else NULL */
-    unsigned int count;        /* CONVERT: elements */
+    const struct NwType *elem;
+    unsigned int count;
     unsigned int kind;
 } NwImageRoot;
 
-/* NwDataObj.flags */
-#define NW_DATA_PLAIN 1u  /* the same bytes on both sides */
+#define NW_DATA_PLAIN 1u
 #define NW_DATA_RETAIL 2u /* a placeholder for retail's bytes (status state "retail"): copied in */
 
-/* Data a compiled unit defines in C, at its retail address: pointers into it resolve to the host object. */
 typedef struct NwDataObj {
     const char *name;
     unsigned int addr;
@@ -47,11 +44,10 @@ typedef struct NwDataUnit {
     unsigned int count;
 } NwDataUnit;
 
-/* A VU1 microcode package in .vutext. The EE only takes its address (mtl->rs.mpg) for DMA tags to call, so on the
-   host it, and any data address of its start, is this token; the renderer maps it to its own behaviour. */
+/* The EE only takes a VU1 package's address (mtl->rs.mpg) for DMA tags to call; on the host it is this token. */
 typedef struct NwVuProg {
     const char *name;
-    unsigned int addr, size; /* the retail package */
+    unsigned int addr, size;
 } NwVuProg;
 
 /* port/data.toml [seeds] */
@@ -74,13 +70,13 @@ typedef struct NwImageDisc {
 } NwImageDisc;
 
 typedef struct NwImageTables {
-    unsigned int mirror_base, mirror_size; /* PS2 range of the mirror */
+    unsigned int mirror_base, mirror_size;
     unsigned char *mirror;
-    unsigned int text_base, text_end; /* .text: code addresses, never data */
-    unsigned int vutext_base, vutext_end; /* .vutext: microcode packages, tokens on the host */
-    const NwVuProg *const *vu_progs;      /* address order */
+    unsigned int text_base, text_end;
+    unsigned int vutext_base, vutext_end;
+    const NwVuProg *const *vu_progs;
     unsigned int nvu_progs;
-    const NwImageRoot *roots;         /* address order */
+    const NwImageRoot *roots;
     unsigned int nroots;
     const NwDataUnit *const *units;
     unsigned int nunits;

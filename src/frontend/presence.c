@@ -47,7 +47,6 @@ void nw_presence_title(const char *upper, char *out, size_t size)
     out[n] = '\0';
 }
 
-/* part after a dot unless out is empty. */
 static void nw_presence_add(char *out, size_t size, const char *part)
 {
     if (out[0]) {
@@ -147,7 +146,7 @@ static void nw_presence_state(const NwPresenceSnap *s, NwScreen screen, char *ou
     }
 }
 
-/* The level's hub preview with the logo in the small circle; the logo alone where there is none (bosses). */
+/* The logo alone where the level has no hub preview (bosses). */
 static void nw_presence_picture(const NwPresenceSnap *s, NwActivity *a)
 {
     if (s->level >= 0 && s->level < NW_LEVEL_SAVED && !(s->level_flags & 2)) {

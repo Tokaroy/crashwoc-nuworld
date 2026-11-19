@@ -28,7 +28,7 @@ typedef struct NwViewer {
     NwSceneInfo info;
     NwSceneCam cam;
     float speed;
-    const char *scene; /* the last one asked for */
+    const char *scene;
     bool loading;
     char filter[64];
 } NwViewer;

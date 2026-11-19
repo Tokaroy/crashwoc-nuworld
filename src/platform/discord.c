@@ -97,7 +97,6 @@ static void nw_json_string(NwJson *j, const char *s)
     nw_json_raw(j, "\"");
 }
 
-/* "key":"value" after a comma unless first; nothing for "". */
 static void nw_json_field(NwJson *j, bool *first, const char *key, const char *value)
 {
     if (!value[0]) {
@@ -110,7 +109,6 @@ static void nw_json_field(NwJson *j, bool *first, const char *key, const char *v
     nw_json_string(j, value);
 }
 
-/* "key": after a comma unless first. */
 static void nw_json_key(NwJson *j, bool *first, const char *key)
 {
     nw_json_raw(j, *first ? "\"" : ",\"");
@@ -330,7 +328,7 @@ static uint64_t nw_ipc_pid(void)
 }
 #endif
 
-/* The client's pipe or socket: endpoint, else discord-ipc-0..9 where Discord, its Flatpak and its Snap put it. */
+/* endpoint, else discord-ipc-0..9 where Discord, its Flatpak and its Snap put it. */
 static NwIpc nw_ipc_connect(const char *endpoint)
 {
     if (endpoint[0]) {
@@ -382,7 +380,6 @@ typedef struct NwDiscordWorker {
     NwActivity activity;
 } NwDiscordWorker;
 
-/* The worker's connection. */
 typedef struct NwLink {
     NwIpc ipc;
     bool ready, missing_told, sent_any;
@@ -422,7 +419,6 @@ static bool nw_activity_equal(const NwActivity *a, const NwActivity *b)
     return true;
 }
 
-/* message once per distinct text. */
 static void nw_link_tell(NwLink *l, const char *message)
 {
     if (SDL_strcmp(l->told, message) != 0) {
@@ -494,7 +490,6 @@ static void nw_link_frame(NwDiscordWorker *w, NwLink *l, uint32_t op, const char
     }
 }
 
-/* Every frame waiting, handled. */
 static void nw_link_drain(NwDiscordWorker *w, NwLink *l)
 {
     while (l->ipc != NW_IPC_NONE) {
@@ -527,7 +522,7 @@ static void nw_link_drain(NwDiscordWorker *w, NwLink *l)
     }
 }
 
-/* The newest activity once send_ms since the last; the ms to wait. */
+/* The newest activity once send_ms passed since the last; returns the ms to wait. */
 static Sint32 nw_link_update(NwDiscordWorker *w, NwLink *l, const NwActivity *a)
 {
     uint64_t now = SDL_GetTicks();

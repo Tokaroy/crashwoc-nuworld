@@ -25,7 +25,7 @@ static uint32_t nw_rd32(const uint8_t *p)
     return v;
 }
 
-/* A bounded reader over one block; reading past its end clears ok. */
+/* Reading past the block's end clears ok. */
 typedef struct NwGscCur {
     const uint8_t *base;
     uint32_t pos, end;

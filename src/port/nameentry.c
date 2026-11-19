@@ -1,4 +1,3 @@
-/* The names typed in game/game's name entries (port/nameentry.h). */
 #include "port/nameentry.h"
 
 #include <SDL3/SDL.h>
@@ -36,8 +35,7 @@ static struct {
     SDL_AtomicInt wanted, keyboard, pad;
     char queue[NW_NAMEENTRY_QUEUE];
     int head, count;
-    /* the entry open (game thread): its menu, the longer name typed into (letters, '_' for the rest), its longest,
-       and the game's own name that takes its first letters */
+    /* game thread; '_' fills the longer name's rest, and the game's own name takes its first letters */
     int menu;
     char *name;
     int max;
@@ -82,7 +80,6 @@ void nw_nameentry_type(int c)
     SDL_UnlockSpinlock(&nw_nameentry.lock);
 }
 
-/* The next typed key, -1 for none. */
 static int nw_nameentry_next(void)
 {
     int c = -1;
@@ -96,7 +93,7 @@ static int nw_nameentry_next(void)
     return c;
 }
 
-/* The entry of menu, 0 for none: the name it fills, as NewMenu and NewLevelTime left it ('_' everywhere). */
+/* menu 0 for none; the name it fills is as NewMenu and NewLevelTime left it ('_' everywhere). */
 static void nw_nameentry_open(int menu)
 {
     nw_nameentry.menu = menu;
@@ -118,7 +115,7 @@ static void nw_nameentry_open(int menu)
     nw_nameentry.name[nw_nameentry.max] = 0;
 }
 
-/* The entry closed: its longer name as the game cleans its own (CleanLetters), the spaces after it gone. */
+/* The longer name cleaned as the game cleans its own (CleanLetters), the spaces after it gone. */
 static void nw_nameentry_close(void)
 {
     char *name = nw_nameentry.name;
@@ -159,8 +156,7 @@ void nw_nameentry_resume_game(const char *name, int position)
     nw_nameentry_want(true);
 }
 
-/* Retail's InputNewLetter on the longer name ('_' is a space), with its '<'; the game's own name takes the first
-   letters. Returns whether the name is full (retail's cursor goes to DONE then). */
+/* Retail's InputNewLetter on the longer name ('_' is a space); true when full (retail's cursor goes to DONE). */
 static bool nw_nameentry_letter(int c)
 {
     bool full = false;

@@ -1,9 +1,5 @@
 #!/usr/bin/env python3
-"""Order the remaining decomp work by stub hits.
-
-Reads the hit lists `--boot-check` and `--boot` print (a list restarting at 1 is the next run); prints every hit with
-what is left for it, then the decomp worklist: the hit functions in first-hit order, the rest by unit and address.
-"""
+"""Order the remaining decomp work by stub hits."""
 from __future__ import annotations
 
 import argparse
@@ -30,7 +26,6 @@ class Hit:
 
 
 def parse_runs(text: str) -> list[list[tuple[int, str, str, int, int]]]:
-    """The hit lists in `text`: per run (order, unit, name, address, hits) in first-hit order."""
     runs: list[list[tuple[int, str, str, int, int]]] = []
     last = None
     for line in text.splitlines():
@@ -48,7 +43,6 @@ def parse_runs(text: str) -> list[list[tuple[int, str, str, int, int]]]:
 
 
 def merge(runs) -> dict[int, Hit]:
-    """Hits by retail address, ranked by first hit over the runs in order."""
     hits: dict[int, Hit] = {}
     for run in runs:
         for _order, unit, name, address, count in run:
@@ -59,7 +53,6 @@ def merge(runs) -> dict[int, Hit]:
 
 
 def todo(f: nwunits.Function | None, unit: str = "") -> str:
-    """What is left to do for a function of the build."""
     if f is None:
         return "port:shim" if unit == "sdk" else "unknown"
     if f.provider == "decomp":

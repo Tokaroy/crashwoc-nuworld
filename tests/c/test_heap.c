@@ -1,5 +1,3 @@
-/* src/port/heap.c: a load's host records, zeroed at their alignment, live until a later load takes a range over
-   theirs; loads beside them, such as the loading screen's in the superbuffer's last 1 MB, leave them. */
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -44,7 +42,6 @@ static void count_hole(const void *at, size_t size, const char *why, void *user)
     ++*(unsigned *)user;
 }
 
-/* The frees queued so far, as the render thread takes them once every fence has passed. */
 static uint32_t take_frees(const void *objs[4])
 {
     NwGpuJob *jobs = NULL;
@@ -77,7 +74,6 @@ int main(void)
     nw_heap_side_own(after, heap + 1024, heap + 2048);
     CHECK(nw_heap_sides(NULL) == 3);
 
-    /* The heap rewound: a load over the first range frees its records, a load up to the top one the second's. */
     NwHeapSide *again = nw_heap_side();
     nw_heap_side_own(again, heap, heap + 512);
     CHECK(nw_heap_sides(NULL) == 3);
@@ -85,12 +81,9 @@ int main(void)
     nw_heap_side_own(grown, heap + 512, heap + 3072);
     CHECK(nw_heap_sides(NULL) == 3);
 
-    /* Owning a wider range again frees what it now covers. */
     nw_heap_side_own(grown, heap + 512, heap + 4096);
     CHECK(nw_heap_sides(NULL) == 2);
 
-    /* Records are found by any host address inside them, their end included unless the next one starts there, and
-       keep where retail has them; holes live and die with their load. */
     NwHeapSide *load = nw_heap_side();
     char *x = nw_heap_side_at(load, 24, 8, heap + 64);
     char *y = nw_heap_side_at(load, 8, 8, heap + 96);
@@ -117,7 +110,6 @@ int main(void)
     nw_heap_each_hole(count_hole, &holes);
     CHECK(holes == 0);
 
-    /* A load's GPU objects are freed with its records, once: by a load over its range, or by its release. */
     NwHeapSide *scene = nw_heap_side();
     nw_heap_side_gpu(scene, NW_GPU_FREE_MESH, heap + 1);
     nw_heap_side_gpu(scene, NW_GPU_FREE_SPRITES, heap + 2);
@@ -135,8 +127,6 @@ int main(void)
     nw_heap_side_own(nw_heap_side(), heap + 2048, heap + 2112);
     CHECK(take_frees(NULL) == 0);
 
-    /* The free waits for the frames that may draw the load: those published and the one being built when a later
-       load took its range. The renderer drawing the last one again (a long load) keeps it; its upload goes first. */
     int mesh;
     NwHeapSide *drawn = nw_heap_side();
     nw_heap_side_gpu(drawn, NW_GPU_FREE_MESH, &mesh);
@@ -157,7 +147,6 @@ int main(void)
     /* Debug builds: every allocation lies above 4 GB, the superbuffer's size included. */
     void *small = malloc(16), *large = malloc(0x1201000), *sdl = SDL_malloc(64);
     CHECK((uintptr_t)small >> 32 && (uintptr_t)large >> 32 && (uintptr_t)sdl >> 32 && (uintptr_t)heap >> 32);
-    /* Not by chance: the address space below is taken. */
 #ifdef _WIN32
     CHECK(VirtualAlloc((void *)0x10000000, 0x10000, MEM_RESERVE, PAGE_NOACCESS) == NULL);
 #else

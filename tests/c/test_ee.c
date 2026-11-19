@@ -1,11 +1,9 @@
-/* The EE threads of src/shim/ee.c under the decomp's bgload, on a stepped clock and then on a real game thread. */
 #include <stdio.h>
 #include <string.h>
 
 #include "port/game.h"
 #include "shim/shim.h"
 
-/* decomp game/bgload.c */
 void BGLoadInit(void);
 void BGLoadStart(void (*func)(void *));
 void BGSuspendMain(void);
@@ -13,7 +11,6 @@ void BGLoadEnd(void);
 extern volatile int bgload_complete;
 extern int loadthread_id;
 
-/* src/port/ps2video.c and its data image root */
 void NuIntAddAllHandlers(void);
 void NuEnableVBlank(void);
 void NuDisableVBlank(void);
@@ -24,7 +21,6 @@ void NuDisableVBlankE(void);
 int sceGsSyncV(int mode);
 extern volatile int nuvideo_global_vbcnt;
 
-/* src/shim/ee.c */
 int nw_ee_CreateThread(void *param);
 int nw_ee_DeleteThread(int thid);
 int nw_ee_GetThreadId(void);
@@ -75,7 +71,6 @@ static void reset_order(void)
     order[0] = 0;
 }
 
-/* Two steps of a vblank each, then retail's final spin. */
 static void loader_steps(void *arg)
 {
     (void)arg;
@@ -122,14 +117,12 @@ static void complete(void)
     }
 }
 
-/* A vblank passes without a wait; the yield point delivers it. */
 static void vblank_passes(void)
 {
     nw_game_wait_edge(nw_game_edges(), 0);
     nw_ee_yield();
 }
 
-/* Masked across two vblanks: the switch waits for the unmask, where VBlankFn runs once. */
 static void loader_masked(void *arg)
 {
     (void)arg;
@@ -144,7 +137,6 @@ static void loader_masked(void *arg)
     complete();
 }
 
-/* Nested: only the outermost unmask switches. */
 static void loader_nested(void *arg)
 {
     (void)arg;
@@ -177,20 +169,17 @@ static void test_bgload(void)
     BGLoadInit();
     CHECK(nw_ee_GetThreadId() == 1);
 
-    /* The loader's priority is the lower one: starting it runs nothing yet. */
     uint64_t edges = nw_game_edges(), swaps = nw_game_swaps();
     BGLoadStart(loader_steps);
     CHECK(loadthread_id > 1);
     CHECK(order_len == 0);
 
-    /* Main waits in BGSuspendMain; the loader runs until VBlankFn suspends it, swaps and wakes main. */
     frames_until_complete();
     CHECK(strcmp(order, "MLMLMC") == 0);
     CHECK(nw_game_edges() == edges + 3);
     CHECK(nw_game_swaps() == swaps + 3);
     CHECK(nw_ee_GetThreadId() == 1);
 
-    /* BGLoadEnd ends the loader in its spin; then VBlankFn only wakes main. */
     BGLoadEnd();
     CHECK(loadthread_id == 0);
     edges = nw_game_edges();
@@ -199,19 +188,16 @@ static void test_bgload(void)
     CHECK(nw_game_edges() == edges + 1);
     CHECK(nw_game_swaps() == swaps);
 
-    /* A loader that returns is dormant: BGLoadEnd's TerminateThread fails, its DeleteThread joins it. */
     reset_order();
     BGLoadStart(loader_returns);
     BGSuspendMain();
     CHECK(strcmp(order, "R") == 0);
     BGLoadEnd();
 
-    /* Ended before it ever ran. */
     BGLoadStart(loader_steps);
     BGLoadEnd();
     CHECK(strcmp(order, "R") == 0);
 
-    /* The slots are free again. */
     BGLoadStart(loader_steps);
     frames_until_complete();
     BGLoadEnd();
@@ -242,7 +228,6 @@ static void test_masks(void)
     run_load(loader_end_masked);
     CHECK(strcmp(order, "MLMe") == 0);
 
-    /* Main masked across a vblank: the ready loader does not run. */
     reset_order();
     BGLoadStart(loader_steps);
     NuDisableVBlank();
@@ -275,7 +260,7 @@ static void test_states(void)
     CHECK(nw_ee_DeleteThread(id) == -407);
 }
 
-/* Loads forever (BGLoadInit ran in test_bgload). */
+/* BGLoadInit ran in test_bgload. */
 static int loading_entry(int argc, char **argv)
 {
     (void)argc, (void)argv;
@@ -296,7 +281,6 @@ int main(void)
     test_states();
     nw_game_shutdown();
 
-    /* A real game thread with a loader parks when asked, whichever EE thread holds the baton. */
     CHECK(nw_game_init(NW_CLOCK_REALTIME, 50));
     CHECK(nw_game_start(loading_entry, 0, NULL));
     CHECK(nw_game_wait_edge(nw_game_wait_edge(0, 2000), 2000) >= 2);

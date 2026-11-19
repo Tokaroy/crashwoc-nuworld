@@ -1,4 +1,3 @@
-# cmake -DSRC=<source dir> -DOUT=<file.c> -DVERSION=<x.y.z> -DTAG=<tag> -P buildid.cmake
 # Writes OUT only when the build ID changed.
 function(nw_git dir out)
   execute_process(COMMAND git -C "${dir}" rev-parse --short=7 HEAD

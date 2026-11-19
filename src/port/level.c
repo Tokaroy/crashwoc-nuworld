@@ -31,11 +31,11 @@ extern s32 new_level, new_mode, next_cut_movie, gamecut, logos_played;
 extern void *SpaceGameCutTab[26][2];
 extern struct game_s Game;
 extern s32 fadeval, fade_rate, fadehack;
-extern int nw_hz; /* port/hz.c */
+extern int nw_hz;
 extern volatile s32 bgload_complete;
 s32 HubFromLevel(s32 level);
 
-/* TITLES' own level, which retail never loads: the main loop turns TITLES into the title (the warp room's title cut). */
+/* TITLES' own level, which retail never loads: the main loop turns TITLES into the title (the warp room's cut). */
 #define NW_LEVEL_OLD_TITLE ((int)SDL_arraysize(LData))
 /* A route's NEW GAME. */
 #define NW_LEVEL_INTRO (-2)
@@ -46,7 +46,7 @@ static struct {
     bool steady;
     signed char present[SDL_arraysize(LData)]; /* 0 not looked up, 1 on the disc, -1 not */
     int arrival;           /* --level's leg on the way, -1 for none */
-    bool on_way;           /* entered, not yet running */
+    bool on_way;
     bool intro;            /* NEW GAME not yet chosen */
     int route[NW_LEVEL_ROUTE], nroute, leg;
     NwLevelArrival arrivals[NW_LEVEL_ROUTE];
@@ -151,7 +151,6 @@ static int nw_level_find(const char *name)
     return level >= 0 && level < (long)SDL_arraysize(LData) && nw_level_name((int)level) ? (int)level : -1;
 }
 
-/* Asks for the route's next leg. */
 static void nw_level_next(void)
 {
     int level = nw_level.route[nw_level.leg];
@@ -208,7 +207,7 @@ int nw_level_arrivals(const NwLevelArrival **out)
     return nw_level.leg;
 }
 
-/* Ends the running level, title or cutscene at once: the screen is already faded out. */
+/* At once: the screen is already faded out. */
 static void nw_level_cut(void)
 {
     fadeval = 0xFF;
@@ -217,8 +216,7 @@ static void nw_level_cut(void)
     nw_level.steady = false;
 }
 
-/* As retail's level select and demo start; the title loads Level when it ends, past the main loop's turn of TITLES
-   into the title, so only there TITLES' own level can load. */
+/* As retail's level select and demo start; only the title's end can load TITLES' own level. */
 static void nw_level_enter(int level)
 {
     if (cutmovie == 0) {
@@ -431,8 +429,7 @@ static bool nw_cutscene_poll(bool ready)
     return true;
 }
 
-/* Acts after two steady swaps (loads done, faded in, which BGLoad's loading screen never is, no other level change),
-   since InitGameMode drops a new_level set before the level loop; an arrival cutscene is skipped as Start skips it. */
+/* Acts after two steady swaps, since InitGameMode drops a new_level set before the level loop. */
 void nw_level_poll(void)
 {
     /* The title keeps the new_level that led to it until its level starts. */

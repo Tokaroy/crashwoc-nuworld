@@ -1,4 +1,3 @@
-/* nups2/ps2txtr replaced (port/units.toml): TexList textures decoded for the renderer instead of GS upload packets. */
 #include <stddef.h>
 #include <stdio.h>
 #include <string.h>
@@ -66,8 +65,7 @@ int Ps2TxValToPowerOfTwo(int value)
     return shift;
 }
 
-/* Texel n of a bitmap as GenTextureLoad writes it to the GS: type 2 is B, G, R; type 3 A, B, G, R with the alpha
-   halved (nutex_force_overbrighten, which keeps it, is never set); type 4 has the even texel in the high nibble. */
+/* As GenTextureLoad writes it: type 2 B, G, R; type 3 A, B, G, R, alpha halved; type 4 even texel in high nibble. */
 static void nw_ps2tx_texel(const struct nutex_s *spec, size_t n, uint8_t *out)
 {
     const uint8_t *bits = spec->bits;
@@ -96,9 +94,7 @@ static void nw_ps2tx_texel(const struct nutex_s *spec, size_t n, uint8_t *out)
     }
 }
 
-/* GenTextureLoad's levels: mmcnt of them one after the other in bits, otherwise one that takes every 2^skip-th
-   texel of a bitmap over 512, stopping before a level under 8 texels. nutex_force_quantisation and
-   numtl_force_mipmap are never set. */
+/* GenTextureLoad's levels: mmcnt in bits, else every 2^skip-th texel over 512, stopping before one under 8 texels. */
 static bool nw_ps2tx_bitmap(NwTex *t, const struct nutex_s *spec)
 {
     if (spec->type < 2 || spec->type > 5) {
@@ -139,7 +135,7 @@ static bool nw_ps2tx_bitmap(NwTex *t, const struct nutex_s *spec)
     return true;
 }
 
-/* Once per kind: what of GS memory the port does not draw. */
+/* Reported once per kind. */
 static void nw_ps2tx_unsupported(int kind, const char *what)
 {
     static unsigned reported;
@@ -175,7 +171,6 @@ NwSurf nw_ps2tx_surf(int tid)
     return s;
 }
 
-/* A render target's size in GS terms; returns its bytes. */
 static int nw_ps2tx_rt_size(const struct nutex_s *spec, struct nups2tex_s *tex)
 {
     static const uint8_t bpp[12] = { 2, 2, 2, 4, 4, 2, 4, 4, 2, 4, 4, 2 };
@@ -188,9 +183,7 @@ static int nw_ps2tx_rt_size(const struct nutex_s *spec, struct nups2tex_s *tex)
     return size;
 }
 
-/* A render target's GS format and place: types 11-13 reserve their memory (NuTexReserve), the others take the
-   address NuTexAssignAddr gives them, else gs_botfree. 8-10 are read back through a ramp CLUT and 17-19 hold Z,
-   neither of which the port draws. */
+/* Types 11-13 reserve their memory (NuTexReserve); 8-10 (ramp CLUT read-back) and 17-19 (Z) the port does not draw. */
 int NuPs2CreateRenderTarget(struct nutex_s *spec, struct nups2tex_s *tex)
 {
     static const uint8_t psm[12] = { 0x13, 0x13, 0x1B, 0x00, 0x01, 0x02, 0x00, 0x01, 0x02, 0x30, 0x31, 0x32 };
@@ -218,8 +211,7 @@ void nw_ps2tx_frame_width(int was, int now)
 /* GenTextureLoad's GS formats by bitmap type 2-5. */
 static const uint8_t nw_ps2tx_psm[4] = { 0x01, 0x00, 0x14, 0x13 };
 
-/* Retail's upload packets, never filled here: GenTextureLoad's per mip level, GenPaletteLoad's for types 4-7. Inside
-   NuMemSetExternal they come off the caller's buffer (the time tunnel's texture off the superbuffer). */
+/* Retail's upload packets, never filled here; under NuMemSetExternal they come off the caller's buffer. */
 static void nw_ps2tx_charge(const struct nutex_s *spec, struct nups2tex_s *tex)
 {
     int w = spec->width, h = spec->height;
@@ -287,8 +279,7 @@ int NuPs2TxCreate(struct nutex_s *spec, struct nups2tex_s *tex)
     return 1;
 }
 
-/* NuLightMatInit gives its palette render targets (types 8-10) ramps, which the port does not draw: their CLUTs
-   are kept by no one. Retail calls it on nothing else. */
+/* NuLightMatInit's palette targets (types 8-10) get ramps the port does not draw; retail calls it on nothing else. */
 void NuPs2ChangeTexPal(struct nups2tex_s *tex, u32 *pal)
 {
     (void)pal;

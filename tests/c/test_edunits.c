@@ -1,5 +1,3 @@
-/* The runtime half of the editor units (port/units.toml `runtime`): every level's file loads as InitWorld loads it
-   and InitWorld's update leaves it finite; edptl's placed emitters start on the particle sets. */
 #include <math.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -179,8 +177,6 @@ typedef struct Census {
     unsigned files, bad, versions[16], entries, n[4], nonfinite;
 } Census;
 
-/* A unit's load of one level file, over the level scene when `scene`; fills its four counts of the file's `count`
-   entries. */
 typedef struct Mode {
     const char *name, *ext, *count, *labels[4];
     bool (*level)(char *file, struct nugscn_s *sc, int count, unsigned n[4], unsigned *nonfinite);
@@ -207,7 +203,6 @@ static void drain_gpu(void)
     SDL_free(jobs);
 }
 
-/* The game's spelling of a manifest path; `ext` replaces the extension when set. */
 static void game_path(char *out, size_t size, const char *path, const char *ext)
 {
     SDL_strlcpy(out, path, size);
@@ -219,7 +214,6 @@ static void game_path(char *out, size_t size, const char *path, const char *ext)
     }
 }
 
-/* The file's version and count words, as the loaders read them first. */
 static bool header(const char *path, int *version, int *count)
 {
     NwVfsFile *f = nw_vfs_open(&retail_vfs, path, NW_VFS_READ);
@@ -308,8 +302,7 @@ static bool edgra_level(char *file, struct nugscn_s *sc, int count, unsigned n[4
     return true;
 }
 
-/* A level's .PTL with STUFF/GENERAL.PTL and the level's .CPT merged, as InitWorld loads them over the previous
-   level's, then its emitters started on the particle sets. */
+/* A level's .PTL with STUFF/GENERAL.PTL and its .CPT merged, as InitWorld loads them over the previous level's. */
 static bool edptl_level(char *file, struct nugscn_s *sc, int count, unsigned n[4], unsigned *nonfinite)
 {
     (void)sc, (void)count;
@@ -352,7 +345,6 @@ static const Mode modes[] = {
 };
 static const Mode *mode;
 
-/* On the game thread, per level file: its scene as world_scene[0], then the unit's load as InitWorld runs it. */
 static int retail_main(int argc, char **argv)
 {
     (void)argc, (void)argv;

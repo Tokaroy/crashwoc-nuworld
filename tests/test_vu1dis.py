@@ -1,4 +1,3 @@
-"""vu1dis: the VU instruction tables and the package mapping on a synthetic ELF (no game bytes)."""
 import struct
 import subprocess
 import sys
@@ -125,7 +124,7 @@ class Lower(unittest.TestCase):
             self.assertEqual(vu1dis.f32(word), text)
 
 
-# --- A synthetic ELF: package a (a.dsm) and package b (b.dsm) both include shared.vsm ---------------------------
+# Package a (a.dsm) and package b (b.dsm) both include shared.vsm.
 
 ADD = up(0x00, 0xF, 3, 2, 1)                # ADDx.xyzw VF01, VF02, VF03x
 IADDIU5 = lo(0x08, 0, 1, 0, 5)              # IADDIU VI01, VI00, 5

@@ -42,8 +42,7 @@ const char *nw_log_category_name(int category);
 
 size_t nw_log_recent(char *out, size_t size);
 
-/* text with the home folder (home NULL: USERPROFILE or HOME at nw_log_init) as %USERPROFILE% or ~, as in every log
-   line: logs get posted in bug reports. SDL_free it; NULL when out of memory. */
+/* home (NULL: the one at nw_log_init) becomes %USERPROFILE% or ~, as in every log line: logs go into bug reports. */
 char *nw_log_redact(const char *text, const char *home);
 
 #endif

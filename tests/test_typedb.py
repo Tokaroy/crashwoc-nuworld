@@ -1,4 +1,3 @@
-"""typedb on the synthetic decomp in tests/fixtures/mini (needs libclang)."""
 import sys
 import tempfile
 import unittest

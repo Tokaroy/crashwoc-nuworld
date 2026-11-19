@@ -1,5 +1,3 @@
-/* libFuzzer target (-DNUWORLD_FUZZ=ON) for the VFS readers, the VIF decoder and the save readers; the first byte picks
-   the reader. */
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -25,7 +23,7 @@
 enum { FUZZ_DISC, FUZZ_CUE, FUZZ_DAT, FUZZ_VIF, FUZZ_SAVE, FUZZ_CARD, FUZZ_RNC, FUZZ_READERS };
 
 static char *scratch;  /* <tmp>/nuworld-fuzz-<pid>/ */
-static char *bin_path; /* the image, of FUZZ_DISC and FUZZ_CUE alike */
+static char *bin_path;
 static char *cue_path;
 static char *dat_path; /* <scratch>disc/FUZZ.DAT, mounted as cdrom0:\FUZZ.DAT */
 static NwVfs vfs;
@@ -207,7 +205,6 @@ static void fuzz_card(const uint8_t *data, size_t size)
     SDL_free(nw_ps2card_file(data, size, NW_SAVE_PS2_PAL, NW_SAVE_PS2_PAL "slot00", &len, &missing));
 }
 
-/* An RNC file unpacked into exactly its header's size: whatever the bytes, nothing outside the two ranges. */
 static void fuzz_rnc(const uint8_t *data, size_t size)
 {
     uint32_t unpacked, packed;

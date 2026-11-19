@@ -1,4 +1,3 @@
-/* The .gsc loader override (src/port/nugscn.c) on a synthetic scene; with `retail`, every .gsc's animation library. */
 #include <math.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -28,7 +27,6 @@
 #include "anim_check.h"
 #include "gsc_builder.h"
 
-/* The NU20 reader's record offsets are the PS2 layout's. */
 _Static_assert(sizeof(nw_ps2_numtl_s) == NW_GSC_MTL_SIZE && offsetof(nw_ps2_numtl_s, attrib) == 0x16C, "numtl_s");
 _Static_assert(offsetof(nw_ps2_numtl_s, diffuse) == 0x180 && offsetof(nw_ps2_numtl_s, alpha) == 0x1A0, "numtl_s");
 _Static_assert(offsetof(nw_ps2_numtl_s, tid) == 0x1A4, "numtl_s.tid");
@@ -45,7 +43,6 @@ void buildBitCountTable(void);
 static int failures;
 static char scene_buffer[1 << 20];
 
-/* A host record: beside the buffer, never in it (src/port/heap.h). */
 #define BESIDE(p) ((char *)(p) < scene_buffer || (char *)(p) >= scene_buffer + sizeof(scene_buffer))
 
 #define CHECK(cond) \
@@ -56,7 +53,6 @@ static char scene_buffer[1 << 20];
         } \
     } while (0)
 
-/* The reader's attrib macros against the host bitfields. */
 static void test_attrib(void)
 {
     struct numtlattrib_s a;
@@ -155,8 +151,7 @@ static char *carve(char *c, size_t align, size_t size)
     return (char *)(((uintptr_t)c + align - 1) & ~(uintptr_t)(align - 1)) + size;
 }
 
-/* Where retail's NuGScnLoadFix leaves the buffer after the image at c: its records at their PS2 sizes, in the
-   builder's block order. */
+/* Where retail's NuGScnLoadFix leaves the buffer: its records at their PS2 sizes, in the builder's block order. */
 static char *retail_end(const struct nugscn_s *sc, char *c)
 {
     c = carve(c, 4, sizeof(nw_ps2_nugscn_s));
@@ -199,7 +194,6 @@ static int count_mtls(void)
     return n;
 }
 
-/* Runs the queued GPU jobs as the render thread would (their frees free the objects); ops counts them per op. */
 static uint32_t drain_gpu(uint32_t ops[NW_GPU_FREE_HOST + 1])
 {
     NwGpuJob *jobs = NULL;
@@ -269,8 +263,7 @@ static void test_load(const char *scratch)
         uploads += ops[op];
     }
     CHECK(n > 0 && uploads * 2 == n);
-    /* Five times with no remove, as the game drops a scene by reusing its buffer (ResetSuperBuffer) after a level
-       init: each load frees the one before. */
+    /* Five times with no remove, as the game drops a scene by reusing its buffer (ResetSuperBuffer). */
     for (int pass = 0; pass < 5; pass++) {
         char *buf = scene_buffer + 3;
         NuTexInit();
@@ -297,8 +290,7 @@ static AnimStats retail = ANIM_STATS_INIT;
 static unsigned retail_scenes, retail_alib;
 
 
-/* On the game thread: a load error is fatal there. In the game the .cut and .ani loaders build the bit counts;
-   INTRO/FINAL and TITLES/TITLESPL are truncated, never drawn, and skipped as by --scene-check. */
+/* On the game thread: a load error is fatal there; INTRO/FINAL and TITLES/TITLESPL are truncated, never drawn. */
 static int retail_main(int argc, char **argv)
 {
     (void)argc, (void)argv;
@@ -352,8 +344,6 @@ static int retail_main(int argc, char **argv)
     return 0;
 }
 
-/* Every .gsc loads, and the anims its instances play count to the pinned numbers, have the nine curves
-   NuAnimCurveSetApplyToMatrix reads in every set and read keys inside the scene at every frame. */
 static int test_retail(void)
 {
     const char *dir = getenv("NUWORLD_TEST_DATA");
@@ -380,7 +370,6 @@ static int test_retail(void)
     return failures ? 1 : 0;
 }
 
-/* A destroyed gobj leaves its geoms' meshes to their scene: NuPs2DestroyRenderStream frees nothing. */
 static void test_destroy(void)
 {
     static NwGpuMesh mesh;

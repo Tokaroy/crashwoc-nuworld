@@ -20,16 +20,15 @@
 #define NW_IRX_UPLOAD_PASSES 16 /* an instant upload's passes per call; it takes up to 5, a stuck one ends there */
 #define NW_IOP_HZ 36864000u
 
-/* Drive and SPU DMA times in IOP cycles, as PCSX2 has them (CDVD.cpp, SPU2/Dma.cpp); the IRX's nominal CLV 24x CD
-   reads are capped at 10.3x. */
-#define NW_CD_FULL_SEEK (NW_IOP_HZ / 10)       /* 4371 sectors or more */
-#define NW_CD_FAST_SEEK (NW_IOP_HZ * 3 / 100) /* 8 or more */
+/* IOP cycles, as PCSX2 has them (CDVD.cpp, SPU2/Dma.cpp); the IRX's CLV 24x CD reads are capped at 10.3x. */
+#define NW_CD_FULL_SEEK (NW_IOP_HZ / 10)
+#define NW_CD_FAST_SEEK (NW_IOP_HZ * 3 / 100)
 #define NW_CD_FAST_DELTA 4371
 #define NW_CD_CONTIGUOUS 8
 #define NW_CD_READ 47720                                    /* a sector: 75 * 10.3 a second */
 #define NW_CD_HALF_TURN (NW_IOP_HZ * 600ull / (497 * 103) / 2) /* mid-disc, the latency of a short seek */
 #define NW_CD_DMA (2064 / 4 * 12)                           /* a sector read ahead, to IOP memory */
-#define NW_CD_AHEAD 16                                      /* sectors the drive reads ahead */
+#define NW_CD_AHEAD 16
 #define NW_SPU_DMA_WORD 24                                  /* a halfword to SPU RAM */
 #define NW_IRX_SECTOR 2048
 #define NW_IRX_PATH 600
@@ -39,11 +38,10 @@
 #define NW_IRX_ALL_VOICES 0xffffff
 
 static NwIrx irx;
-static SDL_AtomicInt nw_irx_instant; /* off the hardware speed */
-static float nw_irx_skip, nw_irx_quiet, nw_irx_rise; /* nw_nusound_skip's */
+static SDL_AtomicInt nw_irx_instant;
+static float nw_irx_skip, nw_irx_quiet, nw_irx_rise;
 
-/* cd_dat: the DAT under the drive head (NULL once the game moved it); cd_ahead: sectors read ahead as of cd_since;
-   cd_done/dma_done: when the CD command and the SPU DMA in flight end (0: none). */
+/* cd_dat: the DAT under the drive head (NULL once the game moved it); cd_done/dma_done 0: none in flight. */
 static struct {
     const NwVfs *vfs;
     uint64_t (*now_us)(void);
@@ -61,7 +59,6 @@ static struct {
     uint64_t dma_done;
 } iop;
 
-/* A string command's data, NUL-terminated within its words (the IRX strcpys it whole). */
 static void nw_irx_string(char *dst, size_t size, const uint16_t *p, int length)
 {
     size_t n = (size_t)length * sizeof(*p);
@@ -154,7 +151,6 @@ static void AdpcmSetMasterVolume(int core, uint16_t vol)
     nw_spu2_set_param((uint16_t)(core | NW_SD_P_MVOLR), vol);
 }
 
-/* A stream's IOP buffer, kept (parameters included) while one is allocated. */
 static void ADPCM_AllocIOPMemory(unsigned i, uint32_t spuaddr, int size)
 {
     if (i >= NW_IRX_CHANNELS) {
@@ -169,14 +165,13 @@ static void ADPCM_AllocIOPMemory(unsigned i, uint32_t spuaddr, int size)
     }
 }
 
-/* The global bank ends here; a level's samples go after it. */
 static void SoundStoreLocalStart(void)
 {
     irx.GlobalSfxfileinfo_cnt = irx.fileinfo_cnt;
     irx.GlobalSfxMemoryEnd = irx.StreamMemoryEnd;
 }
 
-/* Back to the global bank. The level's entries lose their Pitch (so InitADPCMFiles skips them), not their ID. */
+/* The level's entries lose their Pitch (so InitADPCMFiles skips them), not their ID. */
 static void SoundRestoreLocalStart(void)
 {
     irx.fileinfo_cnt = irx.GlobalSfxfileinfo_cnt;
@@ -186,7 +181,6 @@ static void SoundRestoreLocalStart(void)
     irx.StreamMemoryEnd = irx.GlobalSfxMemoryEnd;
 }
 
-/* The IRX also sprintf's each name over a .rodata string, dropped here. */
 static void SoundAddSample(const uint16_t *p, int length)
 {
     if (irx.fileinfo_cnt < NW_IRX_FILES) {
@@ -197,7 +191,6 @@ static void SoundAddSample(const uint16_t *p, int length)
     }
 }
 
-/* SetGlobalDat / SetLocalDat: reopened only for another name; a DAT that fails to open is tried again next time. */
 static void nw_irx_set_dat(NwDat **dat, NwDat *store, char *dat_name, const char *dfname)
 {
     char path[NW_IRX_PATH];
@@ -228,8 +221,7 @@ static void SetLocalDat(const char *dfname)
     nw_irx_set_dat(&irx.local_dat, &iop.local_dat, irx.local_dat_name, dfname);
 }
 
-/* Looks up samples from `start` on in the local DAT (from 0: the global one); Pitch 0 marks an unused entry. Only
-   cdrom0: is served: the disc keeps every sample in SFX.DAT, so loose files and host0: are not looked up. */
+/* Only cdrom0: is served: the disc keeps every sample in SFX.DAT, so loose files and host0: are not looked up. */
 static void InitADPCMFiles(int start)
 {
     NwDat *current_dat;
@@ -272,8 +264,7 @@ static void InitADPCMFiles(int start)
     }
 }
 
-/* The IRX leaks the slots' buffers and starts a second timer on a second call; the game sends this once, before the
-   buffers. */
+/* The IRX leaks the buffers and starts a second timer on a second call; the game sends this once. */
 static void InitStreamData(void)
 {
     irx.FilesOnCD = 0;
@@ -300,7 +291,6 @@ static void InitStreamData(void)
     }
 }
 
-/* libsd's id of a channel's voice register. */
 static uint16_t nw_irx_voice(int ch, uint16_t reg)
 {
     int core = ch >= NW_SPU2_VOICES;
@@ -324,8 +314,7 @@ static void SetChannelVolume(int ch, uint16_t VolL, uint16_t VolR)
     }
 }
 
-/* AR is the EE's attack | release << 8: ADSR1 gets the attack with decay and sustain level at their maximum, ADSR2
-   the release with the fastest sustain. */
+/* AR is attack | release << 8; ADSR1 keeps decay and sustain level at max, ADSR2 the fastest sustain. */
 static void SetVoiceData(int ch, int Pitch, int VolL, int VolR, uint32_t SPUAddress, int AR)
 {
     if (ch >= NW_IRX_CHANNELS) {
@@ -346,7 +335,6 @@ static void nw_irx_key_on(int ch)
     }
 }
 
-/* The resident sample's SPU address, -1 when none has the ID (the low 16 bits compared signed). */
 static uint32_t GetFXSPUAddress(int ID)
 {
     for (int i = 0; i < NW_IRX_FILES; i++) {
@@ -364,7 +352,7 @@ static void PlayResidentSFX(int ID, int Channel, int VolL, int VolR, int Pitch, 
     nw_irx_key_on(Channel);
 }
 
-/* Pausing stops the voices' pitch, saved for ResumeAll; a second pause before the resume saves the zeros. */
+/* A second pause before the resume saves the zeroed pitches. */
 static void PauseAll(void)
 {
     for (int i = 0; i < NW_IRX_CHANNELS; i++) {
@@ -414,8 +402,7 @@ static void CheckTwoStreamsStatus(int channel1, int channel2, int Pitch)
     }
 }
 
-/* The work area ends at the top unless the other core's reverb is there; EVOL is zeroed, then libsd sets the depths.
-   Only cores 0 and 1 are taken (the IRX does not check). */
+/* The work area ends at the top unless the other core's reverb is there; the IRX does not check core > 1. */
 static void SOUND_EnableEffects(int core, int type, int depl, int depr, int delay, int feedback)
 {
     if (core > 1) {
@@ -470,14 +457,13 @@ static void SOUND_AllChannelEffects(int core, bool on)
     }
 }
 
-/* The IRX's `while (n-- != -1)` waits between SPU writes: n + 1 rounds of 10 instructions, about an IOP cycle each
-   in PCSX2, while the SPU runs on. */
+/* The IRX's `while (n-- != -1)` wait: n + 1 rounds of 10 instructions, about an IOP cycle each in PCSX2. */
 static void nw_irx_delay(int n)
 {
     nw_spu2_run_to(nw_spu2_cycle() + (uint64_t)(n + 1) * 10);
 }
 
-/* Each write is followed by the IRX's wait, if any (0: none); unlike the IRX, channels past 47 are ignored. */
+/* Unlike the IRX, channels past 47 are ignored. */
 static void nw_irx_key_off(int ch, int wait)
 {
     if (ch < NW_IRX_CHANNELS) {
@@ -500,8 +486,6 @@ static void nw_irx_stopped(int ch)
     }
 }
 
-/* Ch >= 0x40: stream slot Ch & 0x3f, with the IRX's waits; otherwise the first active stream on channel Ch (keyed
-   off twice, no waits). */
 static void StopStream(int Ch)
 {
     if (Ch >= 0x40) {
@@ -531,7 +515,6 @@ static void StopStream(int Ch)
     }
 }
 
-/* The sample entry of an ID: NW_IRX_FILES when it is not there, -1 at an ID of -1. */
 static int GetFileID(int ID)
 {
     int a;
@@ -553,7 +536,6 @@ static const ADPCMFILE *nw_irx_file(int ix)
     return ix >= 0 && ix < NW_IRX_FILES ? &irx.ADPCM_FileInfo[ix] : &missing;
 }
 
-/* 1 when the file is missing. */
 static int OpenADPCMFile(int Stream, int idx)
 {
     STREAMDATA *s = &irx.StreamBuffer[Stream];
@@ -584,8 +566,7 @@ static unsigned nw_cd_ahead(uint64_t now)
     return n < NW_CD_AHEAD ? (unsigned)n : NW_CD_AHEAD;
 }
 
-/* When a command at `now` that moves the head to `sector` and reads n sectors (0: a seek) calls back, after PCSX2:
-   read-ahead sectors go at DMA speed, the rest at drive speed, and read-ahead restarts from the end. */
+/* After PCSX2: read-ahead sectors go at DMA speed, the rest at drive speed; n 0 is a seek. */
 static uint64_t nw_cd_time(const NwDat *dat, int64_t sector, unsigned n, uint64_t now)
 {
     bool here = dat == iop.cd_dat;
@@ -628,7 +609,6 @@ void nw_nusound_skip(float seconds, float quiet, float rise)
     nw_irx_rise = rise;
 }
 
-/* sceCdRead of the DAT's sectors; past the end of the DAT it reads zeros. */
 static int nw_irx_cd_read(int lsn, int sectors, uint8_t *dst)
 {
     size_t size = (size_t)sectors * NW_IRX_SECTOR;
@@ -668,8 +648,6 @@ static void _CdStreamStart(int startsec, int readptr, uint8_t *writeptr, int fil
     iop.cd_done = nw_cd_time(datfile, startsec + readptr / NW_IRX_SECTOR, 0, nw_spu2_cycle());
 }
 
-/* An unaligned head or a sub-sector tail goes through cd_buffer, whole sectors straight to the target; at the end of
-   the file the read wraps to 0x30, past the header (looping streams). */
 static void _CdHandleEvent(void)
 {
     int local = 0;
@@ -749,8 +727,7 @@ static void cdend11(int moo)
     irx.endfunc_load(1);
 }
 
-/* A loop read wrapped: the end's two block flags are cleared so the voice runs on. With under two blocks left the
-   IRX writes before its buffer; not here (nor in cdend12). */
+/* The end's block flags are cleared so the voice runs on; under two blocks the IRX writes before its buffer. */
 static void cdend10(int moo)
 {
     STREAMDATA *s = &irx.StreamBuffer[irx.cd_stream];
@@ -778,8 +755,7 @@ static void cdend12(int moo)
     irx.endfunc_load(1);
 }
 
-/* Reads the next Size bytes of slot i's file into its IOP buffer, then endfunc: a loop (LoopInfo 0) wraps to the
-   file's start, a one-shot (1) or a resident sample reads what is left. */
+/* A loop (LoopInfo 0) wraps to the file's start, a one-shot (1) or a resident sample reads what is left. */
 static int LoadDataFromDisk(int i, int Size, void (*endfunc)(int))
 {
     STREAMDATA *s = &irx.StreamBuffer[i];
@@ -820,8 +796,7 @@ static void nw_irx_voice_trans(uint32_t spu_addr, const uint8_t *src, uint32_t s
     iop.dma_done = nw_spu2_cycle() + (uint64_t)size / 2 * NW_SPU_DMA_WORD;
 }
 
-/* Sends the whole buffer (BufferHalf 2) or a half, block-flagged so the SPU buffer loops as a ring, then reads the
-   next half ahead; SYSTEMWAIT holds until _AdpcmDmaInt. A fully loaded file (LoopInfo 2) is sent once and plays out. */
+/* BufferHalf 2: the whole buffer; the block flags make the SPU buffer loop as a ring. */
 static int UpdateStream(int i, uint32_t Size, int BufferHalf, void (*endfunc)(int))
 {
     STREAMDATA *s = &irx.StreamBuffer[i];
@@ -866,7 +841,7 @@ static int UpdateStream(int i, uint32_t Size, int BufferHalf, void (*endfunc)(in
     return LoadDataFromDisk(i, (int)s->AllocHalfSize, endfunc);
 }
 
-/* The stream's start: the whole buffer is in SPU RAM, the key-on comes with the next handshake. */
+/* The whole buffer is in SPU RAM; the key-on comes with the next handshake. */
 static void cdend2(int moo)
 {
     (void)moo;
@@ -880,7 +855,6 @@ static void cdend1(int moo)
     UpdateStream(irx.cd_stream, irx.StreamBuffer[irx.cd_stream].AllocSize, 2, cdend2);
 }
 
-/* Keyed on, the next half read ahead: streaming. */
 static void cdend3(int moo)
 {
     STREAMDATA *s = &irx.StreamBuffer[irx.cd_stream];
@@ -905,7 +879,7 @@ static void cdend5(int moo)
     irx.StreamBusy = 0;
 }
 
-/* A resident sample is in SPU RAM: the next one goes after it, header bytes included. */
+/* The next resident sample goes after this one, header bytes included. */
 static void cdend7(int moo)
 {
     (void)moo;
@@ -923,8 +897,7 @@ static void cdend6(int moo)
     UpdateStream(irx.cd_stream, irx.StreamBuffer[irx.cd_stream].IOPBufferSize, 2, cdend7);
 }
 
-/* A resident sample's transfer (LoopInfo 0x7f) gets its own IOP buffer and goes after the resident samples; -1 when
-   the file is missing. */
+/* A resident sample's transfer (LoopInfo 0x7f) gets its own IOP buffer; -1 when the file is missing. */
 static int StartStream(int Stream, int SPUChannel, int VolL, int VolR, int StreamID, int Pitch, int LoopInfo, int AR)
 {
     STREAMDATA *s = &irx.StreamBuffer[Stream];
@@ -981,7 +954,6 @@ static int StartStream(int Stream, int SPUChannel, int VolL, int VolR, int Strea
         return -1;
     }
     if (LoopInfo != NW_IRX_SPOT && nw_irx_skip > 0.0f) {
-        /* whole ADPCM blocks at the file's rate */
         uint32_t bytes = (uint32_t)(nw_irx_skip * (float)irx.ADPCM_FileNames[FileIndex].Pitch / NW_ADPCM_SAMPLES) *
                          NW_ADPCM_BLOCK;
         if (bytes < s->FileRemainder) {
@@ -995,7 +967,6 @@ static int StartStream(int Stream, int SPUChannel, int VolL, int VolR, int Strea
     return Stream;
 }
 
-/* Queues a stream for the next ticks: bank 0x80 takes the first free slot, any other bank is the slot. */
 static int USR_StartStream(int SPUChannel, int VolL, int VolR, int StreamID, int Pitch, int LoopInfo, int AR)
 {
     int S = -1, a = (SPUChannel >> 8) & 0xff;
@@ -1048,8 +1019,7 @@ static int SpotFX_LoadAndTransfer(int ID, int Slot)
     return 0;
 }
 
-/* TransferSFX: 0 started, 1 no such ID, 2 file missing, 3 a transfer is running. The IRX scans past the 300 entries
-   for an ID of -1; the game never sends one, so here the table's end ends the bank. */
+/* TransferSFX: 0 started, 1 no such ID, 2 file missing, 3 a transfer is running. */
 static int TransferResidentSampleBank(int id, int slot)
 {
     if (irx.CD_SPOT_TRANS) {
@@ -1072,8 +1042,7 @@ static int TransferResidentSampleBank(int id, int slot)
     return 1;
 }
 
-/* The EE answered slot i's load request: read the first buffer (iStatus 2), key on and read ahead (1), or refill
-   the half the voice left (0). */
+/* iStatus 2: read the first buffer; 1: key on and read ahead; 0: refill the half the voice left. */
 static void HandleEERequest(int i)
 {
     STREAMDATA *s = &irx.StreamBuffer[i];
@@ -1111,8 +1080,7 @@ static int GetNAX(int core, int ch)
     return (int)nw_spu2_get_addr((uint16_t)(core | ch << 1 | NW_SD_VA_NAX));
 }
 
-/* Kill all (0x21), on the tick after it; the EE waits for StreamShutDown to return to 0. A CD read in flight is
-   dropped too; IOP buffers and effects stay. */
+/* Kill all (0x21), on the tick after it; the EE waits for StreamShutDown to return to 0. */
 static void SOUND_DoShutOff(void)
 {
     irx.CD_EVENT_OCCURED = 0;
@@ -1144,7 +1112,7 @@ static void SOUND_DoShutOff(void)
     irx.StreamShutDown = 0;
 }
 
-/* One stream thread tick; the CD-not-ready pause (sceCdDiskReady 6) is left out, the disc is always ready here. */
+/* The CD-not-ready pause (sceCdDiskReady 6) is left out: the disc is always ready here. */
 static void StreamADPCM(void)
 {
     if (irx.StreamShutDown) {
@@ -1163,8 +1131,7 @@ static void StreamADPCM(void)
         _CdHandleEvent();
     }
     if (irx.IOPRequestLoad != -1 && irx.StreamBuffer[irx.IOPRequestLoad].Status == 0) {
-        /* The stream went before the EE answered. The IRX also clears SPU_KeyStatus at the channel of slot 48 (its
-           loop index), past its table; left out. */
+        /* The IRX also clears SPU_KeyStatus at slot 48's channel here (past its table); left out. */
         irx.IOPRequestLoad = -1;
         irx.LoadFromEE = NW_IRX_NO_REQUEST;
         irx.SYSTEMWAIT = 0;
@@ -1178,8 +1145,7 @@ static void StreamADPCM(void)
             irx.MyCounter++;
         }
     } else if (!irx.StreamBusy) {
-        /* A slot that needs the CD asks the EE (IOPRequestLoad); its GetStatus echo starts the load next tick. A
-           failed start leaves SYSTEMWAIT set, as in the IRX. */
+        /* The EE's GetStatus echo of IOPRequestLoad starts the load; a failed start keeps SYSTEMWAIT, as in the IRX. */
         irx.LoadEECounter = irx.MyCounter;
         int i = irx.Direction ? (int)irx.UserMaxStreams - 1 : 0;
         for (int a = 0; a < (int)irx.UserMaxStreams; a++, i += irx.Direction ? -1 : 1) {
@@ -1230,14 +1196,11 @@ static void StreamADPCM(void)
     irx.Direction ^= 1;
 }
 
-/* The SPU's cycle `us` after the timer started. */
 static uint64_t nw_iop_cycle(uint64_t us)
 {
     return iop.spu_base + us * NW_IOP_HZ / 1000000;
 }
 
-/* The interrupts due by `cycle`: the drive's callback and the end of the SPU DMA (_AdpcmDmaInt); off the hardware
-   speed, both as soon as they are in flight. */
 static void nw_iop_interrupts(uint64_t cycle)
 {
     if (SDL_GetAtomicInt(&nw_irx_instant)) {
@@ -1253,8 +1216,7 @@ static void nw_iop_interrupts(uint64_t cycle)
     }
 }
 
-/* Runs the ticks due before this call, each after the interrupts due by its SPU cycle, then the SPU to now; off the
-   hardware speed a resident sample's upload then runs to its end with the SPU held. */
+/* Off the hardware speed a resident sample's upload runs to its end with the SPU held. */
 static void nw_iop_catch_up(void)
 {
     if (!iop.timer || !iop.now_us) {
@@ -1293,8 +1255,7 @@ static void AdpcmSdInit(const uint16_t *p, int length)
     irx.g_ReverbChans[0] = irx.g_ReverbChans[1] = 0;
 }
 
-/* count, then per command {cmd, nwords, data[nwords]}, all s16. String and struct commands read the data in place,
-   the others a zero-extended copy in dt[]. A batch that runs past the buffer ends (the IRX trusts the counts). */
+/* count, then per command {cmd, nwords, data[nwords]}, all s16; the IRX trusts the counts. */
 static void AdpcmSetParam(const uint16_t *jdata, size_t words)
 {
     uint16_t dt[NW_IRX_DT] = { 0 };
@@ -1391,7 +1352,7 @@ static void AdpcmSetParam(const uint16_t *jdata, size_t words)
         case 3:
             SetChannelPitch(dt[0], dt[1]);
             break;
-        case 0x20: /* a stereo pair's channels */
+        case 0x20:
             SetChannelPitch(dt[0], dt[1]);
             SetChannelPitch(dt[0] + 1, dt[1]);
             break;

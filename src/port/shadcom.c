@@ -1,5 +1,4 @@
-/* Overrides game/shadcom (port/units.toml): the shadow table and entries (they hold a material pointer) are host
-   records beside the caller's buffer, native textures stay in the file, and ShadRndr's palette becomes a CLUT. */
+/* shadcom override: the table and entries hold a material pointer, so they are host records beside the buffer. */
 #include <stddef.h>
 #include <stdint.h>
 #include <string.h>
@@ -107,8 +106,7 @@ struct shaddata_s *ShadDataLoad(char *file, union variptr_u *buffer)
     return data;
 }
 
-/* The frame's cell of the atlas, whose 4-bit texels hold four frames in their bits: palids[frame & 3] shows one bit
-   of them, put over the material texture's CLUT where retail uploads it into the stream. */
+/* The atlas's 4-bit texels hold four frames in their bits; palids[frame & 3] shows one over the CLUT. */
 void ShadRndr(struct numtx_s *mtx, struct shadentry_s *shad, f32 frame, f32 scale)
 {
     static const float corner[4][2] = { { -1.0f, 1.0f }, { 1.0f, 1.0f }, { -1.0f, -1.0f }, { 1.0f, -1.0f } };

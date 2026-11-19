@@ -1,4 +1,3 @@
-/* NuWorld's longer names beside the game's own (port/names.h). */
 #include "port/names.h"
 
 #include <stdint.h>
@@ -53,7 +52,7 @@ int nw_names_time_max(void)
     return nw_profile.long_time_names ? NW_NAMES_TIME : NW_NAMES_OWN_TIME;
 }
 
-/* Whether the longer name stands for the game's own one of width letters: own is its start, spaces after it. */
+/* The longer name stands while own is its start, with spaces after it. */
 static bool nw_names_stand(const char *longer, const char *own, size_t width)
 {
     size_t n = SDL_strlen(longer);
@@ -68,7 +67,6 @@ static bool nw_names_stand(const char *longer, const char *own, size_t width)
     return own[width] == 0;
 }
 
-/* Which set g is in: Game's, a SaveSlot's, else NULL. */
 static NwSaveNames *nw_names_set(const void *at, const struct game_s **in)
 {
     uintptr_t off = (uintptr_t)at - (uintptr_t)&SaveSlot[0][0];

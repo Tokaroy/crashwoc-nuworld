@@ -6,7 +6,7 @@
 
 #define NW_AUDIO_RATE 48000
 #define NW_AUDIO_FRAME (2 * sizeof(float))
-#define NW_AUDIO_TARGET_MS 60 /* queued ahead of the device */
+#define NW_AUDIO_TARGET_MS 60
 #define NW_AUDIO_MAX_MS 250   /* past this the queue is dropped */
 #define NW_AUDIO_TRIM 0.005f  /* the most the playback rate is nudged to hold the target */
 #define NW_AUDIO_CHUNK 256
@@ -25,7 +25,6 @@ static unsigned nw_audio_queued_ms(void)
     return (unsigned)((uint64_t)SDL_GetAudioStreamQueued(nw_audio.stream) / NW_AUDIO_FRAME * 1000 / NW_AUDIO_RATE);
 }
 
-/* After an underrun the queue starts again at the target, with silence. */
 static void nw_audio_prime(void)
 {
     static const float silence[NW_AUDIO_CHUNK * 2];

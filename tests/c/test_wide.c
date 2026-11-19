@@ -1,5 +1,3 @@
-/* src/port/wide.c: frame width, camera aspect, HUD, draw radii and clamps per picture aspect, and a request applied
-   once at a frame's end outside a load. */
 #include <math.h>
 #include <stdio.h>
 
@@ -66,7 +64,6 @@ int main(void)
     CHECK(nw_wide.width == 640 && nw_wide_width() == 640 && near(WUMPAOBJSX, -0.8f) && near(LIVESOBJSX, 0.53f));
     CHECK(near(PANELCRUNCHX, 1.01f) && near(FIREBOSSBARX, 0.65f));
 
-    /* A HUD model past the 4:3 edge is smeared by its depth as at the edge; inside it, as retail */
     PANEL3DMULX = 640.0f / 1200.0f;
     struct numtx_s hud = { ._00 = 1.0f, ._02 = 0.5f, ._11 = 1.0f, ._22 = 1.0f, ._33 = 1.0f, ._30 = 0.4f, ._32 = 1.0f };
     nw_wide_hud(&hud);
@@ -104,7 +101,6 @@ int main(void)
     CHECK(nw_wide.width == 854 && PS2_REZ_W == 640);
     nw_wide_set(4.0f / 3.0f, 16.0f / 9.0f);
 
-    /* The draw distance, on top of the widening */
     bgload_complete = 0;
     nw_wide_draw_distance(200);
     nw_wide_poll();

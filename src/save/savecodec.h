@@ -1,11 +1,4 @@
-/* The game's save records (struct game_s in its PS2 layout, little-endian) in a save document (save/savedoc.h):
-     format = 1
-     [slot.N]                the record's own fields, N = its index in the game's array, and minigame_best
-     [slot.N.options]        the options a record carries (loading a game applies them)
-     [slot.N.hub.<key>]      one per hub
-     [slot.N.level.<key>]    one per level: flags, pad, time = [[name, itime] x3]
-   Levels and hubs are keyed by a registry, not by position, so a level keeps its record whatever is added around it.
-   Encoding round-trips byte for byte; what the codec does not write stays in the document. */
+/* Levels and hubs are keyed by a registry, not by position; encoding round-trips byte for byte. */
 #ifndef NUWORLD_SAVE_SAVECODEC_H
 #define NUWORLD_SAVE_SAVECODEC_H
 
@@ -45,16 +38,13 @@
 #define NW_SAVE_POWERBITS 0x406
 #define NW_SAVE_EMPTY 0x407
 #define NW_SAVE_CUTBITS 0x408
-/* struct hub_s */
 #define NW_SAVE_HUB_SIZE 4
 #define NW_SAVE_HUB_FLAGS 0x0
 #define NW_SAVE_HUB_CRYSTALS 0x1
 #define NW_SAVE_HUB_PAD 0x2
-/* NuWorld's loading minigame best (src/gameplay/minigame.c): the top floor hub record's padding, which retail never
-   touches, written as [slot.N] minigame_best instead of that hub's pad. */
+/* The loading minigame's best lives in the top floor hub's padding, which retail never touches. */
 #define NW_SAVE_MINIGAME_HUB 5
 #define NW_SAVE_MINIGAME_BEST (NW_SAVE_HUB + NW_SAVE_MINIGAME_HUB * NW_SAVE_HUB_SIZE + NW_SAVE_HUB_PAD)
-/* struct level_s and struct time_s */
 #define NW_SAVE_LEVEL_SIZE 0x1C
 #define NW_SAVE_LEVEL_FLAGS 0x00
 #define NW_SAVE_LEVEL_PAD 0x02
@@ -67,8 +57,7 @@
 #define NW_SAVE_LANGUAGES 6
 #define NW_SAVE_VOLUME_MAX 100
 
-/* NuWorld's longer names beside a record's own (port/names.h): a game's beside its 8 letters, a time trial
-   record's beside its 3. Letters, digits and spaces; empty when the record's own name stands. */
+/* Longer names beside a record's own (port/names.h); empty when the record's own name stands. */
 #define NW_SAVE_LONG_NAME 16
 #define NW_SAVE_LONG_TIME 8
 typedef struct NwSaveNames {
@@ -76,7 +65,6 @@ typedef struct NwSaveNames {
     char time[NW_SAVE_LEVELS][NW_SAVE_TIMES][NW_SAVE_LONG_TIME + 1];
 } NwSaveNames;
 
-/* The key of each level and hub record, by its index in the record. */
 typedef struct NwSaveRegistry {
     char **levels;
     size_t level_count;
@@ -84,27 +72,21 @@ typedef struct NwSaveRegistry {
     size_t hub_count;
 } NwSaveRegistry;
 
-/* Level keys from the levels' paths ("a\\cold_a\\cold_a" -> "a/cold_a/cold_a"; a missing, empty or repeated path
-   gets "#<index>"), hubs keyed by index; false with an SDL error. */
+/* "a\\cold_a\\cold_a" -> "a/cold_a/cold_a"; a missing, empty or repeated path gets "#<index>". */
 bool nw_save_registry_init(NwSaveRegistry *reg, const char *const *paths, size_t levels, size_t hubs);
 void nw_save_registry_free(NwSaveRegistry *reg);
 
-/* The document's format key; -1 when it has none (or not an integer). */
 int64_t nw_save_format(const NwDoc *doc);
-/* Writes count records into doc as [slot.0] ..; false with an SDL error (a newer format, a key in the way). */
 bool nw_save_merge(NwDoc *doc, const NwSaveRegistry *reg, const uint8_t *games, size_t count);
-/* doc's first count slots as records: a missing slot is empty, a missing field zero. false with an SDL error. */
+/* A missing slot is empty, a missing field zero. */
 bool nw_save_decode(const NwDoc *doc, const NwSaveRegistry *reg, uint8_t *games, size_t count);
-/* Every record holds only what the game writes (texts end in a NUL, options in the menus' ranges); false with an SDL
-   error naming the field. nw_save_decode runs it; a PS2 save's games need it before they are merged. */
+/* Texts end in a NUL, options in the menus' ranges; a PS2 save's games need it before they are merged. */
 bool nw_save_check(const NwSaveRegistry *reg, const uint8_t *games, size_t count);
 
-/* names as [slot.index] long_name and [slot.index.level.<key>] long_names = [3 strings], after nw_save_merge wrote
-   the record; an empty name drops its key. false with an SDL error. */
+/* After nw_save_merge wrote the record; an empty name drops its key. */
 bool nw_save_names_merge(NwDoc *doc, const NwSaveRegistry *reg, size_t index, const NwSaveNames *names);
-/* Them back; a name that is missing, too long or holds anything but letters, digits and spaces is empty. */
+/* A name that is missing, too long or holds anything but letters, digits and spaces is empty. */
 void nw_save_names_decode(const NwDoc *doc, const NwSaveRegistry *reg, size_t index, NwSaveNames *names);
-/* Whether text is a name the codec keeps: at most max letters, digits and spaces. */
 bool nw_save_name_ok(const char *text, size_t len, size_t max);
 
 #endif

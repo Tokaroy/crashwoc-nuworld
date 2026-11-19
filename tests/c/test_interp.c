@@ -1,4 +1,3 @@
-/* Display-rate interpolation (src/gfx/interp.c): matrix blend, draw keys, pairing and blend factor. */
 #include <math.h>
 #include <stdio.h>
 #include <string.h>
@@ -27,7 +26,6 @@ static bool near(const float *a, const float *b, int n, float eps)
     return true;
 }
 
-/* A turn of angle about y, scaled by s, at (x, y, z), as NuMtxRotateY then NuMtxTranslate make it. */
 static void yaw(float m[16], float angle, float s, float x, float y, float z)
 {
     float c = cosf(angle), n = sinf(angle);
@@ -38,7 +36,6 @@ static void yaw(float m[16], float angle, float s, float x, float y, float z)
 static void test_mtx(void)
 {
     float a[16], b[16], out[16], want[16];
-    /* The ends are the matrices themselves. */
     yaw(a, 0.3f, 2.0f, 1, 2, 3);
     yaw(b, 1.2f, 1.0f, 5, 6, 7);
     nw_interp_mtx(out, a, b, 0.0f);
@@ -64,7 +61,6 @@ static void test_mtx(void)
     yaw(want, 0.4f, 1.0f, 0, 2, 0);
     want[5] = -1.0f;
     CHECK(near(out, want, 16, 1e-4f));
-    /* A projection is lerped by element. */
     memset(a, 0, sizeof(a));
     memset(b, 0, sizeof(b));
     a[11] = 1.0f;
@@ -73,7 +69,6 @@ static void test_mtx(void)
     CHECK(out[11] == 2.0f && out[0] == 0.0f);
 }
 
-/* One frame's draws of a gobj at two instance matrices and twice under one matrix on the stack. */
 static void frame(NwPacket *p, int skip_first, float x)
 {
     static float inst[2][16];
@@ -94,7 +89,7 @@ static void frame(NwPacket *p, int skip_first, float x)
         nw_interp_end(s);
     }
     for (int i = 0; i < 2; i++) {
-        nw_interp_key(i ? &inst[1] : &inst[0]); /* NW_INTERP_KEY: an object each */
+        nw_interp_key(i ? &inst[1] : &inst[0]);
         NwInterpScope s = nw_interp_begin(stack, &gobj);
         if (!(skip_first && i == 0)) {
             NwCmd *c = nw_packet_cmd(p);
@@ -123,7 +118,6 @@ static void test_keys(void)
     CHECK(a.ncmds == 6 && b.ncmds == 4);
     CHECK(a.cmds[1].key && a.cmds[1].key != a.cmds[2].key && a.cmds[3].key != a.cmds[4].key);
     CHECK(a.cmds[5].op == NW_CMD_RECT && a.cmds[5].key == 0);
-    /* The draws skipped in b leave the keys of the others as they were. */
     CHECK(b.cmds[1].key == a.cmds[2].key && b.cmds[2].key == a.cmds[4].key);
     CHECK(nw_interp_redraws(&b));
 
@@ -137,7 +131,6 @@ static void test_keys(void)
     CHECK(st.paired == 2 && st.unpaired == 0);
     CHECK(nw_interp_blend(&a, &b, 1.0f) == &b);
 
-    /* A draw on the back buffer before its clear: drawn once. */
     NwCmd first = b.cmds[0];
     b.cmds[0] = b.cmds[1];
     b.cmds[1] = first;
@@ -146,7 +139,6 @@ static void test_keys(void)
     SDL_free(b.cmds);
 }
 
-/* A slot pairs different objects at one place; after it, keys go by object again. */
 static void test_slot(void)
 {
     NwPacket p[2] = { 0 };
@@ -174,7 +166,6 @@ static void test_slot(void)
     SDL_free(p[1].cmds);
 }
 
-/* Cuts, gaps and jumps are drawn as the newer packet. */
 static void test_snaps(void)
 {
     NwPacket a = { 0 }, b = { 0 };
@@ -197,7 +188,6 @@ static void test_snaps(void)
     CHECK(!nw_interp_jump(m, m) && nw_interp_jump(m, turned));
     yaw(turned, 0.5f, 1.0f, NW_INTERP_JUMP + 1.0f, 0, 0);
     CHECK(nw_interp_jump(m, turned));
-    /* The first draw jumps away: drawn as b, the others blended. */
     b.cmds[1].local[12] += 100.0f;
     nw_interp_blend(&a, &b, 0.5f);
     NwInterpStats st = nw_interp_stats();
@@ -206,7 +196,6 @@ static void test_snaps(void)
     SDL_free(b.cmds);
 }
 
-/* A skin's palette and blend-shape weights, per joint. */
 static void test_skin(void)
 {
     NwPacket p[2] = { 0 };
@@ -246,7 +235,6 @@ static void test_skin(void)
     }
 }
 
-/* A material's UV scroll: u wraps the short way round 1, v lerps; a texture swap shows at once. */
 static void test_uv(void)
 {
     NwPacket p[2] = { 0 };

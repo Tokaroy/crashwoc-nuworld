@@ -33,8 +33,6 @@ def basename(path: str) -> str:
     return path.replace("\\", "/").rsplit("/", 1)[-1]
 
 
-# --- ELF sections and symbols ---------------------------------------------------------------------------------
-
 @dataclass
 class Section:
     index: int
@@ -65,7 +63,6 @@ class Elf:
         return self.by_name[name]
 
     def symbols(self):
-        """(name, value, info, section index) of every .symtab entry."""
         tab = next((s for s in self.sections if s.type == SHT_SYMTAB), None)
         if tab is None:
             raise GenError("the ELF has no .symtab")
@@ -74,8 +71,6 @@ class Elf:
             name, value, _size, info, _other, shndx = struct.unpack_from("<IIIBBH", tab.data, off)
             yield cstr(strs, name), value, info, shndx
 
-
-# --- VU instructions ------------------------------------------------------------------------------------------
 
 DEST, FT, FS, FD, FSF, FTF, IMM11 = 0x01E00000, 0x001F0000, 0x0000F800, 0x000007C0, 0x00600000, 0x01800000, 0x7FF
 
@@ -104,8 +99,7 @@ UPPER_SPECIAL.update({0x1C: ("MULAq", "aq"), 0x1D: ("ABS", "ftfs"), 0x1E: ("MULA
                       0x28: ("ADDA", "a"), 0x29: ("MADDA", "a"), 0x2A: ("MULA", "a"), 0x2C: ("SUBA", "a"),
                       0x2D: ("MSUBA", "a"), 0x2E: ("OPMULA", "a"), 0x2F: ("NOP", "nop")})
 
-# Lower: opcode bits 31..25; 0x40 continues in LOWER_OP (bits 5..0), whose 0x3C-0x3F continue in LOWER_SPECIAL
-# (bits 10..6 and 1..0). The form names the operands and, through LOWER_FIELDS, the bits they use.
+# Lower: opcode bits 31..25; 0x40 continues in LOWER_OP (bits 5..0), whose 0x3C-0x3F continue in LOWER_SPECIAL.
 LOWER = {0x00: ("LQ", "lq"), 0x01: ("SQ", "sq"), 0x04: ("ILW", "ilw"), 0x05: ("ISW", "ilw"),
          0x08: ("IADDIU", "imm15"), 0x09: ("ISUBIU", "imm15"),
          0x10: ("FCEQ", "fc1"), 0x11: ("FCSET", "fc0"), 0x12: ("FCAND", "fc1"), 0x13: ("FCOR", "fc1"),
@@ -210,7 +204,6 @@ def branch_target(w: int, pc: int) -> int:
 
 
 def lower(w: int, pc: int, label=lambda vu: f"0x{vu:04x}") -> str | None:
-    """Text of a lower instruction at VU address pc; label(vu) names a branch target. None as for upper()."""
     if w == LOWER_NOP:
         return "NOP"
     op = w >> 25
@@ -278,8 +271,6 @@ def instruction(lo: int, up: int, pc: int, label=lambda vu: f"0x{vu:04x}") -> st
     return None if u is None or lw is None else f"{u:<31} {lw}"
 
 
-# --- DMA tags and VIF codes -----------------------------------------------------------------------------------
-
 VIF_NAMES = {0x00: "NOP", 0x01: "STCYCL", 0x02: "OFFSET", 0x03: "BASE", 0x04: "ITOP", 0x05: "STMOD",
              0x06: "MSKPATH3", 0x07: "MARK", 0x10: "FLUSHE", 0x11: "FLUSH", 0x13: "FLUSHA", 0x14: "MSCAL",
              0x15: "MSCALF", 0x17: "MSCNT", 0x20: "STMASK", 0x30: "STROW", 0x31: "STCOL", 0x4A: "MPG",
@@ -333,7 +324,6 @@ class Package:
 
 
 def walk(pkg: Package, blob: bytes, base: int) -> list[tuple[int, int, int]]:
-    """Items of pkg (DMA tags, VIF codes, instructions undecoded); returns its MPGs as (EE, VU, count)."""
     def u32(ee):
         return struct.unpack_from("<I", blob, ee - base)[0]
     mpgs = []
@@ -390,8 +380,6 @@ def walk(pkg: Package, blob: bytes, base: int) -> list[tuple[int, int, int]]:
             raise GenError(f"{pkg.name}: VIF codes overrun the DMA packet ending at 0x{stop:x}")
     return mpgs
 
-
-# --- Mapping: packages, chunks, labels, lines -----------------------------------------------------------------
 
 @dataclass
 class Microcode:
@@ -512,11 +500,8 @@ def analyse(elf: Elf) -> Microcode:
     return Microcode(packages, errors)
 
 
-# --- Rebuilt sources ------------------------------------------------------------------------------------------
-
 def rebuild(mc: Microcode) -> None:
-    """Fills mc.sources/copies/rebuilt: each source file's lines from every package that includes it. Copies of a
-    shared .vsm must agree line by line; a label only some copies have is the including .dsm's (listings only)."""
+    """Copies of a shared .vsm must agree line by line; a label only some copies have is the including .dsm's."""
     labelled: dict[str, dict[int, list[str]]] = {}
     for pkg in mc.packages:
         bounds = sorted(pkg.lines) + [pkg.end]
@@ -571,8 +556,6 @@ def rebuild(mc: Microcode) -> None:
             else:
                 text[line] = " ".join(n + ":" for n in names) + " " + text[line]
 
-
-# --- Writers --------------------------------------------------------------------------------------------------
 
 def source_text(path: str, text: dict[int, str]) -> str:
     out = [text.get(n, "") for n in range(1, max(text) + 1)]

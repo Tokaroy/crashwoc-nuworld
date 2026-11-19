@@ -1,5 +1,4 @@
-/* The fx2 microcode's shadow volumes (ShadCyl, ShadElp, ShadPol at MSCAL 0x300, 0x302, 0x304) on the CPU, for
-   nurndr's port/units.toml overrides; quads fx2 tints +1 or -1 count into the stencil as VERTS records instead. */
+/* fx2 microcode's ShadCyl, ShadElp, ShadPol (MSCAL 0x300, 0x302, 0x304) on the CPU; quads count into the stencil. */
 #include <math.h>
 #include <string.h>
 
@@ -15,8 +14,7 @@ extern struct nucamera_s global_camera;
 extern struct nuvec_s lightfan[9];
 extern float NuTrigTable[];
 
-/* nurndr.c's; a shadow mesh's normals and points: the face's normal and its count of points, the points (the first
-   one's count the faces'). */
+/* nurndr.c's; a face's normal and point count, or a point (the first point's count is the face count). */
 struct nurndrshadface_s {
     struct nuvec_s v;
     int count;
@@ -29,7 +27,7 @@ typedef struct NwFx2Tris {
     uint32_t n, cap;
 } NwFx2Tris;
 
-static NwFx2Tris nw_fx2_tris[2]; /* the triangles counting +1 and -1 */
+static NwFx2Tris nw_fx2_tris[2]; /* [0] counts +1, [1] -1 */
 
 static struct nuvec_s nw_fx2_add(struct nuvec_s a, struct nuvec_s b)
 {
@@ -56,7 +54,6 @@ static struct nuvec_s nw_fx2_cross(struct nuvec_s a, struct nuvec_s b)
     return (struct nuvec_s){ a.y * b.z - b.y * a.z, a.z * b.x - b.z * a.x, a.x * b.y - b.x * a.y };
 }
 
-/* A point under the joint matrix (row vectors), w 1. */
 static struct nuvec_s nw_fx2_point(const struct numtx_s *m, struct nuvec_s p)
 {
     return (struct nuvec_s){ p.x * m->_00 + p.y * m->_10 + p.z * m->_20 + m->_30,
@@ -89,9 +86,7 @@ static void nw_fx2_tri(int sign, struct nuvec_s a, struct nuvec_s b, struct nuve
     }
 }
 
-/* shadtint: the quads between P[i], P[i] + light and the next pair, +1 when the camera is behind the first
-   triangle's plane by 0.01, -1 otherwise; with a cap, the zig-zag strip over P[0] .. P[n - 2] (P[n - 1] closes the
-   loop), the other way by P[0], P[1], P[2]'s plane. */
+/* shadtint: side quads +1 when the camera is behind the first triangle's plane by 0.01, else -1; cap: zig-zag strip. */
 static void nw_fx2_volume(const struct nuvec_s *p, int n, const struct nuvec_s *light, bool cap)
 {
     const struct nuvec_s cam = { global_camera.mtx._30, global_camera.mtx._31, global_camera.mtx._32 };
@@ -119,7 +114,6 @@ static void nw_fx2_volume(const struct nuvec_s *p, int n, const struct nuvec_s *
     }
 }
 
-/* The volumes so far as two VERTS records in the fx stream, counting +1 and -1. */
 static void nw_fx2_flush(void)
 {
     for (int s = 0; s < 2; s++) {
@@ -134,7 +128,7 @@ static void nw_fx2_flush(void)
     }
 }
 
-/* The shape's centre and axes under the joint matrix: the axes as differences of moved points. */
+/* The axes as differences of moved points. */
 static void nw_fx2_frame(const struct numtx_s *m, struct nuvec_s centre, struct nuvec_s ax[3], struct nuvec_s *c,
                          struct nuvec_s out[3])
 {
@@ -144,9 +138,7 @@ static void nw_fx2_frame(const struct numtx_s *m, struct nuvec_s centre, struct 
     }
 }
 
-/* ShadCyl: NRCylData's rectangle (flags & 1: NRCylCapData's, with rounded ends) at each point (a, b, c, d) put at
-   centre + y_axis * a + |y| * b + n * (c + d), n across the axis and the light, both as long as the cylinder's radius
-   in n (x_axis and z_axis along it). */
+/* ShadCyl: NRCylData's rectangle (flags & 1: NRCylCapData's) at centre + y_axis * a + |y| * b + n * (c + d). */
 void NuRndrShadowCylinderCap(struct numtx_s *mtx, struct NUCYLINDER_s *cyl, int count, struct nuvec_s *light)
 {
     const float s45 = NuTrigTable[0x2000], s135 = NuTrigTable[0x6000], s225 = NuTrigTable[0xA000];
@@ -183,8 +175,7 @@ void NuRndrShadowCylinderCap(struct numtx_s *mtx, struct NUCYLINDER_s *cyl, int 
     nw_fx2_flush();
 }
 
-/* ShadElp: NRFanData's directions about the light (lightfan, its first again) each taken into the ellipsoid's frame:
-   centre + each axis by the direction's part along it. */
+/* ShadElp: NRFanData's directions about the light (first again) taken into the ellipsoid's frame. */
 void NuRndrShadowEllipse(struct numtx_s *mtx, struct NUELLIPSOID_s *ellipse, int count, struct nuvec_s *light)
 {
     for (int i = 0; i < count; i++, ellipse++) {
@@ -206,8 +197,7 @@ void NuRndrShadowEllipse(struct numtx_s *mtx, struct NUELLIPSOID_s *ellipse, int
     nw_fx2_flush();
 }
 
-/* ShadPol: each face whose turned normal is against the light by more than 2 (light . n < -2), its points moved
-   and closed back to the first. */
+/* ShadPol: each face against the light by more than 2 (light . n < -2), its points closed back to the first. */
 void NuRndrShadowPols(struct numtx_s *mtx, struct nurndrshadface_s *face, struct nurndrshadface_s *vtx,
                       struct nuvec_s *light)
 {

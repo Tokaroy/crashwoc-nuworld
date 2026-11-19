@@ -37,8 +37,8 @@ class Item:
     dims: list[int] = field(default_factory=list)
     type: str = ""                  # pointee (ptr) or element (rec, pod) NwType symbol
     ref: str = ""                   # element record (rec, pod)
-    signed: bool = False            # addr
-    hook: str = ""                  # hook name stem
+    signed: bool = False
+    hook: str = ""
 
     @property
     def count(self) -> int:
@@ -83,8 +83,8 @@ class Gen:
         self.converted = set(self.named)
         self.annotations = annotations
         self.used: set[str] = set()
-        self.derived: dict[str, tuple] = {}     # symbol -> (spelling, kind, target or sizes)
-        self.hooks: dict[str, str] = {}         # stem -> named record
+        self.derived: dict[str, tuple] = {}
+        self.hooks: dict[str, str] = {}
         self.memo: dict[str, list[Item]] = {}
         if self.errors:
             return
@@ -325,8 +325,6 @@ class Gen:
             return (n[0], n[1]), (n[2], n[3])
         rec = self.records[self.record_of(sym)]
         return (rec["ps2"]["size"], rec["ps2"]["align"]), (rec["host"]["size"], rec["host"]["align"])
-
-    # -- rendering -----------------------------------------------------------------------------
 
     def stmt(self, i: Item, reverse: bool) -> list[str]:
         loops = LOOPS[:len(i.dims)] if i.kind in SLOTS + ("rec",) else ()

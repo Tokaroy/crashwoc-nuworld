@@ -1,4 +1,4 @@
-/* The jeep: steering, grip, speed. Both jeep levels drive the off-roader (0x99); MovePlayerJeep is unused. */
+/* Both jeep levels drive the off-roader (0x99); MovePlayerJeep is unused. */
 #ifndef NUWORLD_GAMEPLAY_JEEP_H
 #define NUWORLD_GAMEPLAY_JEEP_H
 

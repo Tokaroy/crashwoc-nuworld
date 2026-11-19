@@ -1,5 +1,4 @@
-/* EE kernel threads, semaphores and caches (nw_ee_*, port/nw_ee.h); each EE thread is a host thread passing a baton,
-   so one runs at a time and switches only where the EE kernel would (blocking or readying calls, interrupt returns). */
+/* Each EE thread is a host thread passing a baton: one runs at a time, switching only where the EE kernel would. */
 #include <setjmp.h>
 #include <stdbool.h>
 
@@ -22,7 +21,6 @@
 #define NW_EE_SEMAS 64
 #define NW_EE_ENDS 16 /* the terminations whose vblank is kept */
 
-/* struct ThreadParam of the EE kernel (game/bgload.c). */
 typedef struct NwThreadParam {
     int status;
     void (*entry)(void *);
@@ -38,7 +36,6 @@ typedef struct NwThreadParam {
     int wakeup_count;
 } NwThreadParam;
 
-/* struct SemaParam of the EE kernel (game/bgload.c). */
 typedef struct NwSemaParam {
     int count;
     int max_count;
@@ -60,7 +57,7 @@ typedef struct NwEeThread {
     bool used;
     NwEeStatus status;
     int prio;
-    int sema; /* the index it waits on */
+    int sema;
     void (*entry)(void *);
     void *arg;
     SDL_Thread *host;
@@ -68,8 +65,7 @@ typedef struct NwEeThread {
     jmp_buf exit;
 } NwEeThread;
 
-/* Thread ids are slot + 1, slot 0 being the main thread; only the baton holder changes thread states, handing over
-   through the lock. */
+/* Thread ids are slot + 1 (slot 0 is the main thread); only the baton holder changes thread states. */
 static struct {
     NwEeThread threads[NW_EE_THREADS];
     int current;  /* under lock: the slot holding the baton */
@@ -100,7 +96,7 @@ static NwEeThread *nw_ee_thread(int thid, int *error)
     return NULL;
 }
 
-/* The ready thread of the highest priority (lowest number); the running one keeps the CPU on a tie. */
+/* Highest priority is the lowest number; the running thread keeps the CPU on a tie. */
 static int nw_ee_pick(void)
 {
     int best = nw_ee.threads[nw_ee.current].status == NW_EE_READY ? nw_ee.current : -1;
@@ -138,7 +134,6 @@ static void nw_ee_switch(int next, bool wait)
     SDL_UnlockMutex(nw_ee.lock);
 }
 
-/* With nobody ready, waits for vblanks until their interrupts ready a thread. */
 static void nw_ee_run_next(bool wait)
 {
     for (;;) {
@@ -347,7 +342,6 @@ int nw_ee_StartThread(int thid, void *arg)
     return thid;
 }
 
-/* The thread's host thread leaves its stack (as the EE drops it) and is joined, so the slot is free again. */
 int nw_ee_TerminateThread(int thid)
 {
     int error;

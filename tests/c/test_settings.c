@@ -1,4 +1,3 @@
-/* settings.toml: defaults, round trips, clamps, bindings, rejected values, a file that is not TOML, kept keys. */
 #include <stddef.h>
 #include <stdio.h>
 #include <string.h>
@@ -19,7 +18,6 @@ static char root[1100];
         } \
     } while (0)
 
-/* root's settings.toml holding text. */
 static bool write_text(const char *text)
 {
     char path[1200];
@@ -27,7 +25,6 @@ static bool write_text(const char *text)
     return SDL_SaveFile(path, text, strlen(text));
 }
 
-/* The defaults with root's settings.toml holding text read over them; false when it does not load. */
 static bool read_text(const char *text, NwSettings *s)
 {
     nw_settings_defaults(s);
@@ -41,7 +38,6 @@ static bool exists(const char *name)
     return SDL_GetPathInfo(path, NULL);
 }
 
-/* root's settings.toml as text; SDL_free it. */
 static char *file_text(void)
 {
     char path[1200];
@@ -49,7 +45,6 @@ static char *file_text(void)
     return SDL_LoadFile(path, NULL);
 }
 
-/* [game.movement.<table>] key = value through settings.toml and back; s holds it after. */
 static void movement_key(const char *table, const char *key, NwSettings *s, const char *value)
 {
     char text[128], *file = NULL;
@@ -64,7 +59,6 @@ static void movement_key(const char *table, const char *key, NwSettings *s, cons
     CHECK(nw_settings_load(s, root));
 }
 
-/* offset: the field's in NwSettings. */
 static void movement_switch(const char *table, const char *key, size_t offset, bool def)
 {
     NwSettings s;
@@ -133,7 +127,6 @@ static void movement_value(const char *table, const char *key, size_t offset, in
 #define SPACE_VALUE(f, label, def, lo, hi, ...) \
     movement_value("spacefighter", #f, offsetof(NwSettings, movement.spacefighter.f), def, lo, hi);
 
-/* hardware_speed as root's settings.toml with text reads it; -1 when it does not load. */
 static int read_speed(const char *text)
 {
     NwSettings s;
@@ -210,7 +203,7 @@ int main(int argc, char *argv[])
     nw_settings_defaults(&s);
     CHECK(!s.hardware_speed);
     s.hardware_speed = true;
-    CHECK(nw_settings_load(&s, root) && s.hardware_speed); /* no file: s stays */
+    CHECK(nw_settings_load(&s, root) && s.hardware_speed);
     CHECK(nw_settings_save(&s, root));
     s.hardware_speed = false;
     CHECK(nw_settings_load(&s, root) && s.hardware_speed);
@@ -221,7 +214,6 @@ int main(int argc, char *argv[])
     CHECK(read_speed("[game]\nhardware_speed = \"true\"\n") == 0);
     CHECK(read_speed("") == 0);
 
-    /* Not TOML: moved aside, s keeps its values, and the next save starts a new file. */
     CHECK(read_speed("[game]\nhardware_speed = true\nhardware_speed = false\n") == -1);
     CHECK(exists(NW_PATHS_SETTINGS ".corrupt") && !exists(NW_PATHS_SETTINGS));
     CHECK(read_speed("[game]\nhardware_speed = yes\n") == -1);
@@ -279,7 +271,7 @@ int main(int argc, char *argv[])
     CHECK(read_text("[game]\nvehicle_hints = false\n", &s) && !s.vehicle_hints);
     CHECK(s.bug_fixes);
     CHECK(read_text("[game]\nbug_fixes = false\n", &s) && !s.bug_fixes);
-    CHECK(!s.long_time_names); /* the original's 3 letters unless asked */
+    CHECK(!s.long_time_names);
     CHECK(read_text("[game]\nlong_time_names = true\n", &s) && s.long_time_names);
     nw_settings_defaults(&s);
     CHECK(s.relic_spin);
@@ -318,7 +310,6 @@ int main(int argc, char *argv[])
           s.haze);
     CHECK(read_text("[video]\nfog = -5\n", &s) && s.fog == 0);
     CHECK(read_text("version = 2\n[video]\nfog = 250\n", &s) && s.fog == 100);
-    /* A file from before version 2 on the old defaults takes the new ones; other values stay. */
     CHECK(read_text("[game]\ncamera_stability = 100\n[video]\nfog = 100\nblur = true\nhaze = true\n", &s) &&
           s.camera_stability == 50 && s.fog == 40 && !s.blur && !s.haze);
     CHECK(read_text("[game]\ncamera_stability = 0\n[video]\nfog = 70\n", &s) && s.camera_stability == 0 &&
@@ -347,8 +338,6 @@ int main(int argc, char *argv[])
     CHECK(nw_settings_load(&s, root) && s.movement.monkey_bar_speed == 100);
     NW_CRASH_MOVEMENT(CRASH_SWITCH, CRASH_FLAG, CRASH_VALUE)
     NW_MECH_MOVEMENT(MECH_SWITCH, MECH_FLAG, MECH_VALUE)
-    /* A file from before Crash's or the mech's options that chose the PS2's movement keeps it; one with them keeps
-       theirs. */
     CHECK(read_text("[game.movement]\nmonkey_bar_speed = 100\n", &s) && !s.movement.crash.run_speed &&
           !s.movement.crash.air_jump && s.movement.crash.air_jump_ledge && s.movement.crash.run_top == 120);
     CHECK(!s.movement.mech.stand_jump && !s.movement.mech.hitbox && s.movement.mech.shot_tap &&
@@ -358,7 +347,6 @@ int main(int argc, char *argv[])
     CHECK(read_text("[game.movement]\nmonkey_bar_speed = 100\n[game.movement.mech]\naim_fast = true\n", &s) &&
           !s.movement.crash.air_jump && s.movement.mech.aim_fast && s.movement.mech.stand_jump);
     NW_COCO_MOVEMENT(COCO_SWITCH, COCO_FLAG, COCO_VALUE)
-    /* The same for Coco's. */
     CHECK(read_text("[game.movement]\nmonkey_bar_speed = 100\n", &s) && !s.movement.coco.run_speed &&
           !s.movement.coco.grip && s.movement.coco.run_top == 110);
     CHECK(read_text("[game.movement]\nmonkey_bar_speed = 100\n[game.movement.crash]\ngrip = true\n", &s) &&
@@ -369,7 +357,6 @@ int main(int argc, char *argv[])
     CHECK(read_text("[game.movement]\nmonkey_bar_speed = 350\n", &s) && s.movement.crash.jump_fall &&
           !s.movement.crash.run_speed);
     NW_SUB_MOVEMENT(SUB_SWITCH, SUB_SWITCH, SUB_VALUE)
-    /* The same for the submarine's: a retail file from before them stays retail, any other takes the defaults. */
     CHECK(read_text("[game.movement]\nmonkey_bar_speed = 100\n", &s) && !s.movement.submarine.turning &&
           !s.movement.submarine.hitbox && s.movement.submarine.speed_top == 110);
     CHECK(read_text("[game.movement]\nmonkey_bar_speed = 100\n[game.movement.crash]\ngrip = true\n", &s) &&
@@ -378,7 +365,6 @@ int main(int argc, char *argv[])
           s.movement.submarine.hitbox && !s.movement.crash.air_jump);
     CHECK(read_text("[game.movement]\nmonkey_bar_speed = 350\n", &s) && s.movement.submarine.turning);
     NW_JEEP_MOVEMENT(JEEP_SWITCH, JEEP_FLAG, JEEP_VALUE)
-    /* The same for the jeep's: a retail file from before them stays retail, any other takes the defaults. */
     CHECK(read_text("[game.movement]\nmonkey_bar_speed = 100\n", &s) && !s.movement.jeep.steering &&
           !s.movement.jeep.speed && s.movement.jeep.steer_response == 120);
     CHECK(read_text("[game.movement]\nmonkey_bar_speed = 100\n[game.movement.crash]\ngrip = true\n", &s) &&
@@ -387,7 +373,6 @@ int main(int argc, char *argv[])
           !s.movement.jeep.speed && s.movement.jeep.steering && !s.movement.crash.air_jump);
     CHECK(read_text("[game.movement]\nmonkey_bar_speed = 350\n", &s) && s.movement.jeep.steering);
     NW_ATLAS_MOVEMENT(ATLAS_SWITCH, ATLAS_FLAG, ATLAS_VALUE)
-    /* The same for the atlasphere's: a retail file from before them stays retail, any other takes the defaults. */
     CHECK(read_text("[game.movement]\nmonkey_bar_speed = 100\n", &s) && !s.movement.atlasphere.brake &&
           !s.movement.atlasphere.edge_guard && s.movement.atlasphere.guard_push &&
           s.movement.atlasphere.brake_force == 250);
@@ -398,7 +383,6 @@ int main(int argc, char *argv[])
     CHECK(read_text("[game.movement]\nmonkey_bar_speed = 350\n", &s) && !s.movement.atlasphere.edge_guard &&
           s.movement.atlasphere.brake && s.movement.atlasphere.steer_turn == 250);
     NW_FIREFLY_MOVEMENT(FIREFLY_SWITCH, FIREFLY_FLAG, FIREFLY_VALUE)
-    /* The same for the firefly's: a retail file from before them stays retail, any other takes the defaults. */
     CHECK(read_text("[game.movement]\nmonkey_bar_speed = 100\n", &s) && !s.movement.firefly.lock_on &&
           !s.movement.firefly.steering && s.movement.firefly.lock_tap && s.movement.firefly.lock_ms == 1000);
     CHECK(read_text("[game.movement]\nmonkey_bar_speed = 100\n[game.movement.crash]\ngrip = true\n", &s) &&
@@ -407,7 +391,6 @@ int main(int argc, char *argv[])
           s.movement.firefly.lock_on && !s.movement.firefly.steering && !s.movement.crash.air_jump);
     CHECK(read_text("[game.movement]\nmonkey_bar_speed = 350\n", &s) && s.movement.firefly.steering);
     NW_PLANE_MOVEMENT(PLANE_SWITCH, PLANE_FLAG, PLANE_VALUE)
-    /* The same for the plane's: a retail file from before them stays retail, any other takes the defaults. */
     CHECK(read_text("[game.movement]\nmonkey_bar_speed = 100\n", &s) && !s.movement.plane.steering &&
           !s.movement.plane.aim && s.movement.plane.push_dive && s.movement.plane.pitch_response == 200);
     CHECK(read_text("[game.movement]\nmonkey_bar_speed = 100\n[game.movement.crash]\ngrip = true\n", &s) &&
@@ -416,7 +399,6 @@ int main(int argc, char *argv[])
           s.movement.plane.steering && !s.movement.plane.aim && !s.movement.crash.air_jump);
     CHECK(read_text("[game.movement]\nmonkey_bar_speed = 350\n", &s) && s.movement.plane.steering);
     NW_SPACE_MOVEMENT(SPACE_SWITCH, SPACE_FLAG, SPACE_VALUE)
-    /* The same for the space fighter's. */
     CHECK(read_text("[game.movement]\nmonkey_bar_speed = 100\n", &s) && !s.movement.spacefighter.steering &&
           !s.movement.spacefighter.aim_assist && s.movement.spacefighter.aim_sweep &&
           s.movement.spacefighter.pitch_speed == 250);
@@ -426,7 +408,6 @@ int main(int argc, char *argv[])
           !s.movement.spacefighter.roll && s.movement.spacefighter.aim && !s.movement.crash.air_jump);
     CHECK(read_text("[game.movement]\nmonkey_bar_speed = 350\n", &s) && s.movement.spacefighter.aim_assist);
 
-    /* A file from when the rate was a setting. */
     CHECK(read_speed("[game]\nhz = 50\npal_60hz = false\nhardware_speed = true\n") == 1);
 
     float a = -1.0f;
@@ -460,7 +441,6 @@ int main(int argc, char *argv[])
     nw_settings_defaults(&s);
     CHECK(nw_settings_load(&s, root) && s.hud == 0.0f);
 
-    /* An enum by its name; another name keeps the value. */
     CHECK(read_text("[video]\nwindow = \"borderless\"\n", &s) && s.window == NW_WINDOW_BORDERLESS);
     CHECK(read_text("[video]\nwindow = \"maximised\"\n", &s) && s.window == NW_WINDOW_WINDOWED);
     s.window = NW_WINDOW_FULLSCREEN;
@@ -471,7 +451,6 @@ int main(int argc, char *argv[])
     CHECK(read_text("[video]\nvsync = \"adaptive\"\n", &s) && s.vsync == NW_VSYNC_ADAPTIVE);
     CHECK(read_text("[video]\nvsync = true\n", &s) && s.vsync == NW_VSYNC_ON);
 
-    /* The scale: auto or a number, clamped. */
     CHECK(read_text("[video]\nscale = 3\n", &s) && s.scale == 3);
     CHECK(read_text("[video]\nscale = 99\n", &s) && s.scale == NW_BACKEND_SCALE_MAX);
     CHECK(read_text("[video]\nscale = \"auto\"\n", &s) && s.scale == 0);
@@ -508,7 +487,6 @@ int main(int argc, char *argv[])
     CHECK(s.gems);
     CHECK(read_text("[video]\ngems = false\n", &s) && !s.gems);
 
-    /* A resolution: auto or WxH. */
     NwResolution res = { 1, 1 };
     CHECK(nw_settings_resolution("auto", &res) && res.w == 0 && res.h == 0);
     CHECK(nw_settings_resolution("2560x1440", &res) && res.w == 2560 && res.h == 1440);
@@ -522,7 +500,6 @@ int main(int argc, char *argv[])
           s.resolution.h == 800);
     CHECK(read_text("[video]\nresolution = \"big\"\n", &s) && s.resolution.w == 0);
 
-    /* [pad]: a name or an array of names a button, names it does not know passed over; [] unbinds. */
     CHECK(read_text("[pad]\ncross = \"east\"\ncircle = [\"south\", \"jump\", \"righttrigger\", \"south\"]\n"
                     "l2 = []\nr2 = 7\n",
                     &s));
@@ -537,11 +514,9 @@ int main(int argc, char *argv[])
           SDL_strstr(saved, "l2 = []\n") && SDL_strstr(saved, "# pad.<button>: "));
     SDL_free(saved);
 
-    /* [input]: the deadzones, clamped, and the press point, 25 % (0x40) by default. */
     CHECK(s.controls.left_deadzone == 0 && s.controls.right_deadzone == 0 && s.controls.trigger_press == 25);
     CHECK(read_text("[input]\nleft_deadzone = 15\nright_deadzone = 95\ntrigger_press = 0\n", &s) &&
           s.controls.left_deadzone == 15 && s.controls.right_deadzone == 90 && s.controls.trigger_press == 1);
-    /* The button prompts: auto by default, a style by name. */
     CHECK(s.controls.prompts == NW_PROMPTS_AUTO);
     CHECK(read_text("[input]\nprompts = \"nintendo\"\n", &s) && s.controls.prompts == NW_PROMPTS_NINTENDO);
     CHECK(nw_settings_save(&s, root));
@@ -550,7 +525,6 @@ int main(int argc, char *argv[])
     SDL_free(saved);
     CHECK(read_text("[input]\nprompts = \"gamecube\"\n", &s) && s.controls.prompts == NW_PROMPTS_AUTO);
 
-    /* [keyboard]: keys by SDL's names, the sticks' directions too. */
     CHECK(s.controls.keys[2][0] == SDL_SCANCODE_E && s.controls.keys[2][1] == SDL_SCANCODE_J);
     CHECK(read_text("[keyboard]\nsquare = [\"Left Shift\", \"no such key\"]\nright_stick_up = \"I\"\nstart = []\n",
                     &s));
@@ -567,7 +541,6 @@ int main(int argc, char *argv[])
     nw_settings_defaults(&u);
     CHECK(!nw_settings_equal(&s, &u) && nw_settings_load(&u, root) && nw_settings_equal(&s, &u));
 
-    /* A save keeps what it does not know, writes the keys' help first and leaves no .tmp. */
     NwSettings t;
     nw_settings_defaults(&t);
     s = t;

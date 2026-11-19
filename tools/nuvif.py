@@ -1,9 +1,5 @@
 #!/usr/bin/env python3
-"""Rigid triangle-list DMA as NuCvtDmaTriCFromIdx writes it (UVs on, no compressed points). A corner's w word is
-the normal's x with the ADC flag in its low half.
-
-    python tools/nuvif.py <file.ghg>...   re-encode every rigid triangle-list geom
-"""
+"""Rigid triangle-list DMA as NuCvtDmaTriCFromIdx writes it (UVs on, no compressed points)."""
 from __future__ import annotations
 
 import math
@@ -88,7 +84,6 @@ def chain(packets: list[list[Corner]]) -> bytes:
 
 
 def decode(dma: bytes) -> list[list[Corner]] | None:
-    """None for any other format."""
     out, off = [], 0
     while off + 16 <= len(dma):
         lo, addr, v0, v1 = struct.unpack_from("<4I", dma, off)

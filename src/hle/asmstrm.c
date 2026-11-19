@@ -5,8 +5,7 @@
 
 extern u8 *rndrstream_free;
 
-/* A stream holding only the NEXT tag that ended its last link starts over at free, so that the port's records leave no
-   raw packets behind. */
+/* A stream holding only the NEXT tag ending its last link restarts at free, so port records leave no raw packets. */
 void NuRndrStreamLink(struct rndrstream_s *stream)
 {
     u8 *free = rndrstream_free;

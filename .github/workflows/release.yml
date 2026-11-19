@@ -1,8 +1,6 @@
 name: release
 
-# A v* tag builds and checks everything build.yml does, then drafts the GitHub release with the packages, their
-# SHA256SUMS and a build attestation; it is published by hand. Run by hand, it is a dry run: the packages are an
-# artifact, nothing is released.
+# A v* tag drafts the release (published by hand); a manual run is a dry run, the packages only an artifact.
 on:
   push:
     tags: ["v*"]

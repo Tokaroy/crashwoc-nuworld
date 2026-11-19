@@ -1,11 +1,9 @@
-/* Builds skin DMA lists in memory as NuPs2CreateSkinDma wrote them. */
 #ifndef NUWORLD_TEST_SKIN_BUILDER_H
 #define NUWORLD_TEST_SKIN_BUILDER_H
 
 #include "vif_builder.h"
 
-/* A skin point as AddPointDataToPacket writes it: nw weights w[k] for the group's matrix slot[k], or a dupe of the
-   batch's vertex dupe - 1. */
+/* nw weights w[k] for the group's matrix slot[k], or a dupe of the batch's vertex dupe - 1. */
 typedef struct VifSkinVtx {
     float pos[3], nrm[3], uv[2];
     float w[8];
@@ -20,14 +18,14 @@ typedef struct VifSkinDelta {
     float d[3];
 } VifSkinDelta;
 
-/* NuPs2CreateSkinDma's output: the tag list, then the RET blocks its CALLs reach. */
+/* The tag list, then the RET blocks its CALLs reach. */
 typedef struct VifSkin {
     VifBuild head, body;
     bool first;
 } VifSkin;
 
 enum {
-    VIF_SKIN_MSCNT = 32,   /* kick the batch with MSCNT */
+    VIF_SKIN_MSCNT = 32,
     VIF_SKIN_COLOUR = 64,  /* STCYCL 5,3 (vertex colours) */
 };
 
@@ -67,9 +65,7 @@ static uint32_t vif_skin_tagged(float f, uint32_t low)
     return (vif_fbits(f) & ~0xFFu) | low;
 }
 
-/* One packet of n points: their runs of V4-32 pairs at TOP + 3 + 4i (a dupe an S-16 pair), the weights after
-   STCYCL 1,1 as WriteWeights writes them, the blend shapes as GenModData, then the kick (0x302 for the list's first
-   batch and after skinmod, else MSCNT). */
+/* Points at TOP + 3 + 4i (a dupe an S-16 pair); kick 0x302 for the list's first batch and after skinmod, else MSCNT. */
 static void vif_skin_batch(VifSkin *s, const VifSkinVtx *v, uint32_t n, const VifSkinDelta *deltas, uint32_t ndeltas,
                            unsigned flags)
 {
@@ -172,7 +168,6 @@ static void vif_skin_batch(VifSkin *s, const VifSkinVtx *v, uint32_t n, const Vi
     s->first = false;
 }
 
-/* Closes the last RET block, appends the list's RET and makes the CALL addresses relative to the list start. */
 static void vif_skin_end(VifSkin *s, VifBuild *out)
 {
     vif_close_tag(&s->body, 6, 0);

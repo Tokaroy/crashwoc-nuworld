@@ -208,7 +208,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           submodules: true
-      # The generators run on this Python with pip's libclang, as in the linux and tools jobs.
+      # The generators run on this Python with pip's libclang.
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"

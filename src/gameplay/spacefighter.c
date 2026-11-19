@@ -75,7 +75,6 @@ static u8 nw_space_axis(float v)
     return (u8)(a < 0 ? 0 : a > 255 ? 255 : a);
 }
 
-/* deadzone: the stick past it stretched over retail's steering range. */
 static void nw_space_stick(struct nupad_s *pad, int deadzone)
 {
     float x = pad->rdata.l_alg_x - 127.0f, y = pad->rdata.l_alg_y - 127.0f, r = sqrtf(x * x + y * y);
@@ -137,8 +136,6 @@ bool nw_space_movement(struct GLIDERSTRUCT *g, float dt)
     return true;
 }
 
-/* A target at pos moving vel a frame, led for a shot from from at speed a frame; *to its direction when nearer the
-   shot's than *best. */
 static void nw_space_target(const struct nuvec_s *from, const struct nuvec_s *dir, float speed, float reach,
                             const struct nuvec_s *pos, const struct nuvec_s *vel, float *best, struct nuvec_s *to)
 {
@@ -158,7 +155,6 @@ static void nw_space_target(const struct nuvec_s *from, const struct nuvec_s *di
     }
 }
 
-/* v turned round the unit axis k by the angle of cosine c, sine s. */
 static void nw_space_turn(struct nuvec_s *v, const struct nuvec_s *k, float c, float s)
 {
     float d = nw_space_dot(k, v) * (1.0f - c);
@@ -167,7 +163,6 @@ static void nw_space_turn(struct nuvec_s *v, const struct nuvec_s *k, float c, f
                            v->z * c + x.z * s + k->z * d };
 }
 
-/* aim_assist: a new shot bent toward the target nearest its path, the bolt turned with it. */
 static void nw_space_assist(NwBolt *b, const NwSpaceMovement *m)
 {
     float speed = sqrtf(nw_space_dot(&b->vel, &b->vel));
@@ -247,7 +242,7 @@ bool nw_space_fire(struct GLIDERSTRUCT *g, struct nupad_s *pad)
     return true;
 }
 
-/* aim_sweep: a shot whose last step passed through the sphere is put there while retail tests it. */
+/* A shot whose last step passed through the sphere is put there while retail tests it. */
 bool nw_space_collide(struct nuvec_s *pos, float radius, int32_t enemy, float yscale, int32_t debris, int32_t reflect,
                       int32_t *hit)
 {

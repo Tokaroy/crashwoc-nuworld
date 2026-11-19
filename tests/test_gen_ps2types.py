@@ -1,4 +1,3 @@
-"""gen_ps2types on tests/fixtures/mini (libclang, and clang or $CC)."""
 import copy
 import os
 import shutil

@@ -1,4 +1,3 @@
-/* A synthetic PS2 disc (no game data): an ISO9660 image and its raw 2352-byte Mode 1 / Mode 2 form. */
 #ifndef NUWORLD_TESTS_DISC_BUILDER_H
 #define NUWORLD_TESTS_DISC_BUILDER_H
 
@@ -11,14 +10,14 @@
 #include "vfs/disc.h"
 
 #define IMG_SECTORS 40
-#define LSN_ROOT 18 /* 2 sectors */
+#define LSN_ROOT 18
 #define LSN_LEVELS 20
 #define LSN_B 21
 #define LSN_HUB 22
 #define LSN_CNF 23
-#define LSN_ELF 24 /* 3 sectors */
-#define LSN_DUMMY 27 /* 2 sectors */
-#define LSN_GSC 29 /* 3 sectors */
+#define LSN_ELF 24
+#define LSN_DUMMY 27
+#define LSN_GSC 29
 #define LSN_END 32
 
 #define ELF_SIZE 5000
@@ -100,7 +99,6 @@ static inline Dir dir_begin(Image *img, uint32_t lsn, uint32_t parent, uint32_t 
     return d;
 }
 
-/* Root: DUMMY.DAT EMPTY.BIN LEVELS/ | (next sector) SLES_503.86 SYSTEM.CNF; LEVELS/B/HUB/HUB.GSC. */
 static inline void build_image(Image *img, const Spec *spec)
 {
     memset(img, 0, sizeof(*img));
@@ -152,7 +150,7 @@ static inline uint8_t bcd(unsigned v)
     return (uint8_t)(v / 10 * 16 + v % 10);
 }
 
-/* 2352-byte sectors; form2_lsn marks one sector as Mode 2 Form 2. */
+/* form2_lsn marks one sector as Mode 2 Form 2. */
 static inline uint8_t *to_raw(const Image *img, int mode, uint32_t form2_lsn, size_t *size)
 {
     static const uint8_t sync[12] = { 0, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0 };

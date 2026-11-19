@@ -1,4 +1,3 @@
-/* The .cut loader override (src/port/gcutscn.c) on a synthetic file; with `retail`, every .cut of the disc. */
 #include <float.h>
 #include <math.h>
 #include <stdint.h>
@@ -32,7 +31,6 @@ static int failures;
 static char cut_heap[8 << 20];
 static char ghg_buffer[4 << 20];
 
-/* A host record: beside the heap, never in it (src/port/heap.h). */
 #define BESIDE(p) ((char *)(p) < cut_heap || (char *)(p) >= cut_heap + sizeof(cut_heap))
 
 #define CHECK(cond) \
@@ -169,7 +167,6 @@ static void locator_fn(struct instNUGCUTSCENE_s *scene, struct NUGCUTLOCATORSYS_
     (void)scene, (void)def, (void)locator, (void)data, (void)time, (void)mtx;
 }
 
-/* Retail's second pass on the loaded records. */
 static void test_fixup(struct NUGCUTSCENE_s *def)
 {
     static struct NUGCUTLOCFNDATA_s fns[] = { { "FUNC", locator_fn }, { NULL, NULL } };
@@ -185,8 +182,7 @@ static void test_fixup(struct NUGCUTSCENE_s *def)
     NuGCutSceneSysInit(NULL);
 }
 
-/* An animated rigid (one no retail cut has) is never drawn: retail reads its draw flag from a stack word nothing
-   writes, 0 under PlayCutMovie, and a draw would go through the NULL scene here. */
+/* Retail reads an animated rigid's draw flag from a stack word nothing writes, 0 under PlayCutMovie. */
 static void test_rigid_render(struct NUGCUTSCENE_s *def)
 {
     struct NUGCUTRIGID_s *data = &def->rigiddef->rigids[0];
@@ -237,8 +233,7 @@ static void test_load(const char *scratch)
     nw_shim_file_init(&vfs);
     NuFileInitEx(1, 1);
 
-    /* Twice in a row on one heap, as LoadCutComponents loads a movie's cuts; the heap takes the image alone, as
-       retail's. */
+    /* Twice on one heap, as LoadCutComponents loads a movie's cuts. */
     union variptr_u heap, end;
     heap.charptr = cut_heap + 3;
     end.charptr = cut_heap + sizeof(cut_heap);
@@ -294,7 +289,6 @@ static void drain_gpu(void)
     SDL_free(jobs);
 }
 
-/* Every curve of an anim at each frame, and the anim's curve flags not seen in the file before. */
 static void retail_anim(const char *path, const char *file, size_t size, struct nuanimdata2_s *a,
                         const signed char **seen, unsigned *nseen)
 {
@@ -326,7 +320,6 @@ static void retail_anim(const char *path, const char *file, size_t size, struct 
     }
 }
 
-/* The .ghg of a character in the cut's folder, if there is one: its joints against the joint anim's nodes. */
 static void retail_joints(const char *path, const struct NUGCUTCHAR_s *c)
 {
     char ghg[NW_VFS_PATH_MAX];
@@ -436,9 +429,7 @@ static int retail_main(int argc, char **argv)
     return 0;
 }
 
-/* Pinned counts for every .cut; no anim is shared, as retail would relocate it twice. The reads before a first key
-   are OUTRO2's; ICEBERG's joint anim has the exporter's FLT_MAX pad as key -1's slope there (frames 1-5), which retail
-   turns into an angle that depends on its load address, on joints inside the pod. */
+/* Before-key reads are OUTRO2's; ICEBERG's joint anim has the exporter's FLT_MAX pad as key -1's slope there. */
 static int test_retail(void)
 {
     const char *dir = getenv("NUWORLD_TEST_DATA");

@@ -158,7 +158,7 @@
          plr->obj.anim.newaction = 0x4C;
      } else {
          plr->obj.anim.newaction = 0x22;
-@@ -2998,6 +3024,18 @@ void CheckPlayerEvents(struct obj_s *obj) {
+@@ -2997,6 +3023,18 @@ void CheckPlayerEvents(struct obj_s *obj) {
      }
  }
  
@@ -177,7 +177,7 @@
  void ResetPlayerEvents(void) {
      struct plrevent_s *ev;
      s32 i;
-@@ -3007,10 +3045,17 @@ void ResetPlayerEvents(void) {
+@@ -3006,10 +3044,17 @@ void ResetPlayerEvents(void) {
          ev = PlrEvent;
          for (i = 0; i < 8; i++, ev++) {
              if ((ev->spl != 0) &&

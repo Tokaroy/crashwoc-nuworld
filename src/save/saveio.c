@@ -75,8 +75,7 @@ bool nw_saveio_replace(const char *from, const char *to)
     wchar_t *b = (wchar_t *)SDL_iconv_string("UTF-16LE", "UTF-8", to, SDL_strlen(to) + 1);
     bool ok = false;
     DWORD error = ERROR_NOT_ENOUGH_MEMORY;
-    /* A scanner or another reader can briefly deny replacement on Windows. Keep the old file intact and retry
-       the same atomic operation for at most 200 ms; never fall back to deleting the destination first. */
+    /* A scanner or reader can briefly deny replacement; retry for 200 ms, never delete the destination first. */
     if (a && b) {
         for (int attempt = 0; attempt <= 20; attempt++) {
             if (MoveFileExW(a, b, MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH)) {

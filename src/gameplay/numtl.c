@@ -1,4 +1,3 @@
-/* Wraps of nu3d/numtl: the features' own materials go when retail frees its own. */
 #include "nu3d/numtl.h"
 #include "nu3d/numtl.retail.h"
 #include "gameplay/airindicator.h"

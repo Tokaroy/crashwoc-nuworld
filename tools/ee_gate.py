@@ -1,9 +1,5 @@
 #!/usr/bin/env python3
-"""Prove that the port patches leave the PS2 build unchanged.
-
-Compares the decomp's `current` objects built from the plain and the patched tree (check_codegen.py). The EE build
-never sees host-only code, so the NW_HOST blocks each concern adds are counted against port/ee_gate.toml instead.
-"""
+"""Prove that the port patches leave the PS2 build unchanged."""
 from __future__ import annotations
 
 import argparse
@@ -31,7 +27,6 @@ def in_container() -> bool:
 
 
 def host_blocks(series: Path = patches.PATCHES) -> dict[str, int]:
-    """The #ifdef / #ifndef NW_HOST blocks each concern adds."""
     concerns, _ = patches.load_series(series)
     out = {}
     for c in concerns:
@@ -56,7 +51,6 @@ def lint(series: Path = patches.PATCHES, counts: Path = COUNTS) -> list[str]:
 
 
 def exports() -> str:
-    """Returns the plain export's content hash, the key of its cached snapshot."""
     patches.apply(patches.PRISTINE, EE / "pristine", None, None)
     patches.apply(patches.PRISTINE, EE / "patched")
     stamp = json.loads((EE / "pristine" / patches.STAMP).read_text(encoding="utf-8"))
@@ -101,7 +95,6 @@ def gate(key: str) -> int:
 
 
 def forward(key: str) -> int:
-    """Re-run the build half in the decomp image, the repo at /nw and the toolchain under each export."""
     compiler = (patches.PRISTINE / "compiler").resolve()
     cmd = ["docker", "run", "--rm", "-v", f"{REPO}:/nw"]
     for side in ("pristine", "patched"):

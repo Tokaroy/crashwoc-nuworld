@@ -1,4 +1,3 @@
-"""tools/ownership.py on the synthetic decomp in tests/fixtures/mini."""
 import sys
 import tempfile
 import unittest

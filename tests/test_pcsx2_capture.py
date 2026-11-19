@@ -1,5 +1,3 @@
-"""pcsx2_capture's state reading and labels, title_frames' PNG codec and pairing, title_capture's label comparison
-(no PCSX2, no game data)."""
 import os
 import struct
 import sys

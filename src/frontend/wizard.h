@@ -1,6 +1,4 @@
-/* First-run wizard: imports the user's disc from a file dialog, a file dropped onto the window or the
-   <root>import/ folder (for the Steam Deck, where Game Mode has neither), then welcomes the player to the beta.
-   Draws with nw_ui. */
+/* <root>import/ is for the Steam Deck, where Game Mode has neither file dialogs nor drops. */
 #ifndef NUWORLD_FRONTEND_WIZARD_H
 #define NUWORLD_FRONTEND_WIZARD_H
 
@@ -11,20 +9,19 @@ extern "C" {
 #endif
 
 typedef enum NwWizardResult {
-    NW_WIZARD_OPEN,   /* keep drawing */
-    NW_WIZARD_CLOSED, /* a disc is imported, start the game */
+    NW_WIZARD_OPEN,
+    NW_WIZARD_CLOSED,
     NW_WIZARD_QUIT,
 } NwWizardResult;
 
 typedef struct NwWizard NwWizard;
 
-/* root is the data folder (with its import/ folder already created). */
+/* root's import/ folder must already exist. */
 NwWizard *nw_wizard_create(SDL_Window *window, const char *root);
 
-/* Cancels a running import and waits for it; needs the GL context still current. */
+/* Needs the GL context still current. */
 void nw_wizard_destroy(NwWizard *w);
 
-/* Handles file drops and file dialog results. */
 void nw_wizard_event(NwWizard *w, const SDL_Event *e);
 
 /* Draws one frame between nw_ui_begin and nw_ui_end. */

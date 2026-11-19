@@ -1,5 +1,4 @@
-/* EE kernel names renamed to nw_ee_* (src/shim/ee.c), since kernel32 exports CreateThread, ResumeThread,
- * TerminateThread and GetThreadId. */
+/* Renamed to nw_ee_*: kernel32 exports CreateThread, ResumeThread, TerminateThread and GetThreadId. */
 #ifndef NUWORLD_PORT_NW_EE_H
 #define NUWORLD_PORT_NW_EE_H
 

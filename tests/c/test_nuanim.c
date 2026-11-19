@@ -1,4 +1,3 @@
-/* The .ani loader override (src/port/nuanim.c) on a synthetic file; with `retail`, every .ani and .bsa. */
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -32,7 +31,6 @@ static int failures;
 static char ani_buffer[8 << 20];
 static char ghg_buffer[4 << 20];
 
-/* A host record: beside the buffer, never in it (src/port/heap.h). */
 #define BESIDE(p) ((char *)(p) < ani_buffer || (char *)(p) >= ani_buffer + sizeof(ani_buffer))
 
 #define CHECK(cond) \
@@ -99,8 +97,7 @@ static void test_load(const char *scratch)
     nw_shim_file_init(&vfs);
     NuFileInitEx(1, 1);
 
-    /* Twice in a row on one buffer, as InstAnimDataLoad loads a character's anims; the first builds the bit counts.
-       The buffer takes the image alone, as retail's. */
+    /* Twice on one buffer, as InstAnimDataLoad loads a character's anims; the first builds the bit counts. */
     CHECK(isBitCountTable == 0);
     union variptr_u buf, end;
     buf.charptr = ani_buffer + 3;
@@ -243,8 +240,7 @@ static int retail_main(int argc, char **argv)
     return 0;
 }
 
-/* Pinned counts for every .ani and .bsa. infdt == 5: Coco's slamland and flckhair have two keys on one frame, whose
-   1/0 dtime is finite on the EE FPU and gives the key's value. */
+/* infdt == 5: Coco's slamland and flckhair have two keys on one frame, whose 1/0 dtime is finite on the EE FPU. */
 static int test_retail(void)
 {
     const char *dir = getenv("NUWORLD_TEST_DATA");

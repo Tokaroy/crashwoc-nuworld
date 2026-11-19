@@ -1,4 +1,3 @@
-/* Builds .gsc geom packets in memory as NuCvtDmaTriStripCFromIdx / NuCvtDmaFaceOn wrote them. */
 #ifndef NUWORLD_TEST_VIF_BUILDER_H
 #define NUWORLD_TEST_VIF_BUILDER_H
 
@@ -16,7 +15,7 @@ typedef struct VifVtx {
 typedef struct VifBuild {
     uint8_t *buf;
     size_t len, cap;
-    size_t tag;      /* the open DMA tag */
+    size_t tag;
     bool packed;     /* positions as V4-16 against span - mid */
     float span[3], mid[3];
 } VifBuild;
@@ -64,7 +63,6 @@ static void vif_open_tag(VifBuild *b)
     }
 }
 
-/* Pads the tag's data with NOPs to a quadword and writes its id, QWC and address. */
 static void vif_close_tag(VifBuild *b, uint32_t id, uint32_t addr)
 {
     while (b->len & 15) {
@@ -75,7 +73,6 @@ static void vif_close_tag(VifBuild *b, uint32_t id, uint32_t addr)
     memcpy(b->buf + b->tag + 4, &addr, 4);
 }
 
-/* Opens the chain and writes the fan GIF tag every packet starts with. */
 static void vif_begin(VifBuild *b)
 {
     memset(b, 0, sizeof(*b));
@@ -87,7 +84,7 @@ static void vif_begin(VifBuild *b)
     vif_word(b, 0);
 }
 
-/* Compressed positions: STROW with the span's bits; batches then write V4-16 against span - mid. */
+/* STROW with the span's bits; batches then write V4-16 against span - mid. */
 static void vif_packed(VifBuild *b, const float span[3], const float mid[3])
 {
     b->packed = true;
@@ -100,7 +97,6 @@ static void vif_packed(VifBuild *b, const float span[3], const float mid[3])
     vif_word(b, 0);
 }
 
-/* Closes the open tag as CNT, or as NEXT over `gap` bytes (a multiple of 16) of 0xCD, and opens the next one. */
 static void vif_cnt(VifBuild *b)
 {
     vif_close_tag(b, 1, 0);
@@ -121,7 +117,7 @@ static void vif_next(VifBuild *b, size_t gap)
     vif_open_tag(b);
 }
 
-/* One batch of n vertices (n <= 42 as the converter writes them); adc[i] flags the strip starts. */
+/* n <= 42 as the converter writes them; adc[i] flags the strip starts. */
 static void vif_batch(VifBuild *b, const VifVtx *v, const bool *adc, uint32_t n, unsigned flags)
 {
     vif_word(b, 0x6C0180D2);
@@ -222,8 +218,7 @@ static void vif_faceon(VifBuild *b, uint32_t n)
     vif_word(b, 0x14000304);
 }
 
-/* A facey batch as NuCvtDmaFaceY writes it: the fan GIF tag at VU 0x56, then sprite i at (i, 2i, 3i), half size
-   (0.5, 1.5) and colour 0x40102030, kicked at 0x306. */
+/* The fan GIF tag at VU 0x56, then sprite i at (i, 2i, 3i), half size (0.5, 1.5), colour 0x40102030, kick 0x306. */
 static void vif_facey(VifBuild *b, uint32_t n)
 {
     vif_word(b, 0x6C010056);
@@ -261,7 +256,7 @@ static void vif_facey(VifBuild *b, uint32_t n)
     vif_word(b, 0x14000306);
 }
 
-/* Closes the chain with RET, then `stale` bytes of the packet again (the converter's leftovers). */
+/* RET, then `stale` bytes of the packet again (the converter's leftovers). */
 static void vif_end(VifBuild *b, size_t stale)
 {
     vif_close_tag(b, 6, 0);

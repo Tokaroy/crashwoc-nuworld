@@ -1,4 +1,3 @@
-/* The space fighter in Crashteroids: steering, roll, aim, aim_assist. */
 #ifndef NUWORLD_GAMEPLAY_SPACEFIGHTER_H
 #define NUWORLD_GAMEPLAY_SPACEFIGHTER_H
 

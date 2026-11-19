@@ -1,4 +1,3 @@
-/* Wraps of game/camera. */
 #include "game/creature.h"
 #include "game/gametypes.h"
 #include "game/camera.retail.h"

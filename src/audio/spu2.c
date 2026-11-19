@@ -14,7 +14,7 @@
 #define NW_SPU2_BLOCK_MASK 0xffff8u
 #define NW_SPU2_ALL_VOICES 0xffffffu
 #define NW_SPU2_FIFO 32
-#define NW_SPU2_BATCH 256 /* frames handed to the output at once */
+#define NW_SPU2_BATCH 256
 #define NW_SPU2_FIR_TAPS 39
 #define NW_SPU2_FIR_RING 64
 
@@ -22,8 +22,7 @@ static const int16_t nw_spu2_gauss[256][4] = {
 #include "audio/spu2_gauss.inc"
 };
 
-/* PCSX2's half-band filter around the reverb's 24 kHz (ReverbResample.cpp, its reference version); the way up
-   takes it doubled. */
+/* PCSX2's half-band filter for the reverb's 24 kHz (ReverbResample.cpp reference); the way up takes it doubled. */
 static const int16_t nw_spu2_fir[NW_SPU2_FIR_TAPS] = {
     -1, 0, 2, 0, -10, 0, 35, 0, -103, 0, 266, 0, -616, 0, 1332, 0, -2960, 0, 10246, 16384,
     10246, 0, -2960, 0, 1332, 0, -616, 0, 266, 0, -103, 0, 35, 0, -10, 0, 2, 0, -1,
@@ -42,7 +41,7 @@ enum {
     NW_REVB_APF1_VOL, NW_REVB_APF2_VOL, NW_REVB_IN_COEF_L, NW_REVB_IN_COEF_R, NW_REVB_VOLS
 };
 
-/* The envelope's phases (PCSX2 V_ADSR::PHASE_*). */
+/* PCSX2 V_ADSR::PHASE_* */
 enum { NW_ADSR_STOPPED, NW_ADSR_ATTACK, NW_ADSR_DECAY, NW_ADSR_SUSTAIN, NW_ADSR_RELEASE };
 
 typedef struct NwSpu2Voice {
@@ -61,15 +60,15 @@ typedef struct NwSpu2Voice {
     int32_t vol[2]; /* VOLL and VOLR as they apply, and their sweeps' counters */
     uint32_t vol_counter[2];
     NwAdpcm adpcm;
-    bool block_ready; /* the block at NAX is in pcm */
+    bool block_ready;
     int16_t pcm[NW_ADPCM_SAMPLES];
-    int16_t fifo[NW_SPU2_FIFO]; /* decoded samples by count */
+    int16_t fifo[NW_SPU2_FIFO];
 } NwSpu2Voice;
 
 typedef struct NwSpu2Core {
     NwSpu2Voice voice[NW_SPU2_VOICES];
-    uint16_t param[16]; /* core registers by register */
-    uint32_t sw[32];    /* switches by register */
+    uint16_t param[16];
+    uint32_t sw[32];
     uint32_t key_on;    /* KON and KOFF for the next sample */
     uint32_t key_off;
     uint32_t addr[4]; /* ESA, EEA, TSA, IRQA */
@@ -89,7 +88,6 @@ static struct {
 static NwSpu2Presets nw_spu2_presets;
 static SDL_AtomicInt nw_spu2_cut[2 * NW_SPU2_VOICES]; /* NW_SPU2_UNITY less the port's gain */
 
-/* nw_spu2_fade_in's, armed until the voice keys on. */
 typedef struct NwSpu2Fade {
     bool armed, on;
     uint32_t quiet, rise, at;
@@ -243,8 +241,6 @@ uint32_t nw_spu2_get_switch(uint16_t entry)
     return spu.core[entry & 1].sw[nw_spu2_reg(entry)];
 }
 
-/* Voice addresses are kept in words, block aligned; an LSAX write keeps the START flags from moving it until the
-   next key-on. */
 void nw_spu2_set_addr(uint16_t entry, uint32_t addr)
 {
     unsigned reg = (entry >> 8) & 0x3f;
@@ -318,8 +314,7 @@ static void nw_spu2_clear_work(const NwSpu2Core *c, int mode)
     }
 }
 
-/* ECHO and DELAY move six addresses by the delay and set the wall volume from the feedback (other modes: 0). The old
-   mode's area is cleared before the register writes if effects were on, the new one's after. */
+/* The old mode's area is cleared before the register writes if effects were on, the new one's after. */
 void nw_spu2_set_effect_attr(int core, const NwSpu2Effect *attr)
 {
     NwSpu2Core *c = &spu.core[core & 1];
@@ -418,9 +413,7 @@ static void nw_spu2_keys(NwSpu2Core *c)
     c->key_on = c->key_off = 0;
 }
 
-/* PCSX2 DecodeSamples: reads the block flags at NAX every sample (START latches the loop address) and stays up to 16
-   samples ahead, 4 per word; the ADPCM history carries across blocks and loops. At a block's end END sets ENDX and
-   jumps to the loop address; without REPEAT the voice ends, its address still moving. */
+/* PCSX2 DecodeSamples, up to 16 samples ahead; without REPEAT the voice ends, its address still moving. */
 static void nw_spu2_decode(NwSpu2Core *c, unsigned i)
 {
     NwSpu2Voice *v = &c->voice[i];
@@ -539,8 +532,7 @@ static int32_t nw_spu2_clamp(int32_t x)
     return x < -0x8000 ? -0x8000 : x > 0x7fff ? 0x7fff : x;
 }
 
-/* Bit 15 set: a sweep, a step a sample (PCSX2 V_VolumeSlide::Update); bits 0-6 rate, 12 phase, 13 down, 14
-   exponential. The EE sends one when surround negates a looping sound's right volume (one-shots mask it to 15 bits). */
+/* PCSX2 V_VolumeSlide::Update; the EE sweeps when surround negates a looping sound's right volume. */
 static void nw_spu2_sweep(uint16_t reg, int32_t *value, uint32_t *counter)
 {
     if (!(reg & 0x8000)) {
@@ -574,7 +566,7 @@ static void nw_spu2_sweep(uint16_t reg, int32_t *value, uint32_t *counter)
     }
 }
 
-/* One sample of every voice (PCSX2 MixVoice); dry and wet get each core's voices by their VMIX gates. */
+/* One sample of every voice (PCSX2 MixVoice). */
 static void nw_spu2_voices(int32_t dry[2][2], int32_t wet[2][2], bool mix)
 {
     for (int c = 0; c < 2; c++) {
@@ -650,8 +642,7 @@ static int32_t nw_spu2_filter(const int16_t *ring, unsigned pos, int scale)
     return nw_spu2_clamp(out >> 15);
 }
 
-/* One sample of a core's reverb (PCSX2 DoReverb): the input filtered down to 24 kHz, its left and right on
-   alternate samples through the work area, written back only with effects on, the output filtered back up. */
+/* PCSX2 DoReverb at 24 kHz, left and right on alternate samples; the work area is written only with effects on. */
 static void nw_spu2_reverb(NwSpu2Core *c, const int32_t in[2], int32_t out[2])
 {
     out[0] = out[1] = 0;
@@ -706,8 +697,7 @@ static void nw_spu2_reverb(NwSpu2Core *c, const int32_t in[2], int32_t out[2])
     out[1] = nw_spu2_filter(c->revb_up[1], pos, 2);
 }
 
-/* PCSX2 spu2Mix without input and noise: core 0's output goes through its MVOL and core 1's AVOL into core 1, core
-   1's through its MVOL out. */
+/* PCSX2 spu2Mix without input and noise: core 0 goes through its MVOL and core 1's AVOL into core 1. */
 static void nw_spu2_mix(int32_t dry[2][2], int32_t wet[2][2], int16_t out[2])
 {
     int32_t ext[2] = { 0, 0 };

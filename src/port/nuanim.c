@@ -1,5 +1,4 @@
-/* nu3d/nuanim's .ani loader (port/units.toml override): retail's NuAnimDataLoadBuff with host copies of the records
-   it fixes in place, beside the caller's buffer (src/port/heap.h); and the anim v1 walk it shares with the animlib. */
+/* .ani loader override: retail's NuAnimDataLoadBuff with host copies of the records it fixes in place. */
 #include <stddef.h>
 #include <stdint.h>
 #include <string.h>

@@ -1,5 +1,3 @@
-/* nu3d/nutexanm: a script read through nufpar steps a material's texture and the frame packet draws the new one;
-   `retail` pins the title logo's flipbook. */
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -51,7 +49,6 @@ static const char script[] = "Scriptname test\n"
                              "\tWait 3,0\n"
                              "\tGoto Main\n";
 
-/* The texture the frame packet gives the material's draw. */
 static const NwGpuTex *drawn_texture(struct numtl_s *mtl)
 {
     nw_rndr_cmd(&mtl->rs, NW_CMD_DRAW)->mesh = (const NwGpuMesh *)(uintptr_t)1;
@@ -122,8 +119,7 @@ static char retail_buffer[4 << 20];
 static int retail_steps[13]; /* the tick on which the logo shows each frame */
 static int retail_bad;
 
-/* On the game thread, as LoadCutMovie(0) and PlayCutMovie: title.ats from ATS.DAT, the logo, then signal 1 (the
-   first boot's texanimbits) every tick. */
+/* As LoadCutMovie(0) and PlayCutMovie: signal 1 (the first boot's texanimbits) every tick. */
 static int retail_main(int argc, char **argv)
 {
     (void)argc;

@@ -1,5 +1,4 @@
-/* libpad: the NuPs2OpenPad / NuPs2ReadPad state machine in nups2/ps2ctl.c. Port 0 is a DualShock 2 in analog mode
-   with pressure, already set up, so every request completes at once; port 1 has no controller. */
+/* Port 0 is a DualShock 2 set up in analog mode with pressure, so requests complete at once; port 1 is empty. */
 #include "shim/shim.h"
 
 #include <stdbool.h>
@@ -147,8 +146,7 @@ int scePadInfoAct(int port, int slot, int actno, int term)
     return nw_pad_live(port, slot) && actno == -1 ? NW_PAD_ACTUATORS : 0;
 }
 
-/* term 1 and 2: the current id and extended id; 3: the current mode's offset; 4: the mode count (offs -1) or the
-   id of mode offs (digital 4, DualShock 7). */
+/* term 1/2: id/extended id; 3: current mode offset; 4: mode count (offs -1) or id of mode offs (digital 4, DS2 7). */
 int scePadInfoMode(int port, int slot, int term, int offs)
 {
     if (!nw_pad_live(port, slot)) {

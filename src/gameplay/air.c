@@ -80,7 +80,6 @@ static float nw_air_gravity(const NwAirShape *s, float v, bool cut)
     return NW_AIR_HANG + (s->fall - NW_AIR_HANG) * nw_air_ramp((-v - s->hang_v) / s->ramp_v);
 }
 
-/* A held jump on flat ground, frame by frame as the game flies it. */
 static void nw_air_fly(const NwAirShape *s, float launch, int cut, float *apex, float *time)
 {
     float dt = nw_air_dt(), y = 0.0f, vy = launch * dt;
@@ -195,8 +194,7 @@ void nw_air_loop(const struct creature_s *plr, float forward)
     }
 }
 
-/* air_jump: retail's double jump (case 3 in MoveCRASH) wants a released first jump, a slow fall and the power;
-   fake what it lacks, undo it after if it still refused. */
+/* Retail's double jump (case 3 in MoveCRASH) wants a released first jump, a slow fall and the power. */
 void nw_air_before(struct creature_s *plr, const struct nupad_s *pad)
 {
     const NwCrashMovement *c = nw_foot(plr);

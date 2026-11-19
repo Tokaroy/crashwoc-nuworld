@@ -1,4 +1,3 @@
-/* [video] gems: the materials of the gems, crystals and relics, and what each of their layers is. */
 #ifndef NUWORLD_GFX_GEM_H
 #define NUWORLD_GFX_GEM_H
 
@@ -12,8 +11,7 @@ typedef enum NwGemKind {
     NW_GEM_RELIC,
 } NwGemKind;
 
-/* body: the stone, drawn by the gem programs; metal: a relic's body, the same; hide: a layer the body replaces;
-   keep: drawn as the PS2. */
+/* body/metal: drawn by the gem programs; hide: a layer the body replaces; keep: drawn as the PS2. */
 typedef enum NwGemRole {
     NW_GEM_KEEP,
     NW_GEM_BODY,
@@ -23,7 +21,7 @@ typedef enum NwGemRole {
 
 typedef struct NwGemInfo {
     uint8_t kind, role;
-    float tint[3]; /* the material's diffuse */
+    float tint[3];
 } NwGemInfo;
 
 /* Game thread. A level's materials go with it: reset before its own are added. */

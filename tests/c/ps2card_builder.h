@@ -1,5 +1,3 @@
-/* Synthetic PS2 memory card images (no game data) as save/ps2card.c reads them: a root, one folder of files. gap
-   leaves that many free clusters after each allocated one, so chains are not contiguous. */
 #ifndef NUWORLD_TESTS_PS2CARD_BUILDER_H
 #define NUWORLD_TESTS_PS2CARD_BUILDER_H
 
@@ -12,9 +10,9 @@
 #define PCB_PAGE 512
 #define PCB_PPC 2
 #define PCB_CLUSTER (PCB_PAGE * PCB_PPC)
-#define PCB_CLUSTERS 256 /* on the card */
+#define PCB_CLUSTERS 256
 #define PCB_IFC 8        /* the indirect FAT cluster */
-#define PCB_FAT 9        /* the FAT cluster */
+#define PCB_FAT 9
 #define PCB_ALLOC 16     /* the first file cluster */
 #define PCB_FREE 0x7FFFFFFFu
 #define PCB_END 0xFFFFFFFFu
@@ -42,7 +40,6 @@ static inline uint32_t pcb_rd32(const uint8_t *p)
     return (uint32_t)p[0] | (uint32_t)p[1] << 8 | (uint32_t)p[2] << 16 | (uint32_t)p[3] << 24;
 }
 
-/* File cluster n's FAT entry. */
 static inline uint8_t *pcb_fat(Pcb *m, uint32_t n)
 {
     return m->c[PCB_FAT] + 4 * n;
@@ -71,7 +68,6 @@ static inline void pcb_init(Pcb *m, uint32_t gap)
     }
 }
 
-/* len bytes (at least one cluster) in a new chain; returns its first file cluster. */
 static inline uint32_t pcb_alloc(Pcb *m, const void *data, size_t len)
 {
     uint32_t first = m->next, prev = PCB_END;
@@ -91,7 +87,6 @@ static inline uint32_t pcb_alloc(Pcb *m, const void *data, size_t len)
     return first;
 }
 
-/* Entry index of the directory whose chain starts at file cluster first. */
 static inline uint8_t *pcb_entry_at(Pcb *m, uint32_t first, int index)
 {
     uint32_t c = first, at = (uint32_t)index * 512;
@@ -110,7 +105,6 @@ static inline void pcb_entry(uint8_t *e, uint16_t mode, uint32_t length, uint32_
     strncpy((char *)e + 0x40, name, 32);
 }
 
-/* The card: the root holding the folder dir, which holds the n files. */
 static inline void pcb_build(Pcb *m, uint32_t gap, const char *dir, int n, const char *const *names,
                              const void *const *data, const size_t *lens)
 {
@@ -127,7 +121,6 @@ static inline void pcb_build(Pcb *m, uint32_t gap, const char *dir, int n, const
     pcb_entry(root, 0x8427, 3, 0, ".");
     pcb_entry(root + 512, 0x8427, 0, 0, "..");
     pcb_entry(root + 1024, 0x8427, (uint32_t)n + 2, folder_cluster, dir);
-    /* the directories again, over their chains */
     for (uint32_t i = 0, c = root_cluster; i < 2; i++, c = pcb_rd32(pcb_fat(m, c)) & 0x7FFFFFFFu) {
         memcpy(m->c[PCB_ALLOC + c], root + i * PCB_CLUSTER, i ? sizeof(root) - PCB_CLUSTER : PCB_CLUSTER);
     }
@@ -142,7 +135,6 @@ static inline void pcb_build(Pcb *m, uint32_t gap, const char *dir, int n, const
     free(folder);
 }
 
-/* The image, malloc'd: pages with a zero ECC when ecc. */
 static inline uint8_t *pcb_image(const Pcb *m, bool ecc, size_t *size)
 {
     size_t stride = PCB_PAGE + (ecc ? 16 : 0);

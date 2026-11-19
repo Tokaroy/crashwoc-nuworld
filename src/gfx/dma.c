@@ -1,5 +1,3 @@
-/* The packet writers of nups2/ps2dma, asmdma and vu1man that the boot reaches (port/units.toml), unsent until M3, and
-   the scratchpad allocator. */
 #include <stdint.h>
 #include <string.h>
 
@@ -22,7 +20,7 @@ static void *nw_dmatag(void *packet, uint32_t id, uint32_t addr, uint32_t vif0, 
     return p + 4;
 }
 
-/* VIF DIRECT, its quadword count left for vtCloseDirect; irq sets the interrupt bit. */
+/* The quadword count is left for vtCloseDirect; irq sets the interrupt bit. */
 void *vtBeginDirect(void *packet, uint32_t irq)
 {
     uint32_t *p = packet;
@@ -93,7 +91,6 @@ void *vpDmaTag_RepointCopy(void *packet, void *tag, uint32_t addr)
     return p + 4;
 }
 
-/* Pads to a quadword with zero words and writes the quadwords after the open tag into its QWC. */
 void *vpDmaTag_Close(void *packet)
 {
     uint32_t *p = packet;
@@ -104,7 +101,7 @@ void *vpDmaTag_Close(void *packet)
     return p;
 }
 
-/* Resets VU1 and uploads its microcode: the renderer's (M3). */
+/* Retail resets VU1 and uploads its microcode: the renderer's job here. */
 void NuPs2InitVU(void)
 {
 }
@@ -112,8 +109,7 @@ void NuPs2InitVU(void)
 static _Alignas(16) unsigned char nw_scratch[NW_SCRATCH_SIZE];
 static unsigned char *nw_scratch_ptr = nw_scratch;
 
-/* A stack, as retail's on the scratchpad: each block is followed by the cursor before it, which NuScratchRelease
-   returns to. */
+/* A stack as retail's: each block is followed by the cursor before it, which NuScratchRelease returns to. */
 void *NuScratchAlloc32(uint32_t size)
 {
     unsigned char *previous = nw_scratch_ptr;

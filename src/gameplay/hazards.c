@@ -23,8 +23,7 @@ static bool nw_hazards_mech(const struct obj_s *obj)
     return obj == &Character[0].obj && nw_profile.movement.mech.hitbox && nw_mech_driving(&Character[0]);
 }
 
-/* Only what can hurt the player while he can't hurt it, so his own reach stays; the circle or the box, in XZ. Crash's
-   scale it, the mech's lose what the mech's own radius loses. */
+/* Only what can hurt the player while he can't hurt it, so his own reach stays. */
 void nw_hazards_shrink(struct obj_s *obj)
 {
     nw_hazards_count = 0;

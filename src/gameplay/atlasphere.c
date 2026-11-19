@@ -21,14 +21,12 @@ extern s32 Level;
 #define NW_ATLAS_NO_FLOOR 2000000.0f
 /* Kill floor (CheckAtlasGround). */
 #define NW_ATLAS_KILL_FLOOR 3
-/* Deeper than this below the slope counts as a pit. */
 #define NW_ATLAS_PIT_DROP 1.0f
 /* Gap the guard leaves at the edge, and how fast it backs off there. */
 #define NW_ATLAS_RIM 0.1f
 #define NW_ATLAS_BACK 0.05f
 #define NW_ATLAS_COS45 0.70710678f
 
-/* A pit at (dx, dz) from the ball: no floor, a deep drop, or a kill floor.  */
 static bool nw_atlas_pit(const struct NEWBUGGY *a, float dx, float dz)
 {
     struct nuvec_s p = { a->ball_pos.x + dx, a->ball_pos.y, a->ball_pos.z + dz };
@@ -47,8 +45,7 @@ static bool nw_atlas_pit(const struct NEWBUGGY *a, float dx, float dz)
     return ground - y > NW_ATLAS_PIT_DROP || ShadowInfo() == NW_ATLAS_KILL_FLOOR;
 }
 
-/* edge_guard: brakes toward a pit ahead unless the stick pushes into it. Braking by speed / look-ahead makes the
-   ball ease to a stop just short of the edge. */
+/* Braking by speed / look-ahead makes the ball ease to a stop just short of the edge. */
 static void nw_atlas_guard(const struct NEWBUGGY *a, const NwAtlasMovement *m, float push, float dt, float *ex,
                            float *ez)
 {
@@ -83,10 +80,9 @@ void nw_atlas_move(struct NEWBUGGY *a, float dt)
     }
     float push = Level == NW_ATLAS_ARENA ? NW_ATLAS_ARENA_PUSH : NW_ATLAS_PUSH;
     float vx = a->ball_vel.x, vz = a->ball_vel.z, speed = sqrtf(vx * vx + vz * vz);
-    float ex = 0.0f, ez = 0.0f; /* extra force */
+    float ex = 0.0f, ez = 0.0f;
     float ux = speed > 0.0f ? vx / speed : 0.0f, uz = speed > 0.0f ? vz / speed : 0.0f;
-    float along = a->ball_force.x * ux + a->ball_force.z * uz; /* push along the roll */
-    /* steer: more push across the roll, speed kept. */
+    float along = a->ball_force.x * ux + a->ball_force.z * uz;
     if (m->steer && speed > 0.0f) {
         float share = (m->steer_turn - 100) / 100.0f;
         float sx = (a->ball_force.x - ux * along) * share, sz = (a->ball_force.z - uz * along) * share;
@@ -97,7 +93,6 @@ void nw_atlas_move(struct NEWBUGGY *a, float dt)
             ez += (tz * speed / t - vz) / dt;
         }
     }
-    /* brake: more push against the roll, plus let-go braking; never reverses. */
     if (m->brake && speed > 0.0f) {
         float slow = along < 0.0f ? -along * (m->brake_force - 100) / 100.0f : 0.0f;
         if (a->inputmag == 0.0f) {

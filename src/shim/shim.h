@@ -1,5 +1,4 @@
-/* Stand-ins for the sce* and EE kernel calls of the decomp's "shim" units; unimplemented ones go to the stub telemetry
-   as unit "sdk". */
+/* Unimplemented sce* and EE kernel calls report to the stub telemetry as unit "sdk". */
 #ifndef NUWORLD_SHIM_SHIM_H
 #define NUWORLD_SHIM_SHIM_H
 
@@ -11,16 +10,13 @@
 
 struct NwVfs;
 
-/* src/shim/libc.c: the newlib reent block (rand's seed, errno) as retail starts with it. */
 void nw_newlib_init(void);
 
-/* src/shim/file.c: sets the file system of the sce file calls (NULL: every open fails), closing what is open. */
+/* NULL makes every open fail; closes what is open. */
 void nw_shim_file_init(const struct NwVfs *vfs);
-/* That file system (the port's NuDat* reads overlaid archive entries from it). */
 const struct NwVfs *nw_shim_file_vfs(void);
 
-/* src/shim/pad.c: the DualShock 2 on port 0. Buttons are active-high libpad bits, sticks 0x00-0xFF centred on 0x80
-   (y down), l2/r2 the trigger pressure. */
+/* Buttons are active-high libpad bits; sticks 0x00-0xFF centred on 0x80 (y down); l2/r2 the trigger pressure. */
 #define NW_PAD_L2 0x0001u
 #define NW_PAD_R2 0x0002u
 #define NW_PAD_L1 0x0004u
@@ -44,15 +40,14 @@ typedef struct NwPadInput {
     uint8_t l2, r2;
 } NwPadInput;
 
-/* Any thread: the pad the game reads from now on. Until the first call it is idle. */
+/* Any thread; the pad stays idle until the first call. */
 void nw_pad_set(const NwPadInput *in);
 /* Any thread: the motors the game set last, the small one 0 or 1, the big one 0-255. */
 void nw_pad_motors(uint8_t *small, uint8_t *big);
-/* The frame scePadRead gives for `in`. */
 struct nupadframe_s;
 void nw_pad_frame(const NwPadInput *in, struct nupadframe_s *data);
 
-/* src/shim/ee.c. The return from an interrupt: the best ready EE thread runs. */
+/* The return from an interrupt: the best ready EE thread runs. */
 void nw_ee_schedule(void);
 /* A yield point of the threads other than main (file reads): delivers the vblanks due. */
 void nw_ee_yield(void);

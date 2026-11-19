@@ -1,12 +1,5 @@
 #!/usr/bin/env python3
 """Diff the PAL boot ELF (SLES_503.86, 50 Hz) against the US one (SLUS_202.38, 60 Hz), telling rates from the rest.
-
-At 50 Hz a tick's amounts are x6/5 (x36/25 per tick squared) and tick counts x5/6.
-  functions [--disasm NAME]  literals, immediates and structure per function
-  data                       .data/.sdata/.rodata values per symbol
-  check [--decomp DIR]       decomp built with NW_HZ's NTSC values vs the US ELF, its PAL values vs the PAL ELF
-  table [--check]            writes the rate fields as src/port/hz_table.inc
-ntsc_diff_known.txt names: func:<unit>/<name> (structure), func:<unit>/<name>+0x<off>, data:<symbol>+0x<off>|+size.
 """
 from __future__ import annotations
 
@@ -89,8 +82,7 @@ def rate_int(pal: int, ntsc: int) -> bool:
 
 
 class Known(ps2_diff.Known):
-    """ntsc_diff_known.txt: "regex  # reason" is a difference on purpose, no rate; "+regex" a rate the ratios miss;
-    "-regex" no rate although the ratio fits."""
+    """ntsc_diff_known.txt: "regex  # reason" on purpose, no rate; "+regex" a rate the ratios miss; "-regex" no rate."""
 
     def __init__(self, path: Path | None):
         self.rules, self.rate, self.not_rate = [], [], []
@@ -106,7 +98,6 @@ class Known(ps2_diff.Known):
         return any(p.search(name) for p, _ in self.rate)
 
     def classify(self, name: str, cls: str) -> str:
-        """cls after the + and - rules."""
         if cls == "review" and self.is_rate(name):
             return "rate"
         if cls == "rate" and any(p.search(name) for p, _ in self.not_rate):
@@ -114,12 +105,9 @@ class Known(ps2_diff.Known):
         return cls
 
 
-# -- code ----------------------------------------------------------------------------------------------------------
-
 @dataclass(frozen=True)
 class Val:
-    """A value an instruction carries: a literal it loads (f32, f64, word with its 8-byte context) or an
-    immediate (imm, the lui form hi)."""
+    """A literal an instruction loads (f32, f64, word with its 8-byte context) or an immediate (imm, lui form hi)."""
     kind: str
     bits: int
     ctx: bytes = field(default=b"", compare=False)
@@ -135,7 +123,7 @@ class Val:
 
 
 def classify(a: Val, b: Val) -> str:
-    """rate or review, PAL value a against NTSC value b. Displacements and frame sizes are never a rate."""
+    """Displacements and frame sizes are never a rate."""
     if a.kind != b.kind or a.kind in ("off", "frame"):
         return "review"
     if a.kind == "f32" or (a.kind == "hi" and plausible_f32(a.bits) and plausible_f32(b.bits)):
@@ -151,8 +139,7 @@ def classify(a: Val, b: Val) -> str:
 
 @dataclass
 class Code:
-    """One function as tokens, nops left out (the assemblers place them differently): what must agree (shape)
-    and the value each instruction carries."""
+    """One function as tokens, nops left out (the assemblers place them differently)."""
     name: str
     unit: str
     addr: int
@@ -242,7 +229,7 @@ class Site:
     pal: Val | None
     ntsc: Val | None
     cls: str
-    index: int = 0  # the token in a
+    index: int = 0
 
 
 @dataclass
@@ -254,7 +241,6 @@ class Diff:
 
 
 def compare(a: Code, b: Code) -> Diff:
-    """a's values against b's, over the instructions whose shapes line up (difflib) when the code differs."""
     d = Diff(a.name, a.unit)
     if a.shape == b.shape:
         pairs = [(i, i) for i in range(len(a.shape))]
@@ -272,8 +258,6 @@ def compare(a: Code, b: Code) -> Diff:
 
 
 class Elf:
-    """A linked ELF's functions as tokens: lui/%lo and $gp pairs from declib.code_refs."""
-
     def __init__(self, path: Path, funcs: list[dict] | None = None, objects: list[tuple[int, int, str]] | None = None):
         self.sections, self.symbols, _ = read_elf(path.read_bytes())
         self.by_name = {s["name"]: s for s in self.sections}
@@ -303,7 +287,6 @@ class Elf:
         return i >= 0 and self.objects[i][0] <= addr < self.objects[i][1]
 
     def target(self, addr: int) -> tuple[str, int] | None:
-        """The data symbol or function addr points into, and how far."""
         i = bisect.bisect_right(self.objects, (addr, 1 << 32, "")) - 1
         if i >= 0 and self.objects[i][0] <= addr < self.objects[i][1]:
             return self.objects[i][2], addr - self.objects[i][0]
@@ -410,12 +393,10 @@ class Obj:
 
 
 def unit_of(decomp: Path) -> dict[int, str]:
-    """PAL function address -> its decomp unit."""
     return {f.address: u.name for u in nwunits.load_registries(decomp, VERSION) for f in u.functions}
 
 
 def pairs(pal: Elf, us: Elf) -> tuple[list[tuple[dict, dict]], list[str], list[str]]:
-    """Functions of both ELFs by name (a repeated name by its order), and those only one has."""
     def by_name(elf: Elf) -> dict[str, list[dict]]:
         out: dict[str, list[dict]] = {}
         for f in elf.funcs:
@@ -446,7 +427,6 @@ def unvram(lines: list[str]) -> list[str]:
 
 
 def report(d: Diff, known: Known, out: list[str], counts: Counter) -> bool:
-    """d's lines on out, known parts only counted; True when something unknown is left."""
     left = False
     head = f"{d.unit or '?'} {d.name}:"
     lines = []
@@ -501,11 +481,8 @@ def cmd_functions(args) -> int:
     return 0
 
 
-# -- data ----------------------------------------------------------------------------------------------------------
-
 @dataclass
 class Field:
-    """A differing data value at off (a float, or an aligned 1, 2 or 4-byte int); addr is the symbol's PAL address."""
     symbol: str
     off: int
     size: int
@@ -520,8 +497,7 @@ class Field:
 
 
 def data_fields(name: str, a: bytes, b: bytes, pal: Elf, us: Elf) -> list[Field]:
-    """Per differing word: a float, else the widest aligned unit holding the changed bytes whose values are a rate
-    (word, halfword, then each byte), else the narrowest one, for review."""
+    """Per differing word: a float, else the widest aligned unit whose values are a rate, else the narrowest."""
     out = []
     for off in range(0, len(a) - len(a) % 4, 4):
         x, y = struct.unpack_from("<I", a, off)[0], struct.unpack_from("<I", b, off)[0]
@@ -557,8 +533,7 @@ def data_fields(name: str, a: bytes, b: bytes, pal: Elf, us: Elf) -> list[Field]
 
 
 def data_diff(pal: Elf, us: Elf) -> tuple[list[Field], list[str], int]:
-    """Fields of same-named, same-sized data symbols that differ (a repeated name paired in address order, the
-    second as name#1); the symbols whose size differs; the names left out because the ELFs repeat them unequally."""
+    """A repeated name is paired in address order, the second as name#1."""
     def objs(elf: Elf) -> dict[str, list[dict]]:
         out: dict[str, list[dict]] = {}
         for s in elf.symbols:
@@ -600,7 +575,6 @@ SOUND_KEEP = ((0x18, 4), (0x22, 2))  # its path and id: PAL's extra sounds move 
 
 
 def sound_pairs(a: bytes, b: bytes) -> list[tuple[int, bytes, bytes]]:
-    """A sound table PAL extended, entry by entry under the same name: (PAL offset, PAL entry, US entry)."""
     names = {}
     for off in range(0, len(b), SOUND):
         names.setdefault(b[off:off + 16].split(b"\0")[0], b[off:off + SOUND])
@@ -652,7 +626,6 @@ def c_float(bits: int) -> str:
 
 
 def table_lines(fields: list[Field]) -> list[str]:
-    """One NW_HZ_F32 or NW_HZ_INT per rate field; an int narrowed to its changed bytes (1, 2 or 4)."""
     out = []
     for f in fields:
         if f.kind == "f32":
@@ -697,14 +670,11 @@ def cstr(elf: Elf, addr: int) -> bytes:
     return s["data"][addr - s["addr"]:].split(b"\0")[0]
 
 
-# -- check: the decomp built for EE with either value of NW_HZ -------------------------------------------------------
-
 def in_container() -> bool:
     return Path("/.dockerenv").exists()
 
 
 def cmd_compile(args) -> int:
-    """In the decomp image: every unit, PAL (no define) and NTSC (-DNW_HZ_NTSC), into --out."""
     patches.link_compiler(args.decomp)
     sys.path.insert(0, str(args.decomp / "tools"))
     import cc

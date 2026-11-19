@@ -26,7 +26,6 @@ static int nw_stub_continue(void)
     return mode;
 }
 
-/* Counts a hit; true for the site's first, which also numbers it and puts it on the list. */
 static bool nw_stub_record(NwStubSite *site)
 {
     if (__atomic_fetch_add(&site->hits, 1, __ATOMIC_RELAXED) != 0) {

@@ -1,4 +1,3 @@
-/* frontend/presence.c: each screen's details, images and state, the state's order, the names' title case. */
 #include <stdio.h>
 #include <string.h>
 
@@ -32,7 +31,7 @@ static NwPresenceSnap snap(int level, const char *name)
     return s;
 }
 
-/* s's activity; every field fits Discord's 2-128 or is left out, and the whole fits a frame. */
+/* Every field fits Discord's 2-128 or is left out, and the whole fits a frame. */
 static NwActivity act(const NwPresenceSnap *s)
 {
     NwActivity a;

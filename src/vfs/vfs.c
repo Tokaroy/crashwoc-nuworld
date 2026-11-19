@@ -16,7 +16,7 @@ struct NwVfsFile {
 typedef struct NwVfsScan {
     NwVfsMount *mount;
     size_t cap;
-    char rel[NW_VFS_PATH_MAX]; /* directory being scanned, relative to the mount */
+    char rel[NW_VFS_PATH_MAX];
     size_t rel_len;
 } NwVfsScan;
 
@@ -47,7 +47,7 @@ bool nw_vfs_map(const char *game_path, NwVfsDevice *device, char out[NW_VFS_PATH
         p = colon + 1;
     }
 
-    /* Components between '\' or '/'; empty ones are dropped. cdrom0: names lose their ";1" version. */
+    /* Empty components are dropped; cdrom0: names lose their ";1" version. */
     for (;;) {
         p += strspn(p, "\\/");
         size_t len = strcspn(p, "\\/");
@@ -257,7 +257,6 @@ char *nw_vfs_resolve(const NwVfs *vfs, const char *game_path)
     return NULL;
 }
 
-/* What an overlay never replaces: the boot ELF, SYSTEM.CNF, the IRX modules and DUMMY.DAT. */
 static bool nw_vfs_fixed(const char *key)
 {
     size_t len = SDL_strlen(key);
@@ -274,7 +273,7 @@ static bool nw_vfs_fixed(const char *key)
 static bool nw_vfs_check_overlay(const NwVfs *vfs, void (*conflict)(void *user, const char *key), void *user)
 {
     const NwVfsMount *m = &vfs->mounts[NW_VFS_OVERLAY];
-    NwVfs disc; /* the disc alone, so an archive's entries are the disc's; a view, never shut down */
+    NwVfs disc; /* a view of the disc mount alone, never shut down */
     SDL_zero(disc);
     disc.mounts[NW_VFS_DISC] = vfs->mounts[NW_VFS_DISC];
     NwDat dat;

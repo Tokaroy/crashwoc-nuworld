@@ -6,14 +6,13 @@
 #include "platform/input.h"
 
 #define NW_CONTROL_PANEL_PAD 8   /* the gamepad column, in font sizes */
-#define NW_CONTROL_PANEL_KEYS 20 /* the keyboard's */
+#define NW_CONTROL_PANEL_KEYS 20 /* the keyboard column, in font sizes */
 
 static struct {
     int target; /* listened for, -1 none */
     bool keys;
 } nw_control_panel = { -1, false };
 
-/* The sources' labels, "-" for none. */
 static const char *nw_control_panel_names(const uint16_t *binds, bool keys, char *buf, int size)
 {
     buf[0] = '\0';
@@ -25,7 +24,6 @@ static const char *nw_control_panel_names(const uint16_t *binds, bool keys, char
     return buf[0] ? buf : "-";
 }
 
-/* Target i's bindings in one column as a button that listens for a new one. */
 static void nw_control_panel_cell(uint16_t (*binds)[NW_CONTROL_BINDS], int i, bool keys)
 {
     char names[96], label[128];

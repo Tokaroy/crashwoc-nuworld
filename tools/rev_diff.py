@@ -126,9 +126,7 @@ def listing_obj(obj: nd.Obj, f: dict) -> list[str]:
 
 
 def sound_ids(ref: nd.Elf, tgt: Target) -> set[tuple[int, int]]:
-    """(PAL v1.03's number, the target's) of each sound both executables' tables name alike. A sound's number is
-    its row in SfxTabGLOBAL, or the global rows plus its row in its level's table; PAL's extra language rows give the
-    same sound another number."""
+    """A sound's number is its row in SfxTabGLOBAL, or the global rows plus its row in its level's table."""
     starts = sorted({b for b, _ in tgt.data_ref.values()})
     tables = {}
     for lo, hi, name in ref.objects:
@@ -234,14 +232,12 @@ CREDIT_ROW = re.compile(r'\{ (?:"([^"]*)"|0), (-?\d+), (-?\d+) \}')
 
 
 def text_tables(decomp: Path) -> dict[str, list[int]]:
-    """The dimensions of each language table in game/text."""
     text = (decomp / "src" / "game" / "text.c").read_text(encoding="latin-1")
     return {m[1]: [int(d) for d in re.findall(r"\d+", m[2])] for m in TEXT_TABLE.finditer(text)}
 
 
 def english(dims: list[int] | None, off: int) -> bool:
-    """Whether a table's pointer at off is its English text: the language is the last index when it has 6,
-    else the first."""
+    """Whether a table's pointer at off is its English text: the last index when it has 6, else the first."""
     if not dims or 6 not in (dims[0], dims[-1]):
         return True
     i = off // 4
@@ -251,7 +247,6 @@ def english(dims: list[int] | None, off: int) -> bool:
 
 
 def data_units(decomp: Path) -> dict[str, str]:
-    """PAL v1.03's data symbols of the units NuWorld compiles, with their unit."""
     import tomllib
     compiled = {u.index: u.name for u in nwunits.load(decomp).units if u.treatment == "compile"}
     doc = tomllib.loads((decomp / "config" / "pal103" / "data_symbols.toml").read_text(encoding="utf-8"))
@@ -270,8 +265,7 @@ def credit_rows(decomp: Path) -> list[tuple[bytes | None, int, int]]:
 
 
 class Late:
-    """PAL v1.03's data as NuWorld's late game holds it: src/port/rev.c's values and strings over it, and at
-    60 Hz the 60 Hz table (src/port/hz_table.inc)."""
+    """PAL v1.03's data with src/port/rev.c's values and strings over it, and at 60 Hz src/port/hz_table.inc."""
 
     def __init__(self, ref: nd.Elf, shapes: dict[str, list[int]], ntsc: bool):
         self.ref = ref
@@ -346,8 +340,6 @@ def credit_changes(tgt: Target, at: int, rows: list[tuple]) -> list[tuple[nd.Fie
 
 def data_changes(late: Late, tgt: Target, units: dict[str, str], shapes: dict[str, list[int]],
                  credits: list[tuple], sounds: set[tuple[int, int]]) -> list[tuple[nd.Field, str]]:
-    """Each value of NuWorld's late data that differs from the target's, with its class: review, rate, sound
-    (the same sound under the target's number) or language (a text PAL keeps in its other languages)."""
     ref = late.ref
     starts = sorted({b for b, _ in tgt.data_ref.values()})
     out = []
@@ -472,8 +464,7 @@ def compile_units(decomp: Path, units: list[str]) -> None:
 
 
 def not_run(decomp: Path) -> set[tuple[str, str]]:
-    """(unit, function) of the retail code NuWorld never runs: a NuWorld definition, a stub or nothing takes its
-    calls (port/units.toml); a wrapped function's retail body still runs."""
+    """(unit, function) of the retail code NuWorld never runs; a wrapped function's retail body still runs."""
     model = nwunits.load(decomp)
     return {(u.name, re.sub(r"__[0-9a-f]{8}$", "", f.name)) for u in model.units for f in u.functions
             if f.provider != "decomp" and not f.wrapped}

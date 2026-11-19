@@ -51,7 +51,7 @@ struct nugscn_s *NuGScnLoadFix(void);
 void NuRndrInitWorld(void);
 void NuHGobjRndr(void *hobj, struct numtx_s *mtx, int nlayers, short *layer);
 
-/* DrawWorld's lights (SetLevelLights' level branch), roots of the data image. */
+/* DrawWorld's lights (SetLevelLights' level branch). */
 extern struct nucolour3_s lcol[3];
 extern struct nuvec_s ldir[3];
 extern struct nuvec_s acol;
@@ -78,7 +78,7 @@ static int nw_scene_cmp(const void *a, const void *b)
     return (x > y) - (x < y);
 }
 
-/* A point of an object placed by an instance (row vector times the row-major matrix). */
+/* Row vector times the row-major matrix. */
 static void nw_scene_place(const struct numtx_s *m, const float p[3], float out[3])
 {
     const float *r = &m->_00;
@@ -87,8 +87,7 @@ static void nw_scene_place(const struct numtx_s *m, const float p[3], float out[
     }
 }
 
-/* The camera behind the median visible instance, looking down at it (outliers and skydomes only set the far clip);
-   returns the extent of the instances. */
+/* Behind the median visible instance; outliers and skydomes only set the far clip. */
 static float nw_scene_frame(const struct nugscn_s *sc, NwSceneInfo *info)
 {
     float lo[3] = { INFINITY, INFINITY, INFINITY }, hi[3] = { -INFINITY, -INFINITY, -INFINITY };
@@ -159,8 +158,7 @@ static void nw_scene_count(const struct nugobj_s *gobj, NwSceneInfo *info, float
     }
 }
 
-/* A character: the camera in front of its skin points, or of its box (rigid characters, and the box is loose for
-   some skinned ones); objects are its gobjs and skin objects. Returns its extent. */
+/* In front of the skin points, or of the box (rigid characters; the box is loose for some skinned ones). */
 static float nw_scene_frame_ghg(const struct NUHGOBJ_s *h, NwSceneInfo *info)
 {
     memset(info, 0, sizeof(*info));
@@ -232,13 +230,11 @@ void nw_scene_load(const char *path)
     SDL_UnlockMutex(nw_scene_mutex);
 }
 
-/* What the viewer draws: a scene, or a character (.ghg) at the origin in its default pose. */
 typedef struct NwSceneOpen {
     struct nugscn_s *sc;
     struct NUHGOBJ_s *hobj;
 } NwSceneOpen;
 
-/* Both NULL when there is nothing to draw. */
 static void nw_scene_open(NwSceneOpen *o, char *buf, char *end, char *path, struct nucamera_s *cam, float farclip)
 {
     if (o->sc) {
@@ -307,8 +303,7 @@ int nw_scene_main(int argc, char **argv)
     NuFntClose();
     struct nucamera_s *cam = NuCameraCreate();
     float farclip = cam->farclip;
-    /* The key lookup of the instance animations, which retail builds in the load screen's NuAnimDataLoadBuff before
-       any scene. */
+    /* The instance animations' key lookup, which retail builds in the load screen's NuAnimDataLoadBuff. */
     buildBitCountTable();
     NwSceneOpen o = { NULL, NULL };
     struct numtx_s origin;

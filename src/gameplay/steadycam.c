@@ -33,7 +33,7 @@ float nw_steadycam_follow(NwSteadyCam *s, float x, float y, float z, bool standi
     return y + (s->floor - y) * (float)stability / 100.0f;
 }
 
-/* Crash or Coco on foot, alive, under the game's own camera (mode -1: the level's first frame). */
+/* cam mode -1 is the level's first frame. */
 static bool nw_steadycam_on(const struct cammtx_s *cam, const struct obj_s *obj)
 {
     return nw_profile.camera_stability > 0 && obj == &player->obj && cam->mode != -1 && !obj->dead &&

@@ -1,5 +1,3 @@
-/* The .ter loader override (src/port/terrain.c) on a synthetic file and under terraininit; with `retail`, every .ter
-   over its level scene. */
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -40,7 +38,6 @@ extern TerrainSetType *CurTerr;
 static int failures;
 static _Alignas(16) char ter_heap[1 << 20];
 
-/* A host record: beside the buffer, never in it (src/port/heap.h). */
 #define BESIDE(p) ((char *)(p) < ter_heap || (char *)(p) >= ter_heap + sizeof(ter_heap))
 static TerrainSetType ter_set;
 static TerrainSituType ter_terr[0x800];
@@ -58,8 +55,6 @@ static WallSplineType *next_wall(WallSplineType *w)
     return ((WallSplineType **)w)[-1];
 }
 
-/* ReadTerrain on its own: objects into terr[], the walls as host copies beside the untouched image, and the store
-   past the records, where retail's leaves it. */
 static void test_read(const GscBuild *b, const TerFile *f)
 {
     memset(&ter_set, 0, sizeof(ter_set));
@@ -93,8 +88,6 @@ static void test_read(const GscBuild *b, const TerFile *f)
     CHECK(ReadTerrain("missing", 0, &store, &ter_set) == -1 && store == keep);
 }
 
-/* terraininit around it: the set and terr[] as host records beside the heap, which takes their PS2 size, then the
-   file, the objects grouped and the platform bound to its instance; casts onto the floor of the static object. */
 static void test_init(const TerFile *f)
 {
     static struct nuinstance_s inst[1];
@@ -130,8 +123,7 @@ static void test_init(const TerFile *f)
     struct nuvec_s from = { 10.5f, 2.0f, 0.5f }, down = { 0.0f, -3.0f, 0.0f }, part = { 0.0f, -1.0f, 0.0f };
     CHECK(NewRayCast(&from, &down, 0.1f) != 0 && NewRayCast(&from, &part, 0.1f) == 0);
 
-    /* A handle scan, as the crates and vehicles cast with: in TempScanStack, none started 100 slots from its end.
-       A cast that hits leaves its velocity at the impact, so each gets its own. */
+    /* A cast that hits leaves its velocity at the impact, so each gets its own. */
     struct nuvec_s scan = { 0.0f, -3.0f, 0.0f }, hit = scan, miss = part;
     NewScanInit();
     short *handle = NewScanHandel(&from, &scan, 0, NULL, 0.1f);
@@ -143,7 +135,6 @@ static void test_init(const TerFile *f)
     NewScanInit();
 }
 
-/* The scratchpad stack: 4-aligned blocks, each released to the cursor before it. */
 static void test_scratch(void)
 {
     char *a = NuScratchAlloc32(10), *b = NuScratchAlloc32(0x930), *c = NuScratchAlloc32(4);
@@ -249,7 +240,6 @@ static void drain_gpu(void)
     SDL_free(jobs);
 }
 
-/* Down-casts over a grid spanning the level's static objects: the ground under each point, and a sweep onto it. */
 static void retail_casts(const TerrainSetType *set)
 {
     float lo[2] = { 1e9f, 1e9f }, hi[2] = { -1e9f, -1e9f };
@@ -359,8 +349,6 @@ static int retail_main(int argc, char **argv)
     return 0;
 }
 
-/* Every .ter loads over its scene to the pinned counts: platforms bound to a visible instance, no level has
-   crash data, and a sweep onto every ground point a down-cast finds hits it, also through a handle scan. */
 static int test_retail(void)
 {
     const char *dir = getenv("NUWORLD_TEST_DATA");

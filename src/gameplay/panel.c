@@ -1,5 +1,3 @@
-/* Wraps of game/panel: Crunch Time's boss bar and the hub Crunch's prompt, which DrawPanel ends with its debris, the
-   boss heads, and the loading minigame without its LOADING. */
 #include "nu_types.h"
 #include "game/gametypes.h"
 #include "game/panel.retail.h"

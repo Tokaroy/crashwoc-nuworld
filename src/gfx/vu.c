@@ -20,9 +20,9 @@ static const char nw_vu_vs[] =
     "layout(location = 5) in uvec4 a_joint0;\n"
     "layout(location = 6) in uvec4 a_joint1;\n"
     "layout(location = 7) in uvec2 a_nrmjoint;\n" /* the normal's joint, the delta count */
-    "layout(location = 8) in uint a_delta;\n"     /* the first delta */
+    "layout(location = 8) in uint a_delta;\n"
     "uniform samplerBuffer u_pool;\n"             /* the packet's palettes, a matrix as its four rows */
-    "uniform samplerBuffer u_weights;\n"          /* the packet's blend-shape weights */
+    "uniform samplerBuffer u_weights;\n"
     "uniform samplerBuffer u_deltas;\n"           /* the geom's deltas: x, y, z, shape */
     "uniform int u_joints;\n"                     /* the draw's first row */
     "uniform ivec2 u_blend;\n"                    /* the draw's first weight and their count */
@@ -64,8 +64,7 @@ static const char nw_vu_vs[] =
     "#endif\n"
     "void main()\n"
     "{\n"
-    /* ptl.vsm: entry k = rate * t (t = time - birth) gives the corner offsets in GS units before the divide, lerped to
-       the next but the colour not; dead before birth or past entry 62.9. */
+    /* ptl.vsm: entry rate * (time - birth) gives corner offsets (GS units), lerped; dead before birth or past 62.9. */
     "#if PARTICLE\n"
     "    const int strip[6] = int[6](0, 1, 2, 1, 2, 3);\n"
     "    int corner = strip[gl_VertexID];\n"
@@ -92,8 +91,7 @@ static const char nw_vu_vs[] =
     "    uvec2 st = uv[corner].y == 0 ? corners.xy : corners.zw;\n"
     "    v_uv = vec2(st & 0x3FFFu) * u_sprite.zw;\n"
     "    v_col = vec4(u_ptl[4 + 2 * i] & 0xFFu);\n"
-    /* A fading particle often cannot pass AREF at all. Reject its primitive before rasterizing that pass, rather
-       than sampling the texture over a large near-camera quad just to discard every fragment. */
+    /* A fading particle often cannot pass AREF: reject its primitive rather than discard every fragment of it. */
     "    int lo = min(int(v_col.a) * u_texalpha.x / 128, 255);\n"
     "    int hi = min(int(v_col.a) * u_texalpha.y / 128, 255);\n"
     "    bool anypass, allpass;\n"
@@ -122,8 +120,7 @@ static const char nw_vu_vs[] =
     "    v_uv = a_tex.xy;\n"
     "    v_col = a_col;\n"
     "#elif PROGRAM == SKIN || PROGRAM == SKINXUV || PROGRAM == SKNGLASS || PROGRAM == SKNGEM\n"
-    /* skinmod.vsm, then skin.vsm: the weights are not normalised, and the normal turns under the heaviest joint alone.
-       skin lights the material diffuse without vertex colour; skinxuv and sknglass work as trixuv and triglass. */
+    /* skinmod.vsm, skin.vsm: weights are not normalised; the normal turns under the heaviest joint alone. */
     "    vec3 q = a_pos;\n"
     "    for (uint k = 0u; k < a_nrmjoint.y && u_blend.y > 0; k++) {\n"
     "        vec4 d = texelFetch(u_deltas, int(a_delta + k));\n"
@@ -157,8 +154,7 @@ static const char nw_vu_vs[] =
     "    v_uv *= u_vu[0].z;\n"
     "#endif\n"
     "#endif\n"
-    /* water.vsm, wateruv.vsm: the normal's y picks the wave; water takes the material colour and the frame copy (in the
-       fragment program), wateruv its vertex colour and texcoords. */
+    /* water.vsm (material colour, frame copy), wateruv.vsm (vertex colour, texcoords); normal's y picks the wave. */
     "#elif PROGRAM == WATER || PROGRAM == WATERUV\n"
     "    vec4 wave = u_wave[int(a_tex.z) & 31];\n"
     "    gl_Position = u_lv * vec4(a_pos.x, a_pos.y + wave.w, a_pos.z, 1.0);\n"
@@ -178,8 +174,7 @@ static const char nw_vu_vs[] =
     "    v_col = a_col;\n"
     "    v_uv = (a_tex.xy + u_uvoff.zw) / 4096.0;\n"
     "#elif PROGRAM == TRIXUV || PROGRAM == TRIGLASS\n"
-    /* trixuv.vsm: the material colour unlit, the texcoords the normal in the UV matrix (specular, environment).
-       triglass.vsm: those times VU 0x14.z, to which the fragment program adds the frame copy at the vertex's pixel. */
+    /* trixuv.vsm: material colour, texcoords = normal in the UV matrix; triglass.vsm: those times VU 0x14.z. */
     "    gl_Position = u_lv * vec4(a_pos.xyz, 1.0);\n"
     "    vec3 n = vec3(a_pos.w, a_tex.zw / 4096.0);\n"
     "    v_col = u_diffuse;\n"
@@ -215,7 +210,7 @@ static const char nw_vu_fs[] =
     "uniform usampler2D u_clut;\n"
     "uniform sampler2D u_surf;\n"
     "uniform sampler2D u_depth;\n" /* a depth CLUT's: the target's Z */
-    "uniform usampler2D u_zpal;\n" /* its entries */
+    "uniform usampler2D u_zpal;\n"
     "uniform uvec4 u_zclut;\n"     /* shift, base, far, near */
     "uniform uvec3 u_zclear;\n"    /* NuLightFogClear: on, the two Z */
     "uniform int u_zalpha;\n"      /* its alpha alone over the texture's */
@@ -346,8 +341,7 @@ static const char nw_vu_fs[] =
     "void main()\n"
     "{\n"
     "    vec4 c = clamp(floor(v_col + 1.0 / 256.0), 0.0, 255.0);\n"
-    /* The frame-copy texcoords (water's size in VU 0x15.zw, the glass offset in VU 0x14.xy), per pixel rather than per
-       vertex as the VU, so they hold on vertices the GPU's clipping makes. */
+    /* Per pixel rather than per vertex as the VU, so the frame-copy texcoords hold on vertices GPU clipping makes. */
     "#if PROGRAM == WATER || PROGRAM == TRIGLASS || PROGRAM == SKNGLASS\n"
     "    vec2 gs = gl_FragCoord.xy * u_frag.xy + u_frag.zw;\n"
     "#if PROGRAM == WATER\n"
@@ -389,8 +383,6 @@ static const char nw_vu_fs[] =
     "    o_col = vec4(u_ascolour != 0 ? vec3(c.a / 128.0) : c.rgb / 255.0, c.a / 128.0);\n"
     "}\n";
 
-/* [video] gems (gfx/gem.h): cut stone over the copied target, or a relic's metal, under a studio that turns with the
-   camera. */
 static const char nw_gem_fs[] =
     "in vec3 v_wpos;\n"
     "in vec3 v_wnrm;\n"
@@ -438,7 +430,7 @@ static const char nw_gem_fs[] =
     "    return (smoothstep(soft, 0.985, d) * 0.6 + smoothstep(hot, 0.997, d) * 2.4) * shine;\n"
     "}\n"
     "\n"
-    /* A studio that turns with the camera: a floor, a sky warmer to the left and tinted by the level, three soft boxes. */
+    /* A camera-turned studio: a floor, a sky warmer to the left and tinted by the level, three soft boxes. */
     "vec3 studio(vec3 d, vec3 level)\n"
     "{\n"
     "    vec3 v = vec3(dot(d, u_cam[0]), dot(d, u_cam[1]), dot(d, u_cam[2]));\n"
@@ -482,7 +474,6 @@ static const char nw_gem_fs[] =
     "    vec3 dome = P - (u_world * vec4(0.0, 0.0, 0.0, 1.0)).xyz;\n"
     "    dome = dot(dome, dome) > 0.0 ? normalize(dome) : Ng;\n"
     "    float NdotV = clamp(dot(Ng, V), 0.0, 1.0);\n"
-        /* the level's colour around the stone */
     "    float r = u_viewport.w * 0.06;\n"
     "    vec2 lo = u_viewport.xy + 1.0, hi = u_viewport.xy + u_viewport.zw - 2.0;\n"
     "    vec3 level = (backdrop(clamp(gl_FragCoord.xy + vec2(r, 0.0), lo, hi)) +\n"
@@ -1008,7 +999,7 @@ void nw_vu_attribs(void)
     glVertexAttribPointer(2, 4, GL_UNSIGNED_BYTE, GL_FALSE, stride, (const void *)offsetof(NwVifVertex, col));
 }
 
-/* The weights as FTOI15 integers, the joints and the delta range as integers. */
+/* The weights as FTOI15 integers. */
 void nw_vu_skin_attribs(void)
 {
     const GLsizei stride = sizeof(NwVifSkinVertex);

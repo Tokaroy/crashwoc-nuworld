@@ -1,4 +1,3 @@
-/* Rich Presence's view of the game (frontend/presence.h), copied at each swap. */
 #ifndef NUWORLD_PORT_PRESENCE_H
 #define NUWORLD_PORT_PRESENCE_H
 

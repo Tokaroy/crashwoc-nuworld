@@ -1,4 +1,3 @@
-"""ntsc_diff's classes, tokens, alignment and data fields on synthetic MIPS words (no ELF, no game data)."""
 import struct
 import sys
 import tempfile

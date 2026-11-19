@@ -1,4 +1,3 @@
-/* Crash on beveled edges: edge_grip. */
 #ifndef NUWORLD_GAMEPLAY_EDGES_H
 #define NUWORLD_GAMEPLAY_EDGES_H
 

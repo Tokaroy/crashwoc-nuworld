@@ -1,4 +1,3 @@
-/* F1's Saves > Import from PS2 card. Main thread. */
 #ifndef NUWORLD_FRONTEND_SAVEIMPORT_H
 #define NUWORLD_FRONTEND_SAVEIMPORT_H
 

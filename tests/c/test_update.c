@@ -1,4 +1,3 @@
-/* platform/update.c: the tag in GitHub's release JSON and the version order. */
 #include <stdio.h>
 
 #include <SDL3/SDL.h>

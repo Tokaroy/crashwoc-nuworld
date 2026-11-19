@@ -1,4 +1,3 @@
-/* [game] camera_stability: how much of a jump the game camera follows, from the PS2's (0) to none (100). */
 #ifndef NUWORLD_GAMEPLAY_STEADYCAM_H
 #define NUWORLD_GAMEPLAY_STEADYCAM_H
 
@@ -13,7 +12,7 @@ typedef struct NwSteadyCam {
     float x, y, z; /* last frame's position */
 } NwSteadyCam;
 
-/* The height the camera sees for a body at x, y, z this frame; standing on a floor or hanging it is y. */
+/* Returns y while standing on a floor or hanging. */
 float nw_steadycam_follow(NwSteadyCam *s, float x, float y, float z, bool standing, int stability);
 
 /* Around MoveGameCamera: obj is seen at that height, then put back. */

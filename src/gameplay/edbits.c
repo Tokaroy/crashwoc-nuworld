@@ -1,4 +1,3 @@
-/* Wraps of gamelib/edbits */
 #include "nu_types.h"
 #include "numath/numathtypes.h"
 #include "gamelib/edbits.retail.h"

@@ -1,4 +1,3 @@
-/* Desktop exit through the real menu navigation and confirmation guards, without game assets. */
 #include <stdio.h>
 
 #include <SDL3/SDL.h>
@@ -66,7 +65,6 @@ int main(void)
                 CHECK(!quit_event());
                 CHECK(cursor.menu == (menu == 0 ? 34 : 35) && cursor.y == 1);
                 CHECK(new_level == -1 && new_mode == -1);
-                /* No is the default; confirming it restores the exit row. */
                 cursor.item_frame = 1;
                 ProcMenu(&cursor, &pad);
                 CHECK(cursor.menu == menu && cursor.y == cursor.y_max && !quit_event());
@@ -88,14 +86,12 @@ int main(void)
     ProcMenu(&cursor, &pad);
     CHECK(Game.language == 3 && !quit_event());
 
-    /* Wrap from the first row to exit, with confirm in the same input frame. */
     cursor = open_menu(0);
     cursor.y = 0;
     pad.paddata_db = 0x1040;
     ProcMenu(&cursor, &pad);
     CHECK(cursor.menu == 34 && cursor.y == 1 && !quit_event());
 
-    /* Moving off exit while confirming still performs the destination action. */
     cursor = open_menu(3);
     pause_dir = 0;
     pad.paddata_db = 0x4040;
@@ -127,7 +123,6 @@ int main(void)
     ProcMenu(&cursor, NULL);
     CHECK(!quit_event());
 
-    /* All supported languages: cancel/back returns to the originating menu. */
     for (int language = 0; language < 6; language++) {
         for (int menu = 0; menu <= 3; menu += 3) {
             cursor = open_menu(menu);
@@ -150,7 +145,6 @@ int main(void)
     CHECK(cursor.menu == 0 && cursor.y == cursor.y_max && !quit_event());
     nw_rev = 0;
 
-    /* Options and unrelated menus keep their retail bounds. */
     cursor = open_menu(4);
     CHECK(cursor.y_max == 4); /* autosave before DONE */
     cursor = open_menu(8);

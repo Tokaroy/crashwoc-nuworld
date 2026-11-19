@@ -1,5 +1,3 @@
-/* gen/nw_convert.c on random bytes for every record: nw_xr(nw_x(b)) == b, host values, bitfields, nw_xoff and
-   nw_xoff_host per leaf, the path of a fatal error; a converter with a fatal hook only has to fail. */
 #include <inttypes.h>
 #include <setjmp.h>
 #include <stdio.h>
@@ -230,7 +228,6 @@ static void verify(const NwTestType *t, const unsigned char *ps2, const unsigned
     }
 }
 
-/* Marks the host bits the leaves of t own. */
 static void cover(const NwTestType *t, unsigned char *mask)
 {
     for (unsigned i = 0; i < t->nleaves; i++) {
@@ -289,7 +286,6 @@ static void check_offsets(const NwTestType *t)
     }
 }
 
-/* Poisons the first data pointer under t, depth first; path gets its expected field path. */
 static int poison(const NwTestType *t, unsigned char *ps2, char *path, size_t size)
 {
     size_t n = strlen(path);

@@ -18,7 +18,6 @@ const char *const nw_control_prompt_keys[NW_PROMPT_STYLES] = { "auto",     "xbox
 const char *const nw_control_prompt_labels[NW_PROMPT_STYLES] = { "Auto",     "Xbox",       "PlayStation",
                                                                   "Nintendo", "Steam Deck", "Keyboard" };
 
-/* By SDL_GamepadButton. */
 static const NwControlTarget nw_controls_buttons[SDL_GAMEPAD_BUTTON_COUNT] = {
     { "south", "South" },
     { "east", "East" },
@@ -51,7 +50,6 @@ static const NwControlTarget nw_controls_buttons[SDL_GAMEPAD_BUTTON_COUNT] = {
 static const NwControlTarget nw_controls_triggers[] = { { "lefttrigger", "Left trigger" },
                                                         { "righttrigger", "Right trigger" } };
 
-/* By target. */
 static const uint16_t nw_controls_pad_defaults[NW_CONTROL_BUTTONS] = {
     1 + SDL_GAMEPAD_BUTTON_SOUTH,
     1 + SDL_GAMEPAD_BUTTON_EAST,
@@ -71,7 +69,7 @@ static const uint16_t nw_controls_pad_defaults[NW_CONTROL_BUTTONS] = {
     1 + SDL_GAMEPAD_BUTTON_DPAD_RIGHT,
 };
 
-/* By target; WASD is the left stick, the right stick has none. */
+/* WASD is the left stick, the right stick has none. */
 static const uint16_t nw_controls_key_defaults[NW_CONTROL_TARGETS][2] = {
     { SDL_SCANCODE_SPACE },
     { SDL_SCANCODE_C, SDL_SCANCODE_K },
