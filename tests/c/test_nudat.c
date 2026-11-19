@@ -1,5 +1,3 @@
-/* The NuDat* override (src/port/nudat.c) and the sce file shim on a synthetic archive with a real RNC2 entry;
-   `retail` loads every entry of ATS.DAT and CHARS.DAT and checks packed ones against their RNC header's CRC. */
 #include <setjmp.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -127,7 +125,6 @@ static void test_synthetic(const char *scratch)
     NuDatSet(NULL);
     NuDatClose(dat);
 
-    /* A loose RNC2 file: NuPPLoadBuffer through the disc path. */
     memset(buf, 0, sizeof(buf));
     CHECK(NuFileLoadBuffer("loose.bin", buf, sizeof(buf)) == (int)NW_RNC2_UNPACKED);
     CHECK(memcmp(buf, payload, NW_RNC2_UNPACKED) == 0);
@@ -140,7 +137,6 @@ static void test_synthetic(const char *scratch)
     SDL_free(root);
 }
 
-/* --overlay folders replace single entries: the loose file's size in the directory, unpacked, read in its place. */
 static void test_overlay(const char *scratch)
 {
     char *root = NULL, *path = NULL;
@@ -191,7 +187,7 @@ static void test_overlay(const char *scratch)
         CHECK(NuFileSeek(fh, 4, 0) == 4 && NuFilePos(fh) == 4);
         CHECK(NuFileRead(fh, buf, 5) == 5 && memcmp(buf, "loose", 5) == 0);
         NuFileClose(fh);
-        fh = NuFileOpen("arc\\top.bin", NUFILE_READ); /* not overlaid: the archive's */
+        fh = NuFileOpen("arc\\top.bin", NUFILE_READ);
         CHECK(fh >= 0x800 && NuFileRead(fh, buf, 4) == 4 && memcmp(buf, "top!", 4) == 0);
         NuFileClose(fh);
         NuDatSet(NULL);
@@ -277,7 +273,6 @@ static void on_fatal(const char *message)
     longjmp(fatal_jump, 1);
 }
 
-/* Whether loading name into size bytes at buf stops with a fatal error that says what. */
 static bool load_fails(char *name, void *buf, int size, const char *what)
 {
     fatal_text[0] = '\0';
@@ -301,8 +296,6 @@ static bool untouched(const unsigned char *p, size_t n)
     return true;
 }
 
-/* Files an overlay could bring: too big for their buffer, or RNC headers that lie. Each is a fatal error naming the
-   file, with nothing written past the buffer; a load without a size gets the superbuffer's room. */
 static void test_bounds(const char *scratch)
 {
     char *root = NULL, *disc = NULL, *path = NULL;
@@ -352,7 +345,7 @@ static void test_bounds(const char *scratch)
 
     char *sb = nw_superbuffer_alloc(0x1000, "test_nudat.c", __LINE__);
     CHECK(sb && nw_load_room("x", sb + 0xF00, 0x7FFFFFFF) == 0x100 && nw_load_room("x", sb, 0x80) == 0x80);
-    CHECK(nw_load_room("x", buf, 0x7FFFFFFF) == 0x7FFFFFFF); /* a buffer the host does not know */
+    CHECK(nw_load_room("x", buf, 0x7FFFFFFF) == 0x7FFFFFFF);
     CHECK(sb && load_fails("big.bin", sb + 0xF00, 0x7FFFFFFF, "larger than its buffer (300, 256)"));
     static char own[0x200]; /* a buffer of NuWorld's own, as the hub minigame's Crunch */
     nw_load_buffer(own, sizeof(own));

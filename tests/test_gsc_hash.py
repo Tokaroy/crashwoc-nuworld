@@ -1,4 +1,3 @@
-"""gsc_hash: the DMA chain, the block walk, the manifest and the hash recipe (no game data, no tooling)."""
 import os
 import struct
 import subprocess

@@ -1,4 +1,3 @@
-/* src/gameplay: the profile's switches and the retail values they change. */
 #include <math.h>
 #include <stddef.h>
 #include <stdio.h>
@@ -99,7 +98,6 @@ static bool dangle(float speed)
     return CrashMoveInfo.DANGLESPEED == speed && CocoMoveInfo.DANGLESPEED == speed;
 }
 
-/* At boot, then between frames as the debug menu asks; back to retail's at the end. */
 static void monkey_bars(int hz, float retail)
 {
     nw_hz_set(hz);
@@ -112,7 +110,6 @@ static void monkey_bars(int hz, float retail)
     CHECK(dangle(retail * 3.35f));
     nw_gameplay_swap();
     CHECK(dangle(retail * 1.5f));
-    /* A value someone else wrote stays. */
     CocoMoveInfo.DANGLESPEED = 1.0f;
     nw_profile_request(&(NwProfile){ .movement = { .monkey_bar_speed = 200 } });
     nw_gameplay_swap();
@@ -127,7 +124,7 @@ static struct creature_s plr;
 static struct CharacterModel model;
 static struct animlist walk = { .speed = 1.0f };
 
-/* hngwalk's speed after AnimateCRASH picked action with Crash moved by retail's bar speed times moved. */
+/* Crash moved by retail's bar speed times moved. */
 static float hang_walk(int action, float moved)
 {
     plr.obj.anim.newaction = action;
@@ -144,18 +141,15 @@ static void monkey_bar_anim(void)
     plr.obj.dangle = 1;
     CHECK(hang_walk(0x4D, 2.0f) == 1.0f);
     nw_profile_apply(&(NwProfile){ .movement = NW_MOVEMENT_NHANCED });
-    /* Faster with the speed, but less than it grows. */
     float twice = hang_walk(0x4D, 2.0f);
     CHECK(twice > 1.0f && twice < 2.0f && hang_walk(0x4D, 3.0f) > twice);
-    CHECK(hang_walk(0x4D, 0.5f) == 1.0f); /* not slower than retail's, also pushing against the bar's end */
-    CHECK(hang_walk(0x4D, 10.0f) == hang_walk(0x4D, 20.0f)); /* the setting's speed at most */
-    /* Let go: walks on while faster than retail's bar speed. */
+    CHECK(hang_walk(0x4D, 0.5f) == 1.0f);
+    CHECK(hang_walk(0x4D, 10.0f) == hang_walk(0x4D, 20.0f));
     CHECK(hang_walk(0x20, 2.0f) == twice && plr.obj.anim.newaction == 0x4D);
     CHECK(hang_walk(0x20, 0.5f) == 1.0f && plr.obj.anim.newaction == 0x20);
     plr.obj.dangle = 2;
     CHECK(hang_walk(0x36, 2.0f) == 1.0f && plr.obj.anim.newaction == 0x36);
     plr.obj.dangle = 1;
-    /* A speed someone else wrote stays. */
     walk.speed = 9.0f;
     CHECK(hang_walk(0x4D, 2.0f) == 9.0f);
     walk.speed = 1.0f;
@@ -167,7 +161,6 @@ static void monkey_bar_anim(void)
 static struct creature_s jumper;
 static struct ldata_s level_data;
 
-/* The ring's floor and alpha with Crash's feet at feet over a floor at 2. */
 static bool ring_at(float feet, float *y, float *alpha)
 {
     jumper.obj.pos.y = feet;
@@ -185,7 +178,7 @@ static void air_indicator(void)
     jumper.obj.shadow = 2.0f;
     CHECK(ring_at(4.0f, &y, &alpha) && y == 2.0f && alpha == 1.0f);
     CHECK(ring_at(2.3f, &y, &alpha) && alpha > 0.0f && alpha < 1.0f);
-    CHECK(!ring_at(2.05f, &y, &alpha)); /* stepping off */
+    CHECK(!ring_at(2.05f, &y, &alpha));
     jumper.obj.ground = 2;
     CHECK(!ring_at(4.0f, &y, &alpha));
     jumper.obj.ground = 0;
@@ -202,7 +195,6 @@ static void air_indicator(void)
     CHECK(ring_at(4.0f, &y, &alpha) && y == 2.0f);
     jumper.obj.got_shadow = 0;
     plr_terrain_ok = 1;
-    /* Water over the floor. */
     jumper.obj.layer_type = 1;
     jumper.obj.layer_shadow = 3.0f;
     CHECK(ring_at(4.0f, &y, &alpha) && y == 3.0f);
@@ -213,7 +205,6 @@ static void air_indicator(void)
     VEHICLECONTROL = 0;
     jumper.obj.vehicle = -1;
 
-    /* The switch, at boot and between frames; off draws nothing. */
     nw_profile_apply(&(NwProfile){ 0 });
     CHECK(!nw_profile.air_indicator);
     nw_air_indicator_draw(&jumper);
@@ -248,7 +239,6 @@ static void boss_health(void)
     CHECK(nw_boss_health_crunch_time_hp(9) == 0);
     CHECK(nw_boss_health_crunch_time_hp((unsigned)-1) == 4);
 
-    /* Off draws nothing; on without the panel's bar loaded neither. */
     nw_profile_apply(&(NwProfile){ 0 });
     nw_boss_health_bar(0.65f, -0.85f, 1.0f, -0.1f, 0.1f, 2, 3);
     nw_profile_apply(&(NwProfile){ .boss_health = true });
@@ -301,11 +291,9 @@ static void steadycam(void)
     CHECK(nw_steadycam_follow(&s, 0.1f, 2, 0, false, 100) == 1.0f);
     CHECK(nw_steadycam_follow(&s, 0.2f, 2, 0, false, 50) == 1.5f);
     CHECK(nw_steadycam_follow(&s, 0.3f, 2, 0, false, 0) == 2.0f);
-    /* Below the take-off it follows him down; landing higher it follows him up. */
     CHECK(nw_steadycam_follow(&s, 0.4f, 0.5f, 0, false, 100) == 0.5f);
     CHECK(nw_steadycam_follow(&s, 0.5f, 1.5f, 0, false, 100) == 0.5f);
     CHECK(nw_steadycam_follow(&s, 0.6f, 1.5f, 0, true, 100) == 1.5f);
-    /* Far over the take-off (a spring) it follows again, and a warp starts over. */
     CHECK(nw_steadycam_follow(&s, 0.6f, 3.0f, 0, false, 100) == 1.5f);
     CHECK(nw_steadycam_follow(&s, 0.6f, 4.0f, 0, false, 100) == 1.5f);
     CHECK(nw_steadycam_follow(&s, 0.6f, 5.0f, 0, false, 100) == 2.0f);
@@ -322,7 +310,6 @@ static bool near(float a, float b, float within)
     return fabsf(a - b) <= within * fabsf(b);
 }
 
-/* Retail with one switch on, its values at N. Hanced's. */
 static NwProfile only(size_t offset)
 {
     NwProfile p = { .movement = NW_MOVEMENT_RETAIL };
@@ -330,7 +317,6 @@ static NwProfile only(size_t offset)
     return p;
 }
 
-/* p with the jump arc's sliders at 100: retail's height, reach and time. */
 static NwProfile neutral_arc(NwProfile p)
 {
     p.movement.crash.jump_float = p.movement.crash.jump_weight = p.movement.crash.jump_height = 100;
@@ -347,7 +333,6 @@ static NwProfile neutral_arc(NwProfile p)
 #define PLANE_ONLY(f) only(offsetof(NwMovement, plane.f))
 #define SPACE_ONLY(f) only(offsetof(NwMovement, spacefighter.f))
 
-/* Retail's Crash and Coco data and globals at hz, then p. */
 static void crash_at(int hz, const NwProfile *p)
 {
     nw_hz_set(hz);
@@ -385,7 +370,7 @@ typedef struct Arc {
 } Arc;
 
 static struct nupad_s pad;
-static short jump_character; /* who jump() takes off, Crash or Coco */
+static short jump_character;
 static signed char jump_type = 1;
 static u8 jump_boing;
 
@@ -394,7 +379,6 @@ static struct MoveInfo *jump_info(void)
     return jump_character ? &CocoMoveInfo : &CrashMoveInfo;
 }
 
-/* MoveCRASH's and MoveCOCO's jump steps. */
 static void retail_jump(struct creature_s *c, bool held)
 {
     float speed = jump_info()->JUMPHEIGHT / jump_info()->JUMPFRAMES2;
@@ -418,7 +402,6 @@ static void retail_jump(struct creature_s *c, bool held)
     }
 }
 
-/* A take-off at run speed on flat ground, the button held for hold frames. */
 static Arc jump(int hz, const NwProfile *p, int hold)
 {
     crash_at(hz, p);
@@ -496,16 +479,14 @@ static void jump_fall(void)
         CHECK(fabsf(arc.time - pal.time) <= 0.05f);
         CHECK(arc.early > pal.early && arc.pull <= 61.0f);
     }
-    /* Holds of 0.1 s and to the ground at both rates. */
     for (int hold = 5; hold <= 100; hold += 95) {
         Arc arc = jump(50, &on, hold), ntsc = jump(60, &on, hold * 6 / 5);
         CHECK(near(ntsc.apex, arc.apex, 0.03f) && near(ntsc.reach, arc.reach, 0.05f));
         CHECK(fabsf(ntsc.time - arc.time) <= 0.03f);
     }
     CHECK(jump(50, &on, 5).apex > jump(50, &on, 1).apex && jump(50, &on, 100).apex > jump(50, &on, 5).apex);
-    CHECK(near(jump(60, &retail, 120).apex, jump(50, &retail, 100).apex, 0.03f)); /* the US data: PAL's in seconds */
+    CHECK(near(jump(60, &retail, 120).apex, jump(50, &retail, 100).apex, 0.03f));
 
-    /* The sliders keep the height asked for and at least retail's reach. */
     Arc pal = jump(50, &retail, 100);
     for (int i = 0; i < 8; i++) {
         NwProfile p = on;
@@ -523,9 +504,8 @@ static void jump_fall(void)
     crash_at(50, &on);
     CHECK(CrashMoveInfo.JUMPFRAMES2 == 15 && CrashMoveInfo.STARJUMPFRAMES == 20);
     crash_at(60, &retail);
-    CHECK(CrashMoveInfo.JUMPFRAMES2 == 18 && CrashMoveInfo.STARJUMPFRAMES == 24); /* the US data's own */
+    CHECK(CrashMoveInfo.JUMPFRAMES2 == 18 && CrashMoveInfo.STARJUMPFRAMES == 24);
 
-    /* Switched off mid-air: retail's gravity from the next frame. */
     struct creature_s *c = &Character[0];
     crash_at(50, &on);
     c->jump = 1;
@@ -604,7 +584,6 @@ static void jump_fall_moves(void)
     }
 }
 
-/* MoveCRASH's case 3. */
 static void retail_double(struct creature_s *c)
 {
     if (c->jump == 3 && (Game.powerbits & 2) && (pad.paddata & 0x40) && c->obj.mom.y > -0.099999994f) {
@@ -616,7 +595,7 @@ static void retail_double(struct creature_s *c)
     c->obj.mom.y += GRAVITY;
 }
 
-/* Falling at fall after jump (0: off a ledge) with the button pressed; jump after the frame. */
+/* jump 0: off a ledge. */
 static int air_jump_at(float fall, signed char jump, u8 allow_jump)
 {
     struct creature_s *c = &Character[0];
@@ -716,7 +695,6 @@ static void finish_top(void)
     player = was;
 }
 
-/* One MoveLoopXZ with MovePlayer's target and air friction; the globals come back. */
 static void loop(float side, float forward, float target)
 {
     struct creature_s *c = &Character[0];
@@ -788,7 +766,6 @@ static void air_momentum(void)
     CHECK(near(loop_forward(0.05f, 0.0f), 0.05f - step, 1e-5f));
 }
 
-/* MoveCRASH's hook, then the next frame's MoveLoopXZ. */
 static float dash_frame(float forward)
 {
     nw_air_move(&Character[0], &pad);
@@ -912,7 +889,6 @@ static void long_spin(void)
     CrashMoveInfo.SPINFRAMES = 20;
 }
 
-/* MoveCRASH's slide timer, crouch held or let go; his speed after the frame. */
 static float slide_frame(bool crouch)
 {
     struct creature_s *c = &Character[0];
@@ -940,11 +916,11 @@ static void slide(void)
     CHECK(CrashMoveInfo.SLIDEFRAMES == 20 && CrashMoveInfo.SLIDESPEED == 0.096f * 1.4f);
     c->slide = 20;
     c->obj.mom.z = 0.11f;
-    CHECK(slide_frame(true) == 0.11f && slide_frame(false) == 0.11f && c->slide == 18); /* too soon to stand */
+    CHECK(slide_frame(true) == 0.11f && slide_frame(false) == 0.11f && c->slide == 18);
     c->slide = 5;
-    CHECK(slide_frame(false) == 0.11f && c->slide == 0 && !c->crawl); /* stood up early, still running */
+    CHECK(slide_frame(false) == 0.11f && c->slide == 0 && !c->crawl);
     c->slide = 1;
-    CHECK(slide_frame(true) == 0.0f && c->crawl); /* held to the end: crawls */
+    CHECK(slide_frame(true) == 0.0f && c->crawl);
     on.movement.crash.slide_keep = false;
     on.movement.crash.slide_cancel = false;
     crash_at(50, &on);
@@ -1173,9 +1149,8 @@ static void coco_jump(void)
     CHECK(coco.apex == crash.apex && coco.time == crash.time);
     CHECK(off.apex == pal.apex && off.reach == pal.reach && off.time == pal.time);
     crash_at(60, &on);
-    CHECK(CocoMoveInfo.JUMPFRAMES2 == 18 && CrashMoveInfo.JUMPFRAMES2 == 18); /* the arc leaves the US frames */
+    CHECK(CocoMoveInfo.JUMPFRAMES2 == 18 && CrashMoveInfo.JUMPFRAMES2 == 18);
 
-    /* Her run speed in the air, her dash in a dash jump. */
     float step = 0.0072f;
     on = COCO_ONLY(jump_distance);
     coco_at(50, &on);
@@ -1240,7 +1215,6 @@ static void coco_run(void)
     Character[0].obj.ground = 1;
     CHECK(near(loop_side(0.05f), 0.05f - 3.0f * step, 1e-5f));
     CHECK(near(loop_forward(0.05f, 0.0f), 0.05f - 2.0f * step, 1e-5f));
-    /* Crash's switches leave her retail. */
     NwProfile his = ONLY(run_speed);
     his.movement.crash.grip = true;
     coco_at(50, &his);
@@ -1252,7 +1226,6 @@ static void coco_run(void)
 
 static NwTerI contact;
 
-/* A contact at normal y (world), under his centre when below; true when it became a floor. */
 static bool held(short type, float y, bool below, const unsigned char *flags)
 {
     memset(&contact, 0, sizeof(contact));
@@ -1272,14 +1245,13 @@ static void edge_grip(void)
     unsigned char *own = Character[0].obj.gndflags.chrs, other[2] = { 0 };
     TerI = &contact;
     crash_at(50, &on);
-    CHECK(!held(2, 0.5f, true, own)); /* no drop under him: a step or a ridge */
+    CHECK(!held(2, 0.5f, true, own));
     Character[0].obj.pos.y = 1.0f;
     CHECK(held(2, 0.5f, true, own) && held(3, 0.5f, true, own) && !held(0x13, 0.5f, true, own));
     CHECK(!held(1, 0.5f, true, own) && !held(2, 0.3f, true, own) && !held(2, 0.5f, false, own));
     CHECK(!held(2, 0.5f, true, other));
     CHECK(!held(2, 0.8f, true, own) && contact.uhitnorm.y == 0.8f);
 
-    /* Standing still on a held rim: MovePlayer's release of the ground is undone; after a face it is not. */
     for (int rim = 1; rim >= 0; rim--) {
         held(rim ? 2 : 1, 0.5f, true, own);
         own[0] = own[1] = 1;
@@ -1305,13 +1277,11 @@ static void edge_grip(void)
     TerI = was;
 }
 
-/* A side-on rail along z: left spline at x 0, right at x 2. */
 static struct nuvec_s rail_left[2] = { { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 10.0f } };
 static struct nuvec_s rail_right[2] = { { 2.0f, 0.0f, 0.0f }, { 2.0f, 0.0f, 10.0f } };
 static struct nugspline_s spline_left = { 2, sizeof(struct nuvec_s), "left", (char *)rail_left };
 static struct nugspline_s spline_right = { 2, sizeof(struct nuvec_s), "right", (char *)rail_right };
 
-/* His momentum across the rail after the hold, at x in camera mode. */
 static float line_frame(float x, u8 mode, float mom_x)
 {
     struct creature_s *c = &Character[0];
@@ -1334,7 +1304,6 @@ static void line_2d(void)
     CHECK(near(line_frame(1.6f, 4, 0.0f), -0.02f, 1e-5f));
     CHECK(line_frame(1.6f, 1, 0.03f) == 0.03f);
     CHECK(fabsf(line_frame(1.6f, 4, 0.03f)) < 1e-6f);
-    /* The stick straight into depth walks there, and the line moves with him. */
     Character[0].obj.pad_speed = 0.5f;
     Character[0].obj.thdg = 0x4000;
     CHECK(line_frame(1.7f, 4, 0.03f) == 0.03f);
@@ -1376,7 +1345,7 @@ static void hazard_hitboxes(void)
     CHECK(enemy.RADIUS == 0.5f);
     nw_hazards_restore();
     CHECK(nw_hazards_particle(0.225f) == 0.225f * 0.5f);
-    enemy.min.x = 0.0f; /* off its origin: shrinks round its own middle */
+    enemy.min.x = 0.0f;
     enemy.max.x = 2.0f;
     nw_hazards_shrink(crash);
     CHECK(near(enemy.min.x, 0.2f, 1e-5f) && near(enemy.max.x, 1.8f, 1e-5f));
@@ -1396,7 +1365,6 @@ static void hazard_hitboxes(void)
     GAMEOBJECTCOUNT = 0;
 }
 
-/* crash_at, then Crash in the mech. */
 static void mech_at(int hz, const NwProfile *p)
 {
     crash_at(hz, p);
@@ -1412,7 +1380,6 @@ static void mech_at(int hz, const NwProfile *p)
     pad = (struct nupad_s){ 0 };
 }
 
-/* The take-off's frame sees a walk, so MoveMECH takes the running jump; the frame after the real stick again. */
 static void mech_stand_jump(void)
 {
     NwProfile retail = { 0 }, on = MECH_ONLY(stand_jump);
@@ -1424,12 +1391,12 @@ static void mech_stand_jump(void)
     CHECK(c->obj.pad_speed == MechMoveInfo.WALKSPEED);
     nw_mech_after(c, &pad);
     CHECK(c->obj.pad_speed == 0.0f);
-    c->obj.pad_speed = MechMoveInfo.RUNSPEED; /* running already */
+    c->obj.pad_speed = MechMoveInfo.RUNSPEED;
     nw_mech_before(c, &pad);
     CHECK(c->obj.pad_speed == MechMoveInfo.RUNSPEED);
     nw_mech_after(c, &pad);
     c->obj.pad_speed = 0.0f;
-    c->target = 1; /* aiming: no jump */
+    c->target = 1;
     nw_mech_before(c, &pad);
     CHECK(c->obj.pad_speed == 0.0f);
     c->target = 0;
@@ -1441,7 +1408,6 @@ static void mech_stand_jump(void)
     pad.paddata = 0x40;
     nw_mech_before(c, &pad);
     CHECK(c->obj.pad_speed == 0.0f);
-    /* Not in the mech, nothing. */
     mech_at(50, &on);
     VEHICLECONTROL = 0;
     c->obj.ground = 1;
@@ -1454,7 +1420,6 @@ static void mech_shot(void)
 {
     NwProfile retail = { 0 }, on = MECH_ONLY(shot_stop);
     struct creature_s *c = &Character[0];
-    /* A tap: released before tap ran out still fires. */
     mech_at(50, &on);
     c->target = 2;
     c->tap = 7;
@@ -1472,7 +1437,6 @@ static void mech_shot(void)
     nw_mech_before(c, &pad);
     CHECK(c->tap == 7);
 
-    /* The stop after it ends shot_stop_ms on, once he steers. */
     NwProfile stop = { .movement = NW_MOVEMENT_NHANCED };
     stop.movement.mech.shot_stop_ms = 150;
     for (int hz = 50; hz <= 60; hz += 10) {
@@ -1516,11 +1480,10 @@ static void mech_aim_walk(void)
     pad.rdata.l_alg_y = 127;
     pad.rdata.r_alg_x = 0;
     pad.rdata.r_alg_y = 200;
-    CHECK(nw_mech_pad(c, &pad, &copy) == &pad); /* not aiming */
+    CHECK(nw_mech_pad(c, &pad, &copy) == &pad);
     c->target = 1;
     CHECK(nw_mech_pad(c, &pad, &copy) == &copy && copy.rdata.l_alg_x == 0 && copy.rdata.l_alg_y == 200);
     CHECK(pad.rdata.l_alg_x == 255 && pad.rdata.r_alg_x == 0);
-    /* Retail's aim stops him; the left stick walks him to the right, still facing ahead. */
     in_speed = 0.0f;
     in_f_friction = in_s_friction = friction;
     MoveLoopXZ(&c->obj, &c->obj.thdg);
@@ -1530,7 +1493,6 @@ static void mech_aim_walk(void)
         MoveLoopXZ(&c->obj, &c->obj.thdg);
     }
     CHECK(near(c->obj.mom.x, MechMoveInfo.WALKSPEED * 1.5f, 1e-4f));
-    /* The camera turned a quarter: the same stick goes the camera's right. */
     mech_at(50, &on);
     c->target = 1;
     GameCam[0].yrot = 0x4000;
@@ -1541,7 +1503,6 @@ static void mech_aim_walk(void)
     in_f_friction = in_s_friction = friction;
     MoveLoopXZ(&c->obj, &c->obj.thdg);
     CHECK(fabsf(c->obj.mom.x) < 1e-4f && near(fabsf(c->obj.mom.z), friction, 1e-4f));
-    /* In the dead zone he stands. */
     mech_at(50, &on);
     c->target = 1;
     pad.rdata.l_alg_x = 150;
@@ -1555,7 +1516,6 @@ static void mech_aim_walk(void)
     CHECK(nw_mech_pad(c, &pad, &copy) == &pad);
 }
 
-/* plr_target_dir as MovePlayer builds it. */
 static struct nuvec_s aim_dir(const struct creature_s *c)
 {
     static struct nuvec_s ahead = { 0.0f, 0.0f, 1.0f };
@@ -1575,7 +1535,7 @@ static void mech_aim(void)
     c->obj.pad_dx = 1.0f;
     nw_mech_aim(c);
     CHECK(abs(c->obj.target_yrot - (int)(10923 * 1.0f / 32.0f)) <= 1 && c->obj.target_xrot == 0);
-    c->fire = 1; /* the shot's animation holds it */
+    c->fire = 1;
     c->obj.target_yrot = 0;
     nw_mech_aim(c);
     CHECK(c->obj.target_yrot == 0);
@@ -1586,7 +1546,6 @@ static void mech_aim(void)
     nw_mech_aim(c);
     CHECK(c->obj.target_yrot == 0);
 
-    /* Assist: it settles on the creature, up and to the side, as plr_target_dir points. */
     static struct obj_s enemy;
     enemy = (struct obj_s){ .pos = { 1.0f, 2.5f, 10.0f }, .vulnerable = 0x100, .SCALE = 1.0f };
     pObj[0] = &enemy;
@@ -1609,7 +1568,6 @@ static void mech_aim(void)
         CHECK((d.x * to.x + d.y * to.y + d.z * to.z) / len > 0.999f);
         CHECK(c->obj.target_xrot > 0);
     }
-    /* Outside the cone, out of reach, not shootable, or dead: no pull. */
     enemy.pos = (struct nuvec_s){ 10.0f, 1.0f, 0.0f };
     mech_at(50, &assist);
     c->target = 1;
@@ -1630,7 +1588,6 @@ static void mech_aim(void)
     enemy.dead = 0;
     nw_mech_aim(c);
     CHECK(c->obj.target_yrot > 0);
-    /* It stays inside retail's reach. */
     enemy.pos = (struct nuvec_s){ 9.397f, 1.0f, 3.42f }; /* 70 degrees */
     c->obj.target_yrot = 0x2800;
     for (int i = 0; i < 300; i++) {
@@ -1665,7 +1622,6 @@ static void mech_hitbox(void)
     CHECK(near(nw_hazards_chase(mech), 0.35f, 1e-6f) && near(mech->RADIUS, 0.35f * 0.7f, 1e-5f));
     mech->RADIUS = 0.35f;
     CHECK(near(nw_hazards_radius(mech), 0.35f * 0.7f, 1e-5f));
-    /* Crash's switch is not the mech's, and the other way round. */
     mech_at(50, &crash);
     nw_hazards_shrink(mech);
     CHECK(enemy.RADIUS == 0.5f && nw_hazards_chase(mech) == 0.35f && mech->RADIUS == 0.35f);
@@ -1682,7 +1638,6 @@ static void mech_hitbox(void)
     GAMEOBJECTCOUNT = 0;
 }
 
-/* Retail's submarine data at hz with Crash in the sub, then p. */
 static void sub_at(int hz, const NwProfile *p)
 {
     nw_hz_set(hz);
@@ -1696,7 +1651,7 @@ static void sub_at(int hz, const NwProfile *p)
     Character[0].obj.vehicle = 0x20;
 }
 
-/* The stick at full tilt: dx across, angle as MovePlayer gives it (0 up, 0x4000 right). */
+/* angle as MovePlayer gives it: 0 up, 0x4000 right. */
 static void sub_stick(float dx, u16 angle)
 {
     Character[0].obj.pad_speed = SubmarineMoveInfo.RUNSPEED;
@@ -1728,7 +1683,7 @@ static void sub_turning(void)
     NwProfile on = SUB_ONLY(turning), retail = { .movement = NW_MOVEMENT_RETAIL };
     struct obj_s *sub = &Character[0].obj;
 
-    /* A diagonal turns it right round, through the screen; 0x369 a frame at 200 %. */
+    /* 0x369 a frame at 200 %. */
     sub_at(50, &on);
     sub_stick(-0.7f, 0xA000);
     int pal = sub_turn_to(0x8000);
@@ -1737,7 +1692,6 @@ static void sub_turning(void)
     sub_stick(-0.7f, 0xA000);
     int ntsc = sub_turn_to(0x8000);
     CHECK(fabsf(pal / 50.0f - ntsc / 60.0f) <= 1.0f / 50.0f);
-    /* Back mid-turn, and a turn finishes with the stick let go. */
     sub_at(50, &on);
     sub_stick(-0.7f, 0xA000);
     for (int i = 0; i < 5; i++) {
@@ -1751,7 +1705,6 @@ static void sub_turning(void)
     sub_frame();
     sub->pad_speed = 0.0f;
     CHECK(sub_turn_to(0x8000) == 14);
-    /* Up and down keep it facing, also the screen. */
     sub_stick(0.0f, 0);
     sub_frame();
     CHECK(sub->hdg == 0x8000);
@@ -1759,13 +1712,11 @@ static void sub_turning(void)
     sub->hdg = 0x4000;
     sub_frame();
     CHECK(sub->hdg == 0x4000);
-    /* Turn speed. */
     on.movement.submarine.turn_speed = 400;
     sub_at(50, &on);
     sub_stick(-0.7f, 0xA000);
     sub_frame();
     CHECK(sub->hdg == 4 * 0x369);
-    /* Getting in, on foot, the switch off: retail's turn. */
     vtog_blend = 1;
     sub_frame();
     CHECK(sub->hdg == 4 * 0x369 + 0x1234);
@@ -1813,12 +1764,10 @@ static void sub_pitch(void)
     sub_at(60, &on);
     int ntsc = sub_climb();
     CHECK(pal >= 21 && pal <= 23 && fabsf(pal / 50.0f - ntsc / 60.0f) <= 1.0f / 50.0f);
-    /* Let go, it levels out. */
     sub->pad_speed = 0.0f;
     nw_sub_pitch_before(sub);
     nw_sub_pitch(sub, 2);
     CHECK((s16)sub->xrot < 0x3000);
-    /* Not the sub's branch, the switch off: retail's. */
     sub_at(50, &on);
     sub_stick(0.0f, 0);
     nw_sub_pitch_before(sub);
@@ -1836,7 +1785,6 @@ static void sub_pitch(void)
     CHECK(sub->xrot == 0x10);
 }
 
-/* Frames to the stick's speed from rest (stop: to rest from it), MovePlayer's step then the hook's. */
 static int sub_frames(bool stop)
 {
     struct obj_s *sub = &Character[0].obj;
@@ -1867,7 +1815,6 @@ static void sub_speed(void)
     /* Retail: 0.06 a frame, 0.00144 a frame more each frame. */
     sub_at(50, &retail);
     CHECK(SubmarineMoveInfo.RUNSPEED == 0.06f && sub_frames(false) == 42 && sub_frames(true) == 42);
-    /* 125 % top speed, to it and to rest twice as fast, as fast in seconds at 60 Hz. */
     sub_at(50, &on);
     CHECK(near(SubmarineMoveInfo.RUNSPEED, 0.075f, 1e-6f) && near(SubmarineMoveInfo.WALKSPEED, 0.03125f, 1e-6f));
     int pal = sub_frames(false);
@@ -1875,7 +1822,6 @@ static void sub_speed(void)
     sub_at(60, &on);
     CHECK(near(SubmarineMoveInfo.RUNSPEED, 0.0625f, 1e-6f));
     CHECK(fabsf(pal / 50.0f - sub_frames(false) / 60.0f) <= 1.0f / 50.0f);
-    /* Climbing: the same on y. */
     sub_at(50, &on);
     sub_stick(0.0f, 0);
     sub->xrot = 0x4000;
@@ -1883,7 +1829,6 @@ static void sub_speed(void)
     NuVecRotateX(&want, &v001, -sub->xrot);
     nw_sub_accel(&sub->mom);
     CHECK(near(fabsf(sub->mom.y), 0.00144f, 1e-4f) && (sub->mom.y > 0.0f) == (want.y > 0.0f) && sub->mom.z == 0.0f);
-    /* Only the sub's own speed, not dead, between frames as the menu changes it. */
     struct nuvec_s other = { 0.0f, 0.0f, 0.0f };
     nw_sub_accel(&other);
     CHECK(other.y == 0.0f && other.z == 0.0f);
@@ -1897,7 +1842,6 @@ static void sub_speed(void)
     nw_profile_request(&on);
     nw_gameplay_swap();
     CHECK(near(SubmarineMoveInfo.RUNSPEED, 0.12f, 1e-6f));
-    /* Retail puts its values back, but leaves one something else wrote. */
     nw_profile_request(&retail);
     nw_gameplay_swap();
     CHECK(SubmarineMoveInfo.RUNSPEED == 0.06f && SubmarineMoveInfo.WALKSPEED == 0.024999999f);
@@ -1913,7 +1857,6 @@ static void sub_hitbox(void)
     struct obj_s *sub = &Character[0].obj;
     on.movement.submarine.hitbox_size = 75;
 
-    /* 75 % round its middle, once however deep the calls nest, back exactly. */
     struct CharacterData *d = &CData[0x20];
     float min = d->min.y, max = d->max.y;
     sub_at(50, &on);
@@ -1935,7 +1878,6 @@ static void sub_hitbox(void)
     CHECK(sub->RADIUS == 0.7f && near(sub->objbot, 1.0f, 1e-6f) && near(sub->objtop, 2.1f, 1e-6f));
     CHECK(sub->bot == -0.6f && sub->top == 0.5f && d->min.y == min && d->max.y == max);
     CHECK(near(nw_sub_particle(0.2f), 0.15f, 1e-6f));
-    /* Its height taken afresh in between (GetTopBot, NewTopBot after a move) comes back at the new place. */
     nw_sub_shrink();
     sub->pos.y = 2.0f;
     sub->bot = d->min.y;
@@ -1945,7 +1887,6 @@ static void sub_hitbox(void)
     CHECK(near(sub->objtop - sub->objbot, (max - min) * 0.75f, 1e-5f));
     nw_sub_restore();
     CHECK(near(sub->objbot, 2.0f + min, 1e-5f) && near(sub->objtop, 2.0f + max, 1e-5f) && d->min.y == min);
-    /* On foot and the switch off: retail's. */
     VEHICLECONTROL = 0;
     nw_sub_shrink();
     CHECK(sub->RADIUS == 0.7f && nw_sub_particle(0.2f) == 0.2f);
@@ -1963,7 +1904,6 @@ static void sub_weapons(void)
     struct creature_s *plr = &Character[0];
     struct nuvec_s torpedo = { 0.0f, 0.0f, 0.16f }, bomb, v;
 
-    /* Reloads by the rate, the same in seconds at 60 Hz; one already running stays. */
     on.movement.submarine.torpedo_rate = 200;
     on.movement.submarine.bomb_rate = 400;
     sub_at(50, &on);
@@ -1981,7 +1921,6 @@ static void sub_weapons(void)
     plr->fire = 0x1E;
     nw_sub_fire_after(plr);
     CHECK(plr->fire == 15);
-    /* Torpedo and bomb speed, only while the sub fires its own. */
     on.movement.submarine.torpedo_speed = 200;
     on.movement.submarine.bomb_speed = 200;
     sub_at(50, &on);
@@ -2003,7 +1942,6 @@ static void sub_weapons(void)
     CHECK(near(SubmarineMoveInfo.SPRINTSPEED, 0.16f, 1e-6f));
     nw_profile_apply(&retail);
     CHECK(SubmarineMoveInfo.SPRINTSPEED == 0.08f);
-    /* On foot and the switch off: retail's. */
     sub_at(50, &on);
     VEHICLECONTROL = 0;
     nw_sub_fire_before(plr);
@@ -2017,7 +1955,7 @@ static void sub_weapons(void)
     CHECK(plr->fire == 0x19);
 }
 
-/* A torpedo on a resting fruit; no level loaded, so retail's burst (GDeb[130] -1) only clears the fruit. */
+/* No level loaded, so retail's burst (GDeb[130] -1) only clears the fruit. */
 static void sub_fruit(void)
 {
     NwProfile on = SUB_ONLY(pass_fruit), retail = { .movement = NW_MOVEMENT_RETAIL };
@@ -2027,14 +1965,12 @@ static void sub_fruit(void)
     CHECK(GDeb[130].i == -1);
     TimeTrial = 0;
     Wumpa[0].pos = shot.pos;
-    /* It flies through only inside UpdateProjectiles: elsewhere (a fired fruit in UpdateWumpa) retail's. */
     sub_at(50, &on);
     Wumpa[0].active = 2;
     nw_sub_shots(true);
     CHECK(HitWumpa(&shot, 1) == 0 && Wumpa[0].active == 2);
     nw_sub_shots(false);
     CHECK(HitWumpa(&shot, 1) == 1 && Wumpa[0].active == 0);
-    /* The switch off: retail's. */
     sub_at(50, &retail);
     Wumpa[0].active = 2;
     nw_sub_shots(true);
@@ -2045,7 +1981,7 @@ static void sub_fruit(void)
 
 static RailPosition jeep_rail;
 
-/* Retail's off-roader data at hz, then p; Crash driving it on a rail at 0x4000. */
+/* Crash driving it on a rail at 0x4000. */
 static void jeep_at(int hz, const NwProfile *p, int level)
 {
     nw_hz_set(hz);
@@ -2066,7 +2002,6 @@ static void jeep_at(int hz, const NwProfile *p, int level)
     best_cRPos = &jeep_rail;
 }
 
-/* MovePlayer's turn toward the rail plus off. */
 static u16 jeep_turn(u16 hdg, s32 off, s32 shift)
 {
     Character[0].obj.hdg = hdg;
@@ -2074,7 +2009,6 @@ static u16 jeep_turn(u16 hdg, s32 off, s32 shift)
     return SeekRot(hdg, Character[0].obj.thdg, shift);
 }
 
-/* The turn and its target as retail's. */
 static bool jeep_turn_retail(u16 hdg, s32 off, s32 shift)
 {
     u16 target = (u16)(jeep_rail.angle + off);
@@ -2096,7 +2030,6 @@ static void jeep_steer(void)
             CHECK(jeep_turn_retail(hdgs[h], offs[o], 3));
         }
     }
-    /* 100% at 50 Hz is retail */
     on.movement.jeep.steer_response = on.movement.jeep.steer_angle = 100;
     for (size_t h = 0; h < sizeof(hdgs) / sizeof(hdgs[0]); h++) {
         for (size_t o = 0; o < sizeof(offs) / sizeof(offs[0]); o++) {
@@ -2106,7 +2039,6 @@ static void jeep_steer(void)
             CHECK(jeep_turn_retail(hdgs[h], offs[o], 3));
         }
     }
-    /* 200% */
     on = JEEP_ONLY(steering);
     on.movement.jeep.steer_response = 200;
     on.movement.jeep.steer_angle = 100;
@@ -2115,7 +2047,6 @@ static void jeep_steer(void)
     jeep_at(50, &on, 3);
     CHECK(abs((s16)(jeep_turn(0x4000, 0x2000, 5) - (0x4000 + 504))) <= 1); /* 0x2000 * (1 - (31/32)^2) */
     CHECK(abs((s16)(jeep_turn(0x4000, -0x2000, 5) - (0x4000 - 504))) <= 1);
-    /* 60 Hz */
     on.movement.jeep.steer_response = 100;
     jeep_at(60, &on, 8);
     u16 hdg = 0x4000 + 0x1000;
@@ -2124,7 +2055,6 @@ static void jeep_steer(void)
     }
     float left = (float)(hdg - 0x4000) / 0x1000;
     CHECK(fabsf(left - powf(7.0f / 8.0f, 50.0f)) < 0.01f);
-    /* angle */
     on.movement.jeep.steer_angle = 50;
     jeep_at(50, &on, 8);
     jeep_turn(0x4000, 0x1000, 3);
@@ -2137,7 +2067,6 @@ static void jeep_steer(void)
     CHECK(Character[0].obj.thdg == 0x4000 + 0x3FFF);
     jeep_turn(0x4000, 0, 5);
     CHECK(Character[0].obj.thdg == 0x4000);
-    /* other SeekRots */
     jeep_at(50, &on, 8);
     CHECK(jeep_turn_retail(0x4000, 0x1000, 2) && jeep_turn_retail(0x4000, 0x1000, 5));
     Character[0].obj.hdg = 0x4000;
@@ -2180,7 +2109,6 @@ static void jeep_speed(void)
     jeep_at(50, &retail, 3);
     CHECK(SMOKEYSPEED == 8.0f && SMOKEYBOOSTSPEED == 12.0f && OFFROADERSPEEDTIME == 2.0f);
     CHECK(OffRoaderMoveInfo.RUNSPEED == 0.12f && OffRoaderMoveInfo.SPRINTSPEED == 0.17999999f);
-    /* A value someone else wrote stays. */
     SMOKEYSPEED = 5.0f;
     OffRoaderMoveInfo.RUNSPEED = 0.2f;
     nw_profile_apply(&on);
@@ -2213,7 +2141,7 @@ void ProcessMovementAtlas(struct NEWBUGGY *Atlas, f32 DeltaTime);
 
 static s32 roll_ground = 2; /* the ball's onground as the step sees it, after ProcessAtlas's shift */
 
-/* b after one step under p, rolling at vx along +x, the stick at ang degrees (90 is +x) by mag. */
+/* The stick at ang degrees (90 is +x) by mag. */
 static struct NEWBUGGY roll(struct NEWBUGGY *b, const NwProfile *p, float vx, float ang, float mag, float dt)
 {
     nw_profile_apply(p);
@@ -2229,7 +2157,6 @@ static struct NEWBUGGY roll(struct NEWBUGGY *b, const NwProfile *p, float vx, fl
     return *b;
 }
 
-/* Whether that step under p comes out as retail's. */
 static bool as_retail(struct NEWBUGGY *b, const NwProfile *p, float vx, float ang, float mag, float dt)
 {
     struct NEWBUGGY r = roll(b, &(NwProfile){ 0 }, vx, ang, mag, dt);
@@ -2248,7 +2175,6 @@ static void atlasphere(void)
         float dt = hz == 50 ? 0.02f : 0.016666668f;
         struct NEWBUGGY r, b;
 
-        /* Steering across a roll along +x: about twice the turn, at retail's speed. */
         r = roll(&PlayerAtlas, &retail, 5.0f, 0.0f, 1.0f, dt);
         CHECK(r.ball_vel.z > 0.1f);
         b = roll(&PlayerAtlas, &steer, 5.0f, 0.0f, 1.0f, dt);
@@ -2259,12 +2185,10 @@ static void atlasphere(void)
         steer.movement.atlasphere.steer_turn = 400;
         CHECK(roll(&PlayerAtlas, &steer, 5.0f, 0.0f, 1.0f, dt).ball_vel.z > 3.8f * r.ball_vel.z);
         steer.movement.atlasphere.steer_turn = 200;
-        /* With the roll it stays, let go too. */
         r = roll(&PlayerAtlas, &retail, 5.0f, 90.0f, 1.0f, dt);
         CHECK(near(roll(&PlayerAtlas, &steer, 5.0f, 90.0f, 1.0f, dt).ball_vel.x, r.ball_vel.x, 1e-6f));
         CHECK(as_retail(&PlayerAtlas, &steer, 5.0f, 0.0f, 0.0f, dt));
 
-        /* Pulling back against the roll: that push twice, the rest retail's. */
         r = roll(&PlayerAtlas, &retail, 5.0f, 270.0f, 1.0f, dt);
         CHECK(r.ball_force.x < -7.0f && r.ball_vel.x > 0.0f);
         b = roll(&PlayerAtlas, &brake, 5.0f, 270.0f, 1.0f, dt);
@@ -2274,15 +2198,12 @@ static void atlasphere(void)
         brake.movement.atlasphere.brake_force = 400;
         b = roll(&PlayerAtlas, &brake, 5.0f, 270.0f, 1.0f, dt);
         CHECK(near(b.ball_vel.x, r.ball_vel.x + 3.0f * r.ball_force.x * dt, 1e-5f));
-        /* It stops the roll, never turns it back. */
         b = roll(&PlayerAtlas, &brake, 0.2f, 270.0f, 1.0f, dt);
         CHECK(fabsf(b.ball_vel.x) < 1e-6f);
         brake.movement.atlasphere.brake_force = 200;
-        /* Steering across the roll, pushing with it and letting go stay retail's. */
         CHECK(as_retail(&PlayerAtlas, &brake, 5.0f, 0.0f, 1.0f, dt));
         CHECK(as_retail(&PlayerAtlas, &brake, 5.0f, 90.0f, 1.0f, dt));
         CHECK(as_retail(&PlayerAtlas, &brake, 5.0f, 0.0f, 0.0f, dt));
-        /* Let-go braking: that share of the stick's push, which is more in the earth boss's arena. */
         brake.movement.atlasphere.coast_brake = 50;
         r = roll(&PlayerAtlas, &retail, 5.0f, 0.0f, 0.0f, dt);
         b = roll(&PlayerAtlas, &brake, 5.0f, 0.0f, 0.0f, dt);
@@ -2295,20 +2216,16 @@ static void atlasphere(void)
         Level = level;
         brake.movement.atlasphere.coast_brake = 0;
 
-        /* Edge guard, let go: it slows by its speed over the look-ahead... */
         r = roll(&PlayerAtlas, &retail, 3.0f, 0.0f, 0.0f, dt);
         b = roll(&PlayerAtlas, &guard, 3.0f, 0.0f, 0.0f, dt);
         CHECK(near(b.ball_vel.x, r.ball_vel.x * (1.0f - dt / 0.3f), 1e-5f));
         CHECK(near(b.ball_target.x, r.ball_target.x - 0.5f * dt * dt * r.ball_vel.x / 0.3f, 1e-6f));
-        /* ...by its braking at most... */
         guard.movement.atlasphere.guard_brake = 100;
         b = roll(&PlayerAtlas, &guard, 3.0f, 0.0f, 0.0f, dt);
         CHECK(near(b.ball_vel.x, r.ball_vel.x - 7.9863551f * dt, 1e-5f));
         guard.movement.atlasphere.guard_brake = 300;
-        /* ...and at the edge it backs off. */
         b = roll(&PlayerAtlas, &guard, 0.2f, 0.0f, 0.0f, dt);
         CHECK(near(b.ball_vel.x, -0.05f, 1e-4f));
-        /* Pushed at the pit it rolls in, unless Push to roll in is off; a light push does not count. */
         CHECK(as_retail(&PlayerAtlas, &guard, 3.0f, 90.0f, 1.0f, dt));
         r = roll(&PlayerAtlas, &retail, 3.0f, 90.0f, 1.0f, dt);
         guard.movement.atlasphere.guard_push = false;
@@ -2316,10 +2233,8 @@ static void atlasphere(void)
         guard.movement.atlasphere.guard_push = true;
         r = roll(&PlayerAtlas, &retail, 3.0f, 90.0f, 0.4f, dt);
         CHECK(roll(&PlayerAtlas, &guard, 3.0f, 90.0f, 0.4f, dt).ball_vel.x < r.ball_vel.x);
-        /* Faster than Up to speed it rolls on. */
         CHECK(as_retail(&PlayerAtlas, &guard, 8.0f, 0.0f, 0.0f, dt));
 
-        /* Every switch on: the earth boss's ball, and the player's in the air, stay retail's. */
         CHECK(as_retail(&EarthBoss, &all, 3.0f, 270.0f, 1.0f, dt));
         CHECK(!as_retail(&PlayerAtlas, &all, 3.0f, 270.0f, 1.0f, dt));
         roll_ground = 0;
@@ -2356,7 +2271,6 @@ void ControlGlider(struct GLIDERSTRUCT *glider, struct nupad_s *pad);
 void ControlGlider__retail(struct GLIDERSTRUCT *glider, struct nupad_s *pad);
 void GliderFire(struct GLIDERSTRUCT *glider, struct nupad_s *pad);
 
-/* The firefly in level, its arena's values, a battleship 30 ahead of the camera at hz, then p. */
 static void firefly_at(int hz, const NwProfile *p, s32 level)
 {
     nw_hz_set(hz);
@@ -2390,7 +2304,6 @@ static void firefly_at(int hz, const NwProfile *p, s32 level)
     pad.rdata.l_alg_x = pad.rdata.l_alg_y = 127;
 }
 
-/* One ControlGlider from bank tiltz and pitch tiltx, the stick at (lx, ly); retail's if retail. */
 static struct GLIDERSTRUCT firefly_steer_once(int hz, const NwProfile *p, s32 level, u8 lx, u8 ly, float tiltz,
                                               float tiltx, bool retail)
 {
@@ -2422,11 +2335,9 @@ static void firefly_steer(void)
     plain.movement.firefly.pitch_response = 100;
     for (int hz = 50; hz <= 60; hz += 10) {
         float dt = hz == 50 ? 0.02f : 0.016666668f;
-        /* Retail, and the switch at 100 % everywhere, are retail's. */
         CHECK(firefly_steer_retail(hz, &retail, 0x12, 255, 0, 0.0f, 0.0f));
         CHECK(firefly_steer_retail(hz, &plain, 0x12, 255, 0, 0.0f, 0.0f));
         CHECK(firefly_steer_retail(hz, &plain, 0x12, 127, 127, 40.0f, -20.0f));
-        /* Banking in at twice the speed, climbing at 2.5 times, turning 25 % more. */
         struct GLIDERSTRUCT r = firefly_steer_once(hz, &retail, 0x12, 255, 0, 0.0f, 0.0f, true);
         struct GLIDERSTRUCT b = firefly_steer_once(hz, &on, 0x12, 255, 0, 0.0f, 0.0f, false);
         CHECK(fabsf(r.DestTiltZ) > 30.0f && fabsf(r.DestTiltX) > 20.0f);
@@ -2435,12 +2346,10 @@ static void firefly_steer(void)
         CHECK(near(b.TiltZ, r.DestTiltZ * (1.0f - powf(2.0f, -dt / 0.05f)), 1e-4f));
         CHECK(near(b.TiltX, r.DestTiltX * (1.0f - powf(2.0f, -dt / 0.08f)), 1e-4f));
         CHECK(near(b.AngleY - 30.0f, b.TiltZ * 2.0f * dt * 0.25f, 1e-3f));
-        /* Levelling out at twice the speed too. */
         r = firefly_steer_once(hz, &retail, 0x12, 127, 127, 40.0f, 0.0f, true);
         b = firefly_steer_once(hz, &on, 0x12, 127, 127, 40.0f, 0.0f, false);
         CHECK(r.DestTiltZ == 0.0f && near(40.0f - r.TiltZ, 40.0f * (1.0f - powf(2.0f, -dt / 0.05f)), 1e-4f));
         CHECK(near(40.0f - b.TiltZ, 40.0f * (1.0f - powf(2.0f, -dt / 0.025f)), 1e-4f));
-        /* The other gliders, and the firefly on autopilot, stay retail's. */
         CHECK(firefly_steer_retail(hz, &on, 0xD, 255, 0, 0.0f, 0.0f));
         CHECK(firefly_steer_retail(hz, &on, 0x1A, 255, 0, 0.0f, 0.0f));
         CHECK(firefly_steer_retail(hz, &on, 0x24, 255, 0, 0.0f, 0.0f));
@@ -2454,7 +2363,6 @@ static void firefly_steer(void)
     nw_profile_apply(&retail);
 }
 
-/* GliderFire with X held or not. */
 static void firefly_fire(bool held)
 {
     pad.paddata = held ? 0x40 : 0;
@@ -2477,7 +2385,6 @@ static void firefly_lock_on(void)
     struct nuvec_s at;
     float progress;
     for (int hz = 50; hz <= 60; hz += 10) {
-        /* Retail: X locks in 1.3 s, letting go before cancels it. */
         firefly_at(hz, &retail, 0x12);
         firefly_fire(true);
         CHECK(PlayerGlider.TargetOn && PlayerGlider.TargetTimer == 1.3f);
@@ -2485,10 +2392,8 @@ static void firefly_lock_on(void)
         CHECK(!PlayerGlider.TargetOn);
         CHECK(!nw_firefly_marker());
 
-        /* The marker: what X locks. */
         firefly_at(hz, &on, 0x12);
         CHECK(nw_firefly_lock(&at, &progress) == NW_FIREFLY_TARGET && at.z == 30.0f);
-        /* In 1 s, and let go early it fires once it is locked. */
         firefly_fire(true);
         CHECK(PlayerGlider.TargetOn && PlayerGlider.TargetTimer == 1.0f && Level_TargetTime == 1.0f);
         firefly_fire(false);
@@ -2505,7 +2410,6 @@ static void firefly_lock_on(void)
         CHECK(abs(frames - hz) <= 2);
         CHECK(firefly_bomb() && PlayerGlider.FireTimer == TorpedoTime);
         CHECK(nw_firefly_lock(&at, &progress) == NW_FIREFLY_RELOAD && progress < 0.1f);
-        /* Quick tap off: letting go early drops it, and the marker shows it lost. */
         on.movement.firefly.lock_tap = false;
         firefly_at(hz, &on, 0x12);
         firefly_fire(true);
@@ -2513,7 +2417,6 @@ static void firefly_lock_on(void)
         CHECK(!PlayerGlider.TargetOn && nw_firefly_lock(&at, &progress) == NW_FIREFLY_LOST && progress == 1.0f);
         CHECK(at.z == 30.0f);
         on.movement.firefly.lock_tap = true;
-        /* Turned off, the lock time is retail's again. */
         nw_profile_apply(&retail);
         firefly_fire(false);
         CHECK(Level_TargetTime == 1.3f);
@@ -2555,7 +2458,6 @@ void GliderFire(struct GLIDERSTRUCT *glider, struct nupad_s *pad);
 
 static struct nupad_s glide_pad;
 
-/* The plane after one ControlGlider under p in level, from g, the stick at (x, y), the d-pad bits in buttons. */
 static struct GLIDERSTRUCT glide(const NwProfile *p, int level, const struct GLIDERSTRUCT *g, u8 x, u8 y, u32 buttons)
 {
     nw_profile_apply(p);
@@ -2581,7 +2483,6 @@ static bool glide_retail(const NwProfile *p, int level, const struct GLIDERSTRUC
     return memcmp(&r, &t, sizeof(r)) == 0;
 }
 
-/* The share of the way an ease at half-life h goes in a frame. */
 static float glide_ease(float h, float dt)
 {
     return 1.0f - 1.0f / powf(2.0f, dt / h);
@@ -2614,8 +2515,6 @@ static void plane_steering(void)
     for (int hz = 50; hz <= 60; hz += 10) {
         nw_hz_set(hz);
         float dt = hz == 50 ? 0.02f : 0.016666668f;
-        /* At the PS2's values it is retail's; on the other gliders' levels all its switches on too, on autopilot
-           everything. */
         for (size_t s = 0; s < sizeof(sticks) / sizeof(sticks[0]); s++) {
             u8 x = sticks[s][0], y = sticks[s][1];
             for (int g = 0; g < 5; g++) {
@@ -2635,7 +2534,6 @@ static void plane_steering(void)
         CHECK(near(r.DestTiltX, -40.0f, 1e-4f) && n.DestTiltX == r.DestTiltX);
         CHECK(near(r.TiltX, r.DestTiltX * glide_ease(0.5f, dt), 1e-4f));
         CHECK(near(n.TiltX, n.DestTiltX * glide_ease(0.2f, dt), 1e-4f));
-        /* Let go: back to level at 1 s, now 0.4 s, the bank at 0.05 s, now a third sooner. */
         n = glide(&tuned, 0xD, &states[1], 0x80, 0x80, 0);
         CHECK(n.DestTiltX == 0.0f && near(n.TiltX, 20.0f - 20.0f * glide_ease(0.4f, dt), 1e-4f));
         CHECK(n.DestTiltZ == 0.0f && near(n.TiltZ, -30.0f + 30.0f * glide_ease(0.05f / 1.5f, dt), 1e-4f));
@@ -2645,20 +2543,17 @@ static void plane_steering(void)
         CHECK(n.DestTiltZ > 40.0f && near(n.TiltZ, n.DestTiltZ * glide_ease(0.1f / 1.5f, dt), 1e-4f));
         r = glide(&retail, 0x18, &states[0], 0xFF, 0x00, 0);
         CHECK(near(r.TiltZ, r.DestTiltZ * glide_ease(0.1f, dt), 1e-4f));
-        /* Under an override and mid roll the bank eases as retail's. */
         n = glide(&tuned, 0xD, &states[3], 0xFF, 0x80, 0);
         r = glide(&retail, 0xD, &states[3], 0xFF, 0x80, 0);
         CHECK(n.TiltZ == r.TiltZ);
         CHECK(glide_retail(&tuned, 0xD, &states[2], 0x80, 0x80, 0));
 
-        /* A sixth of the way out: nothing on the PS2, a turn at a 10 % deadzone. */
         CHECK(glide(&retail, 0xD, &states[0], 0x7F + 20, 0x7F, 0).InputX == 0.0f);
         n = glide(&tuned, 0xD, &states[0], 0x7F + 20, 0x7F, 0);
         CHECK(n.InputX > 0.05f && n.InputX < 0.1f && n.DestTiltZ > 0.0f);
         CHECK(glide(&tuned, 0xD, &states[0], 0x7F + 12, 0x7F, 0).InputX == 0.0f);
         CHECK(near(glide(&tuned, 0xD, &states[0], 0x7F + 126, 0x7F, 0).InputX, 1.0f, 1e-4f));
 
-        /* push_dive off: forward and the d-pad's up climb. */
         NwProfile climb = tuned;
         climb.movement.plane.push_dive = false;
         CHECK(near(glide(&climb, 0xD, &states[0], 0x7F, 0x00, 0).DestTiltX, 40.0f, 1e-4f));
@@ -2671,7 +2566,6 @@ static void plane_steering(void)
     Level = 0;
 }
 
-/* The shot GliderFire adds in Tornado Alley under p, flying level along -z; NULL for none. */
 static struct gliderbullet_s *plane_shot(const NwProfile *p)
 {
     nw_profile_apply(p);
@@ -2697,21 +2591,18 @@ static float DotProduct(const struct nuvec_s *a, const struct nuvec_s *b)
     return a->x * b->x + a->y * b->y + a->z * b->z;
 }
 
-/* The cosine between the shot's flight and the way to `to`. */
 static float plane_off(const struct gliderbullet_s *b, struct nuvec_s to)
 {
     struct nuvec_s d = { to.x - b->mtx._30, to.y - b->mtx._31, to.z - b->mtx._32 }, v = b->vel;
     return DotProduct(&d, &v) / (NuVecMag(&d) * NuVecMag(&v));
 }
 
-/* The cosine between the tracer's z row and its flight. */
 static float plane_tracer(const struct gliderbullet_s *b)
 {
     struct nuvec_s z = { b->mtx._20, b->mtx._21, b->mtx._22 }, v = b->vel;
     return DotProduct(&z, &v) / (NuVecMag(&z) * NuVecMag(&v));
 }
 
-/* How near the shot passes a UFO flying from pos at vel. */
 static float plane_miss(const struct gliderbullet_s *b, float dt, struct nuvec_s pos, struct nuvec_s vel)
 {
     struct nuvec_s rel = { b->mtx._30 - pos.x, b->mtx._31 - pos.y, b->mtx._32 - pos.z };
@@ -2754,7 +2645,6 @@ static void plane_aim(void)
         CHECK(b && plane_off(b, GliderTargetPos) > 0.99999f);
         memset(EnemyZoffa, 0, sizeof(EnemyZoffa));
         aim.movement.plane.aim_assist = 0;
-        /* Only in Tornado Alley. */
         nw_profile_apply(&aim);
         Level = 0x18;
         CHECK(!nw_plane_fire(&PlayerGlider, &glide_pad));
@@ -2788,14 +2678,13 @@ void ProcessGliderMovement(struct GLIDERSTRUCT *glider, f32 dt);
 void GliderFire(struct GLIDERSTRUCT *glider, struct nupad_s *pad);
 s32 CollideGliderBullets(struct nuvec_s *pos, f32 radius, s32 enemy, f32 yscale, s32 debris, s32 reflect);
 
-/* vehicle.c's struct gliderbullet_s; vel is a frame's. */
+/* vel is a frame's. */
 typedef struct gliderbullet_s Bolt;
 extern s32 FreeGliderBulletNum;
 extern s32 UsedGliderBulletNum;
 
 #define SPACE_LEVEL 0x1A
 
-/* Crashteroids' glider at hz under p, as SpaceArenaReset leaves it, the stick centred. */
 static void space_at(int hz, const NwProfile *p)
 {
     nw_hz_set(hz);
@@ -2829,7 +2718,6 @@ static void space_at(int hz, const NwProfile *p)
     pad.rdata.l_alg_x = pad.rdata.l_alg_y = 127;
 }
 
-/* The glider after frames of ControlGlider with the stick at (x, y). */
 static struct GLIDERSTRUCT space_steer(int hz, const NwProfile *p, u8 x, u8 y, int frames)
 {
     space_at(hz, p);
@@ -2841,7 +2729,6 @@ static struct GLIDERSTRUCT space_steer(int hz, const NwProfile *p, u8 x, u8 y, i
     return PlayerGlider;
 }
 
-/* Whether a second of steering and flying in level, the autopilot on or off, comes out as retail's. */
 static bool space_as_retail(int hz, const NwProfile *p, int level, s32 autopilot)
 {
     struct GLIDERSTRUCT r;
@@ -2874,12 +2761,10 @@ static void space_steering(void)
         /* Climb and dive: half way in the PS2's 0.5 s, in 0.2 s at 250 %. */
         CHECK(near(space_steer(hz, &retail, 127, 0, hz / 2).TiltX, -20.0f, 1e-3f));
         CHECK(near(space_steer(hz, &on, 127, 0, hz / 5).TiltX, -20.0f, 1e-3f));
-        /* Banking: the PS2's 0.1 s half-life, 1.5 times as fast. */
         struct GLIDERSTRUCT r = space_steer(hz, &retail, 255, 127, 3), b = space_steer(hz, &on, 255, 127, 3);
         CHECK(near(fabsf(r.TiltZ), 60.0f * (1.0f - exp2f(-3.0f * dt / 0.1f)), 1e-2f));
         CHECK(near(fabsf(b.TiltZ), 60.0f * (1.0f - exp2f(-3.0f * dt * 1.5f / 0.1f)), 1e-2f));
         CHECK(CRASHTEROIDSSeekTiltXTimeNonZero == 0.5f && SeekTiltZNonZero == 0.1f);
-        /* A light push (20 of 127): the PS2's deadzone drops it, 10 % takes it; a full push stays full. */
         CHECK(space_steer(hz, &retail, 127, 107, 1).InputZ == 0.0f);
         r = space_steer(hz, &on, 127, 107, 1);
         CHECK(r.InputZ > 0.05f && r.InputZ < 0.1f && pad.rdata.l_alg_y == 107);
@@ -2887,7 +2772,6 @@ static void space_steering(void)
         on.movement.spacefighter.deadzone = 25;
         CHECK(space_steer(hz, &on, 127, 107, 1).InputZ == 0.0f);
         on.movement.spacefighter.deadzone = 10;
-        /* Turning at a bank of 30: 60 degrees a second, 75 at 125 %. */
         space_at(hz, &retail);
         PlayerGlider.TiltZ = 30.0f;
         ProcessGliderMovement(&PlayerGlider, dt);
@@ -2896,7 +2780,6 @@ static void space_steering(void)
         PlayerGlider.TiltZ = 30.0f;
         ProcessGliderMovement(&PlayerGlider, dt);
         CHECK(near(PlayerGlider.AngleY, 75.0f * dt, 1e-4f));
-        /* Every switch on: the autopilot stays retail's, and with its own on the other gliders' levels. */
         CHECK(!space_as_retail(hz, &nhanced, SPACE_LEVEL, 0));
         CHECK(space_as_retail(hz, &nhanced, SPACE_LEVEL, 1));
         CHECK(space_as_retail(hz, &own, 0xD, 0));
@@ -2933,7 +2816,6 @@ static void space_roll(void)
     Level = level;
 }
 
-/* GliderFire from a fixed pose under p, firing or not; a still UFO at ufo, when given. */
 static void space_fire(int hz, const NwProfile *p, bool fire, const struct nuvec_s *ufo)
 {
     space_at(hz, p);
@@ -2954,7 +2836,6 @@ static struct nuvec_s bolt_pos(const Bolt *b)
     return (struct nuvec_s){ b->mtx._30, b->mtx._31, b->mtx._32 };
 }
 
-/* How far p is off the line through o along the unit d, and how far along it. */
 static float off_line(struct nuvec_s p, struct nuvec_s o, struct nuvec_s d, float *along)
 {
     struct nuvec_s r = { p.x - o.x, p.y - o.y, p.z - o.z };
@@ -2983,9 +2864,7 @@ static void space_aim(void)
         struct nuvec_s dir = { a.vel.x + b.vel.x, a.vel.y + b.vel.y, a.vel.z + b.vel.z };
         NuVecNorm(&dir, &dir);
         float along;
-        /* The PS2's reticle is off the shots' middle line... */
         CHECK(off_line(old, mid, dir, &along) > 2.0f);
-        /* ...this one on it, 60 ahead; the shots stay the PS2's. */
         space_fire(hz, &on, true, NULL);
         CHECK(UsedGliderBulletNum == 2 && memcmp(&a, UsedGliderBulletList[0], sizeof(a)) == 0 &&
               memcmp(&b, UsedGliderBulletList[1], sizeof(b)) == 0);
@@ -2993,7 +2872,6 @@ static void space_aim(void)
         struct nuvec_s aimed = GliderTargetPos;
         space_fire(hz, &on, false, NULL);
         CHECK(UsedGliderBulletNum == 0 && memcmp(&aimed, &GliderTargetPos, sizeof(aimed)) == 0);
-        /* The other gliders' reticles stay retail's. */
         space_at(hz, &retail);
         Level = 0xD;
         PlayerGlider.FireTimer = 1.0f;
@@ -3032,7 +2910,6 @@ static void space_sweep(void)
     struct nuvec_s centre = { 0.0f, 0.0f, 0.0f };
     s32 level = Level;
     for (int hz = 50; hz <= 60; hz += 10) {
-        /* Through the middle of a UFO between two frames: the PS2's misses it. */
         space_at(hz, &retail);
         space_bolt(0.0f, -1.3f, 30);
         CHECK(CollideGliderBullets(&centre, 1.0f, 0, 1.0f, 0, 0) == 0 && UsedGliderBulletNum == 1);
@@ -3045,7 +2922,6 @@ static void space_sweep(void)
         b->mtx._31 = -0.9f;
         CHECK(CollideGliderBullets(&centre, 1.0f, 0, 1.5f, 0, 0) == 0);
         CHECK(CollideGliderBullets(&centre, 1.0f, 0, 1.0f, 0, 0) == 1);
-        /* Past it, or before its first step: missed, and left where it is. */
         space_at(hz, &on);
         b = space_bolt(1.5f, -1.3f, 30);
         CHECK(CollideGliderBullets(&centre, 1.0f, 0, 1.0f, 0, 0) == 0 && UsedGliderBulletNum == 1);
@@ -3053,7 +2929,6 @@ static void space_sweep(void)
         space_at(hz, &on);
         space_bolt(0.0f, -1.3f, NW_HZ(37, 45));
         CHECK(CollideGliderBullets(&centre, 1.0f, 0, 1.0f, 0, 0) == 0);
-        /* A shield's reflection, the flag off and the other levels test as the PS2. */
         space_at(hz, &on);
         space_bolt(0.0f, -1.3f, 30);
         CHECK(CollideGliderBullets(&centre, 1.0f, 0, 1.0f, 0, 1) == 0);
@@ -3091,7 +2966,6 @@ static void space_assist(void)
             Bolt c = *UsedGliderBulletList[0];
             struct nuvec_s to = { ufo.x - from.x, ufo.y - from.y, ufo.z - from.z };
             if (off == 3) {
-                /* 3 degrees off: three quarters of the way to it, the bolt turned with it. */
                 CHECK(near(degrees(c.vel, to), 0.75f, 0.1f) && near(NuVecMag(&c.vel), NuVecMag(&a.vel), 1e-4f));
                 struct nuvec_s fa = { a.mtx._20, a.mtx._21, a.mtx._22 }, fc = { c.mtx._20, c.mtx._21, c.mtx._22 };
                 CHECK(near(degrees(fa, fc), degrees(a.vel, c.vel), 0.05f));
@@ -3100,7 +2974,6 @@ static void space_assist(void)
                 CHECK(memcmp(&a, UsedGliderBulletList[0], sizeof(a)) == 0);
                 on.movement.spacefighter.assist_pull = 75;
             } else {
-                /* Outside the cone: the PS2's. */
                 CHECK(memcmp(&a, &c, sizeof(a)) == 0);
             }
         }
@@ -3109,7 +2982,6 @@ static void space_assist(void)
     Level = level;
 }
 
-/* port/presence.c: the swap's copy of the game's state for Rich Presence. */
 static void presence_snapshot(void)
 {
     s32 level = Level;
@@ -3135,7 +3007,6 @@ static void presence_snapshot(void)
     CHECK(s.level_flags == 2 && s.collected == 0x48 && s.percent == 42);
     CHECK(strcmp(s.level_name, "COMPACTORREACTOR") == 0 && strcmp(s.room_name, "FIRE") == 0 && !s.warp_room[0]);
 
-    /* Outside LData and Game.level */
     Level = 44;
     Hub = 6;
     nw_presence_swap();

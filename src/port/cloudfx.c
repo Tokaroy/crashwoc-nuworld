@@ -1,5 +1,4 @@
-/* game/cloudfx's draw (port/units.toml override): cloudRender's clouds as the sprites the clouds program
-   (clouds.vsm) makes of them, a VERTS record in the clouds stream instead of its header and the REF of the clouds. */
+/* game/cloudfx override: cloudRender emits the sprites clouds.vsm makes, as a VERTS record in the clouds stream. */
 #include <stdint.h>
 #include <string.h>
 
@@ -11,7 +10,7 @@
 
 extern struct rndrstream_s *clouds_rs;
 
-/* An offset folded back into +-rng as clouds.vsm does: past rng (by its 1e6 scale's one unit) by 2 * rng. */
+/* Folded into +-rng as clouds.vsm does: past rng (by one unit of its 1e6 scale) by 2 * rng. */
 static f32 nw_cloud_fold(f32 d, f32 rng)
 {
     f32 above = (d - rng) * 1000000.0f >= 1.0f ? -rng - rng : 0.0f;
@@ -19,9 +18,7 @@ static f32 nw_cloud_fold(f32 d, f32 rng)
     return d + above + below;
 }
 
-/* Each cloud's point (1/16 units) off the scroll wrapped into 2 * rng, folded into +-rng about it, at pos; a sprite
-   of +-size by +-size / 2 GS units before the divide, s and t 0 to 1, in col times density with alpha 126. Retail
-   also drops a cloud nearer than w 1 and one off the screen, which the GPU clips. */
+/* Points in 1/16 units; sprites +-size by +-size / 2 GS units, alpha 126; the GPU clips what retail culls. */
 void cloudRender(struct nuvec_s *pos, struct nuvec_s *off, f32 size, f32 rng, s32 density, s32 maxc,
                  struct cloud_s *cl, struct numtl_s *mtl, struct nuvec_s *col)
 {

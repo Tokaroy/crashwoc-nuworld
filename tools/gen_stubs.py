@@ -1,8 +1,5 @@
 #!/usr/bin/env python3
-"""Generate aborting stubs for decomp functions with no C on the host yet.
-
-Prototype: the unit's TU, else include/, else the most common one with types erased, else `static void f(void)`.
-"""
+"""Generate aborting stubs for decomp functions with no C on the host yet."""
 from __future__ import annotations
 
 import argparse
@@ -26,7 +23,6 @@ def _origin(f: nwunits.Function) -> str:
 
 
 def why(f: nwunits.Function) -> str:
-    """The reason a stub hit prints."""
     treatment = f.unit.treatment
     if treatment in ("editor", "dead"):
         return f"{treatment} unit"

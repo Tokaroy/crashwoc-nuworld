@@ -1,4 +1,3 @@
-/* The submarine: turning, speed, hitbox, weapons. */
 #ifndef NUWORLD_GAMEPLAY_SUBMARINE_H
 #define NUWORLD_GAMEPLAY_SUBMARINE_H
 

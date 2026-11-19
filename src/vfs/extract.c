@@ -16,7 +16,6 @@ typedef struct NwCopy {
     uint8_t *buf;
 } NwCopy;
 
-/* Prefixes the current error with what failed. */
 static bool nw_extract_fail(const char *what, const char *path)
 {
     char why[512];
@@ -24,7 +23,6 @@ static bool nw_extract_fail(const char *what, const char *path)
     return SDL_SetError("%s %s: %s", what, path, why);
 }
 
-/* <root>name, with a separator between. */
 static char *nw_extract_path(const char *root, const char *name)
 {
     char *path = NULL;

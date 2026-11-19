@@ -10,7 +10,7 @@ bool nw_saveio_replace(const char *from, const char *to);
 bool nw_saveio_copy(const char *from, const char *to);
 
 #ifdef NW_SAVE_TESTING
-/* Deterministic I/O failure injection; compiled only into the standalone storage tests. -1 disables it. */
+/* Deterministic I/O failure injection; -1 disables it. */
 void nw_saveio_fail_after(int operations);
 #endif
 

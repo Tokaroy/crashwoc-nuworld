@@ -11,25 +11,25 @@
 #define NW_PS2CARD_FAT_END 0xFFFFFFFFu
 #define NW_PS2CARD_FAT_USED 0x80000000u
 #define NW_PS2CARD_FAT_FREE 0x7FFFFFFFu
-#define NW_PS2CARD_NONE 0xFFFFFFFFu /* no cluster */
+#define NW_PS2CARD_NONE 0xFFFFFFFFu
 #define NW_PS2CARD_USE_ECC 0x01     /* superblock card flag: pages carry their ECC */
-/* The modes the PS2's own card manager gives what it makes: a folder (and its "." and ".."), a closed file. */
+/* The modes the PS2's own card manager gives a folder (and its "." and "..") and a closed file. */
 #define NW_PS2CARD_MODE_DIR 0x8427
 #define NW_PS2CARD_MODE_FILE 0x8497
 #define NW_PS2CARD_JST (9 * 3600 * SDL_NS_PER_SECOND) /* the PS2 keeps Japan's time */
 
 typedef struct NwCard {
     const uint8_t *image;
-    uint8_t *rw;                    /* image, when it is written */
+    uint8_t *rw;
     uint32_t page_len, stride, ppc; /* bytes per page in the image (stride) and in a cluster (page_len) */
     uint32_t cluster;               /* bytes */
-    uint32_t clusters;              /* on the card */
+    uint32_t clusters;
     uint32_t alloc_offset;          /* the first file cluster; FAT and directory entries count from it */
     uint32_t alloc_end;             /* file clusters that may be allocated */
     uint32_t root;
     uint32_t ifc[32]; /* the indirect FAT clusters */
     uint8_t flags;
-    uint32_t next_free; /* where the search for a free cluster goes on */
+    uint32_t next_free;
     uint8_t *scratch;   /* one cluster */
 } NwCard;
 
@@ -102,7 +102,6 @@ static size_t nw_card_offset(const NwCard *c, uint64_t n, uint32_t offset)
     return (size_t)((n * c->ppc + offset / c->page_len) * c->stride + offset % c->page_len);
 }
 
-/* Copies absolute cluster n to out. */
 static bool nw_card_cluster(const NwCard *c, uint64_t n, uint8_t *out)
 {
     if (n >= c->clusters) {
@@ -143,8 +142,7 @@ static void nw_card_ecc(const uint8_t *chunk, uint8_t out[3])
     out[2] = lp1;
 }
 
-/* Page p of the image, its ECC brought up to date when the card keeps one (the rest of the spare zero, as the PS2
-   writes it). */
+/* Updates page p's ECC when the card keeps one; the rest of the spare is zero, as the PS2 writes it. */
 static void nw_card_page_written(NwCard *c, uint64_t p)
 {
     uint8_t *page = c->rw + (size_t)(p * c->stride);
@@ -169,7 +167,6 @@ static bool nw_card_put_cluster(NwCard *c, uint64_t n, const uint8_t *data)
     return true;
 }
 
-/* Where file cluster n's FAT entry is: an absolute cluster and the offset in it. */
 static bool nw_card_fat_where(const NwCard *c, uint32_t n, uint64_t *cluster, uint32_t *offset)
 {
     uint32_t per = c->cluster / 4, index = n / per;
@@ -184,7 +181,6 @@ static bool nw_card_fat_where(const NwCard *c, uint32_t n, uint64_t *cluster, ui
     return true;
 }
 
-/* The FAT entry of file cluster n. */
 static bool nw_card_fat(const NwCard *c, uint32_t n, uint32_t *entry)
 {
     uint64_t cluster = 0;
@@ -208,7 +204,6 @@ static bool nw_card_set_fat(NwCard *c, uint32_t n, uint32_t entry)
     return true;
 }
 
-/* The first len bytes of the cluster chain from file cluster first, SDL_malloc'd. */
 static uint8_t *nw_card_read(const NwCard *c, uint32_t first, size_t len)
 {
     uint8_t *out = SDL_malloc(len ? len : 1);
@@ -239,7 +234,6 @@ static uint8_t *nw_card_read(const NwCard *c, uint32_t first, size_t len)
     return out;
 }
 
-/* count entries of the directory at file cluster first, SDL_malloc'd. */
 static uint8_t *nw_card_dir(const NwCard *c, uint32_t first, uint32_t count)
 {
     if ((uint64_t)count * NW_PS2CARD_ENTRY > (uint64_t)c->clusters * c->cluster) {
@@ -258,7 +252,6 @@ static uint8_t *nw_card_root(const NwCard *c, uint32_t *count)
     return self ? nw_card_dir(c, c->root, *count) : NULL;
 }
 
-/* The entry of entries (count) named name that exists, -1 when none. */
 static int nw_card_named(const uint8_t *entries, uint32_t count, const char *name)
 {
     for (uint32_t i = 0; i < count; i++) {
@@ -270,7 +263,6 @@ static int nw_card_named(const uint8_t *entries, uint32_t count, const char *nam
     return -1;
 }
 
-/* The entry named name with the mode bit want among the count entries of the directory at file cluster first. */
 static bool nw_card_find(const NwCard *c, uint32_t first, uint32_t count, const char *name, uint16_t want,
                          uint32_t *cluster, uint32_t *length, bool *found)
 {
@@ -317,7 +309,6 @@ void *nw_ps2card_file(const void *image, size_t size, const char *dir, const cha
     return data;
 }
 
-/* A free file cluster, marked the end of a chain; false with an SDL error when the card is full. */
 static bool nw_card_alloc(NwCard *c, uint32_t *n)
 {
     for (; c->next_free < c->alloc_end; c->next_free++) {
@@ -333,8 +324,7 @@ static bool nw_card_alloc(NwCard *c, uint32_t *n)
     return SDL_SetError("the PS2 memory card is full");
 }
 
-/* len bytes as the chain from *first (NW_PS2CARD_NONE: no chain yet, *first is set): its clusters reused, more
-   allocated or the ones left over freed; the last cluster's tail is zeroed. A chain keeps its first cluster. */
+/* *first NW_PS2CARD_NONE: no chain yet; a chain keeps its first cluster, the last cluster's tail is zeroed. */
 static bool nw_card_put_chain(NwCard *c, uint32_t *first, const uint8_t *data, size_t len)
 {
     size_t need = len ? (len + c->cluster - 1) / c->cluster : 1;
@@ -343,7 +333,7 @@ static bool nw_card_put_chain(NwCard *c, uint32_t *first, const uint8_t *data, s
     }
     uint32_t *chain = SDL_malloc(need * sizeof(*chain)), n = *first, have = 0;
     bool ok = chain != NULL;
-    for (uint32_t steps = 0; ok && n != NW_PS2CARD_NONE && have < need; steps++) { /* reused */
+    for (uint32_t steps = 0; ok && n != NW_PS2CARD_NONE && have < need; steps++) {
         uint32_t entry = 0;
         if (steps >= c->clusters || n >= c->alloc_end) {
             ok = SDL_SetError("a PS2 memory card cluster chain that loops or leaves the card");
@@ -353,7 +343,7 @@ static bool nw_card_put_chain(NwCard *c, uint32_t *first, const uint8_t *data, s
                                                                                : entry & ~NW_PS2CARD_FAT_USED;
         }
     }
-    for (uint32_t steps = 0; ok && n != NW_PS2CARD_NONE; steps++) { /* left over */
+    for (uint32_t steps = 0; ok && n != NW_PS2CARD_NONE; steps++) {
         uint32_t entry = 0;
         if (steps >= c->clusters || n >= c->alloc_end) {
             ok = SDL_SetError("a PS2 memory card cluster chain that loops or leaves the card");
@@ -408,7 +398,6 @@ static void nw_card_entry(uint8_t *e, uint16_t mode, uint32_t length, uint32_t c
     SDL_strlcpy((char *)e + 0x40, name, 32);
 }
 
-/* An entry of *entries (*count) that does not exist, else one more at the end; -1 without memory. */
 static int nw_card_free_entry(uint8_t **entries, uint32_t *count)
 {
     for (uint32_t i = 2; i < *count; i++) {
@@ -425,7 +414,6 @@ static int nw_card_free_entry(uint8_t **entries, uint32_t *count)
     return (int)(*count)++;
 }
 
-/* The files into the folder's entries (count), their data onto the card. */
 static bool nw_card_put_files(NwCard *c, uint8_t **folder, uint32_t *count, const NwPs2CardFile *files, int n,
                               const uint8_t stamp[8])
 {
@@ -483,8 +471,7 @@ bool nw_ps2card_put(void *image, size_t size, const char *dir, const NwPs2CardFi
         } else if (folder_count < 2 || !(folder = nw_card_dir(&c, folder_first, folder_count))) {
             ok = folder_count < 2 ? SDL_SetError("/%s on the PS2 memory card has no \".\"", dir) : false;
         }
-    } else if (ok) { /* made as the PS2 makes one: "." pointing back at its entry in the root, ".." with the root's
-                        date */
+    } else if (ok) { /* as the PS2 makes one: "." points back at its entry in the root, ".." has the root's date */
         at = nw_card_free_entry(&root, &root_count);
         folder = SDL_calloc(2, NW_PS2CARD_ENTRY);
         ok = at >= 0 && folder;
@@ -493,7 +480,7 @@ bool nw_ps2card_put(void *image, size_t size, const char *dir, const NwPs2CardFi
             nw_card_entry(folder, NW_PS2CARD_MODE_DIR, 0, c.root, (uint32_t)at, stamp, ".");
             nw_card_entry(folder + NW_PS2CARD_ENTRY, NW_PS2CARD_MODE_DIR, 0, 0, 0, root + 0x08, "..");
             nw_card_put32(root + 0x04, root_count);
-            SDL_memcpy(root + 0x18, stamp, 8); /* the root changed */
+            SDL_memcpy(root + 0x18, stamp, 8);
         }
     }
     ok = ok && nw_card_put_files(&c, &folder, &folder_count, files, count, stamp) &&

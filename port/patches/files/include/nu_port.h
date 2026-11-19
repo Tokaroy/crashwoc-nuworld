@@ -38,8 +38,7 @@ void nw_ee_idle(void);
 #define NW_HOST_IDLE()
 #endif
 
-/* n records x just carved off a game heap: the host sets the cursor n * ps2size past x (retail's heap layout) and
- * points x at zeroed twins beside the heap (NuWorld's src/port/heap.c); the EE build checks sizeof(*x) == ps2size. */
+/* The cursor steps retail's n * ps2size; on the host x moves to zeroed twins beside the heap (src/port/heap.c). */
 #ifdef NW_HOST
 void *nw_heap_twin(void *at, __SIZE_TYPE__ charge, __SIZE_TYPE__ size, __SIZE_TYPE__ align);
 #define NW_HEAP_TWIN(x, cursor, n, ps2size) \
@@ -49,14 +48,12 @@ void *nw_heap_twin(void *at, __SIZE_TYPE__ charge, __SIZE_TYPE__ size, __SIZE_TY
 #define NW_HEAP_TWIN(x, cursor, n, ps2size) ((void)sizeof(char[sizeof(*(x)) == (ps2size) ? 1 : -1]))
 #endif
 
-/* The record a load returns for the heap address at: at on the EE, its twin rec on the host. */
 #ifdef NW_HOST
 #define NW_HEAP_REC(at, rec) ((__typeof__(at))(rec))
 #else
 #define NW_HEAP_REC(at, rec) at
 #endif
 
-/* On the host, a pointer p aimed at the carved record at the heap address at is moved to its twin rec. */
 #ifdef NW_HOST
 #define NW_HEAP_AIM(p, at, rec) ((p) == (void *)(at) ? (void)((p) = (rec)) : (void)0)
 #else
@@ -125,16 +122,14 @@ float nw_ee_fdiv(float a, float b);
 #define NW_EE_DIV(a, b) ((a) / (b))
 #endif
 
-/* Exempts from -fsanitize=function a function calling through pointers with retail's mismatched prototypes, which both
- * ABIs accept. */
+/* Skips -fsanitize=function for calls through retail's mismatched prototypes, which both ABIs accept. */
 #ifdef NW_HOST
 #define NW_HOST_LOOSE_CALLS __attribute__((no_sanitize("function")))
 #else
 #define NW_HOST_LOOSE_CALLS
 #endif
 
-/* A local whose address retail uses after returning (a looping sound's position): the EE stack keeps its last values,
- * the host makes it static. */
+/* A local retail reads after returning (a looping sound's position): the EE stack keeps it, the host makes it static. */
 #ifdef NW_HOST
 #define NW_HOST_KEPT static
 #else
@@ -148,12 +143,7 @@ float nw_ee_fdiv(float a, float b);
 #define NW_HOST_INIT(v)
 #endif
 
-/* Hor+ widescreen (NuWorld's src/port/wide.c): drawing widens by nw_wide.k (1 is retail), logic keeps the 4:3 tests.
- * NW_WIDE_PVS draws an instance the PVS hid when the wider view needs it; NW_WIDE_ANIM does the same for its animation
- * except where that carries collision; NW_WIDE_SEEN narrows a draw result to retail's 4:3 frustum for logic;
- * nw_wide_vp moves the viewport origin for the pause shrink (paused 0-25) to retail's 4:3 area, nw_wide_vp_x is its
- * offset from the frame's left edge in 1/16 pixels; NW_WIDE_HUD gives a HUD model past retail's 4:3 picture the
- * perspective it has at the picture's edge. */
+/* Hor+ widescreen (src/port/wide.c): drawing widens by nw_wide.k (1 is retail), logic keeps retail's 4:3 tests. */
 #ifdef NW_HOST
 struct nuinstance_s;
 struct numtx_s;
@@ -172,7 +162,7 @@ int nw_wide_anim(struct nuinstance_s *inst, int test);
 void nw_wide_mark(void);
 int nw_wide_seen(int drawn);
 void nw_wide_vp(int paused);
-int nw_wide_vp_x(void);
+int nw_wide_vp_x(void); /* 1/16 pixels */
 void nw_wide_hud(struct numtx_s *m);
 #define NW_WIDE(ps2, host) (host)
 #define NW_WIDE_SCALE(x, f) ((x) * (f))
@@ -191,9 +181,7 @@ void nw_wide_hud(struct numtx_s *m);
 #define NW_WIDE_HUD(m)
 #endif
 
-/* Display-rate interpolation (NuWorld's src/gfx/interp.c): NW_INTERP_KEY names the object the following draws belong
- * to (0: none) so a skipped draw does not shift later keys; NW_INTERP_SLOT keys them by place i in p (p 0: off);
- * NW_INTERP_SNAP marks a cut, drawn without blending. */
+/* Display-rate interpolation (src/gfx/interp.c): keys stop a skipped draw from shifting later ones; SNAP is a cut. */
 #ifdef NW_HOST
 void nw_interp_key(const void *key);
 void nw_interp_slot(const void *owner, unsigned long long place);
@@ -207,8 +195,7 @@ void nw_interp_snap(void);
 #define NW_INTERP_SNAP()
 #endif
 
-/* A value tied to the 50/60 Hz logic tick (NuWorld's src/port/hz.c), PAL's on the PS2; NW_HZ_NTSC builds the PS2 code
- * with the NTSC values for NuWorld's tools/ntsc_diff.py to compare with the US release. */
+/* 50/60 Hz tick value (src/port/hz.c), PAL's on the PS2; NW_HZ_NTSC builds NTSC's for tools/ntsc_diff.py. */
 #ifdef NW_HOST
 extern int nw_hz;
 #define NW_HZ(pal, ntsc) (nw_hz == 60 ? (ntsc) : (pal))
@@ -230,8 +217,7 @@ extern int nw_rev;
 #define NW_REV_DIM(old, new) (old)
 #endif
 
-/* A game's and a time trial record's name as shown: NuWorld's longer one when it stands (src/port/names.h), and a
-   scale that keeps a longer name inside the width of fit letters; the game's own on the PS2. */
+/* NuWorld's longer names (src/port/names.h), scaled to fit letters wide; the game's own on the PS2. */
 #ifdef NW_HOST
 struct game_s;
 char *nw_names_of(const struct game_s *g);

@@ -1,9 +1,5 @@
 #!/usr/bin/env python3
-"""Compare crashwoc-nuworld --dump's PS2 view of the game (<vblank>.nwd) with PCSX2's EE RAM at that vblank.
-
-Blocks without a known retail address go where most of PCSX2's pointers to them point; pointer slots compare as the
-address their target was placed at, and slots holding unplaced host pointers only have to agree with each other.
-"""
+"""Compare crashwoc-nuworld --dump's PS2 view of the game (<vblank>.nwd) with PCSX2's EE RAM at that vblank."""
 from __future__ import annotations
 
 import argparse
@@ -130,8 +126,6 @@ def place(dump: Dump, ram: bytes) -> tuple[dict[int, int], int]:
 
 
 class Fields:
-    """typedb.json: a record's field at a PS2 offset, recursively."""
-
     def __init__(self, typedb: dict | None):
         self.records = (typedb or {}).get("records", {})
         self.cache: dict[str, tuple[list[int], list[dict]]] = {}
@@ -185,8 +179,7 @@ def show(raw: bytes, leaf: dict, symbolize) -> str:
 
 
 def rounding(a: bytes, b: bytes, leaf: dict, ulps: int) -> bool:
-    """Floats a few units in the last place apart (EE rounding, #91), or zeros of either sign. Untyped words count
-    when both are normal floats of the same sign."""
+    """Floats a few units in the last place apart (EE rounding, #91), or zeros of either sign."""
     if len(a) != 4 or leaf.get("kind") not in (None, "float"):
         return False
     x, y = struct.unpack("<II", a + b)
@@ -242,7 +235,6 @@ class Result:
 
 
 def diff_runs(a: bytes, b: bytes) -> list[tuple[int, int]]:
-    """[start, end) runs where a and b differ."""
     runs, n = [], min(len(a), len(b))
     for c in range(0, n, CHUNK):
         x, y = a[c:c + CHUNK], b[c:c + CHUNK]
@@ -266,7 +258,6 @@ def diff_runs(a: bytes, b: bytes) -> list[tuple[int, int]]:
 
 def compare(dump: Dump, ram: bytes, fields: Fields, known: Known | None = None, ulps: int = 16, limit: int = 40,
             per_block: int = 8, show_all: bool = False) -> Result:
-    """Differences per field: float rounding and known ones are only counted (listed with show_all)."""
     known = known or Known(None)
     res = Result(dump.vblank, blocks=len(dump.blocks))
     base, res.split_votes = place(dump, ram)

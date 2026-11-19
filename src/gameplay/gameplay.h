@@ -1,11 +1,9 @@
-/* NuWorld's changes to how the game plays or looks, each behind a [game] setting; all off (zero) is the retail game that
-   every check, test and recording runs, and only the windowed boot fills the profile from settings.toml. */
+/* All off (zero) is the retail game every check, test and recording runs. */
 #ifndef NUWORLD_GAMEPLAY_GAMEPLAY_H
 #define NUWORLD_GAMEPLAY_GAMEPLAY_H
 
 #include <stdbool.h>
 
-/* Crash movement */
 #define NW_CRASH_MOVEMENT(SW, FLAG, VAL) \
     SW(jump_fall, "Crash 4 jump arc", true, "Crash 4 jump: quick launch, soft apex, fall speeds up") \
     VAL(jump_float, "Apex float %", 65, 0, 200, "hang time at the apex") \
@@ -57,7 +55,6 @@ typedef struct NwCrashMovement {
     NW_CRASH_MOVEMENT(NW_CRASH_BOOL, NW_CRASH_BOOL, NW_CRASH_INT)
 } NwCrashMovement;
 
-/* Coco movement */
 #define NW_COCO_MOVEMENT(SW, FLAG, VAL) \
     SW(jump_fall, "Crash 4 jump arc", false,"Crash 4 jump: quick launch, soft apex, fall speeds up") \
     VAL(jump_float, "Apex float %", 100, 0, 200, "hang time at the apex") \
@@ -80,7 +77,6 @@ typedef struct NwCocoMovement {
     NW_COCO_MOVEMENT(NW_CRASH_BOOL, NW_CRASH_BOOL, NW_CRASH_INT)
 } NwCocoMovement;
 
-/* Mech movement */
 #define NW_MECH_MOVEMENT(SW, FLAG, VAL) \
     SW(stand_jump, "Running jump from a standstill", true, "jumps at once, steers like a running jump") \
     SW(shot_stop, "Shorter stop after a shot", true, "steering or jumping ends the post-shot stop early") \
@@ -100,7 +96,6 @@ typedef struct NwMechMovement {
     NW_MECH_MOVEMENT(NW_CRASH_BOOL, NW_CRASH_BOOL, NW_CRASH_INT)
 } NwMechMovement;
 
-/* Submarine movement */
 #define NW_SUB_MOVEMENT(SW, FLAG, VAL) \
     SW(turning, "Free turning", true, "turns toward any side push, also mid-turn; no stop facing the screen") \
     VAL(turn_speed, "Turn speed %", 200, 100, 400, "% of PS2") \
@@ -122,7 +117,6 @@ typedef struct NwSubMovement {
     NW_SUB_MOVEMENT(NW_CRASH_BOOL, NW_CRASH_BOOL, NW_CRASH_INT)
 } NwSubMovement;
 
-/* Jeep movement */
 #define NW_JEEP_MOVEMENT(SW, FLAG, VAL) \
     SW(steering, "Sharper steering", true, "quicker turn-in") \
     VAL(steer_response, "Steering response %", 120, 100, 400, "how fast it turns toward the stick") \
@@ -137,7 +131,6 @@ typedef struct NwJeepMovement {
     NW_JEEP_MOVEMENT(NW_CRASH_BOOL, NW_CRASH_BOOL, NW_CRASH_INT)
 } NwJeepMovement;
 
-/* Atlasphere movement */
 #define NW_ATLAS_MOVEMENT(SW, FLAG, VAL) \
     SW(steer, "Sharper steering", true, "tighter turns that keep speed") \
     VAL(steer_turn, "Turn sharpness %", 250, 100, 400, "sideways push, % of PS2") \
@@ -154,7 +147,6 @@ typedef struct NwAtlasMovement {
     NW_ATLAS_MOVEMENT(NW_CRASH_BOOL, NW_CRASH_BOOL, NW_CRASH_INT)
 } NwAtlasMovement;
 
-/* Firefly movement */
 #define NW_FIREFLY_MOVEMENT(SW, FLAG, VAL) \
     SW(lock_on, "Clear lock-on", true, "marker shows the X target, lock progress, lock, loss and reload") \
     VAL(lock_ms, "Lock time ms", 1000, 300, 1300, "X hold time to lock; PS2: 1300") \
@@ -168,7 +160,6 @@ typedef struct NwFireflyMovement {
     NW_FIREFLY_MOVEMENT(NW_CRASH_BOOL, NW_CRASH_BOOL, NW_CRASH_INT)
 } NwFireflyMovement;
 
-/* Plane movement */
 #define NW_PLANE_MOVEMENT(SW, FLAG, VAL) \
     SW(steering, "Sharper steering", true, "quicker pitch and bank") \
     VAL(deadzone, "Stick deadzone %", 5, 5, 30, "stick deadzone; PS2: 25") \
@@ -182,7 +173,6 @@ typedef struct NwPlaneMovement {
     NW_PLANE_MOVEMENT(NW_CRASH_BOOL, NW_CRASH_BOOL, NW_CRASH_INT)
 } NwPlaneMovement;
 
-/* Space fighter movement */
 #define NW_SPACE_MOVEMENT(SW, FLAG, VAL) \
     SW(steering, "Sharper steering", true, "nose follows the stick sooner, lighter push steers") \
     VAL(pitch_speed, "Climb and dive response %", 250, 100, 500, "nose speed, % of PS2") \
@@ -202,7 +192,6 @@ typedef struct NwSpaceMovement {
     NW_SPACE_MOVEMENT(NW_CRASH_BOOL, NW_CRASH_BOOL, NW_CRASH_INT)
 } NwSpaceMovement;
 
-/* N. Hanced Movement */
 typedef struct NwMovement {
     int monkey_bar_speed;
     NwCrashMovement crash;
@@ -248,31 +237,30 @@ typedef enum NwMovementProfile {
 NwMovementProfile nw_movement_profile(const NwMovement *m);
 
 typedef struct NwProfile {
-    bool title_menu;   /* NuWorld's title menu instead of the logos and the title cut */
+    bool title_menu;
     NwMovement movement;
-    bool air_indicator; /* a ring on the floor under Crash while he is in the air */
-    bool boss_health;   /* phase lines on the boss bar */
+    bool air_indicator;
+    bool boss_health;
     bool wombat;        /* a new game named WOMBAT starts with everything open, as on the GameCube and Xbox */
-    bool hub_minigame;  /* Crunch on the warp room's top floor starts the loading minigame */
-    bool long_time_names; /* a time trial record's name takes up to 8 letters, not 3 (port/names.h) */
+    bool hub_minigame;
+    bool long_time_names; /* up to 8 letters, not 3 (port/names.h) */
     bool relic_spin;
-    int camera_stability; /* percent of a jump the game camera ignores, 0 retail */
+    int camera_stability; /* % of a jump the camera ignores; 0 = retail */
     bool hub_gem;
     bool first_boss_cut;
     bool vehicle_hints;
     bool bug_fixes;
-    bool hitboxes;      /* the debug menu's view of every collision shape, not saved */
+    bool hitboxes;      /* not saved */
 } NwProfile;
 
 extern NwProfile nw_profile;
 
 /* The windowed boot, before the game thread starts. */
 void nw_profile_apply(const NwProfile *p);
-/* Asks the game thread for p's movement, air indicator, boss health, camera, WOMBAT and hub minigame at its next
-   swap */
+/* Applied by the game thread at its next swap. */
 void nw_profile_request(const NwProfile *p);
 
-/* Marks where a feature changes the game; reached with its NwProfile switch off (every retail run), the game stops. */
+/* Reached with its switch off (every retail run), the game stops. */
 #define NW_DEVIATION(sw) (nw_profile.sw ? (void)0 : nw_deviation_off(#sw))
 _Noreturn void nw_deviation_off(const char *sw);
 

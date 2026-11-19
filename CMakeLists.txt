@@ -59,7 +59,7 @@ else()
   FetchContent_MakeAvailable(SDL3)
 endif()
 
-# After SDL: everything from here on, the decomp included; with libFuzzer's coverage for the fuzz targets.
+# After SDL: everything from here on, the decomp included.
 if(NUWORLD_FUZZ)
   add_compile_options(-fsanitize=fuzzer-no-link)
 endif()
@@ -74,7 +74,6 @@ else()
   add_compile_definitions($<$<CONFIG:Debug>:NW_HIGH_HEAP>)
 endif()
 
-# Dear ImGui with its SDL3 and OpenGL 3 backends (the GL backend has its own loader).
 include(FetchContent)
 FetchContent_Declare(imgui
   GIT_REPOSITORY https://github.com/ocornut/imgui.git
@@ -93,7 +92,7 @@ target_compile_definitions(nuworld_imgui PUBLIC IMGUI_DISABLE_OBSOLETE_FUNCTIONS
 target_compile_options(nuworld_imgui PRIVATE -fno-exceptions -fno-rtti)
 target_link_libraries(nuworld_imgui PUBLIC SDL3::SDL3 ${CMAKE_DL_LIBS})
 
-# Port-owned assets compiled in: build/gen/<name>.c defines <name>[] and <name>_size.
+# build/gen/<name>.c defines <name>[] and <name>_size.
 function(nw_embed target name file)
   set(out ${CMAKE_CURRENT_BINARY_DIR}/gen/${name}.c)
   add_custom_command(OUTPUT ${out}
@@ -146,7 +145,6 @@ nw_embed(nuworld_fonts nw_font_bold ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/Atk
 nw_embed(crashwoc-nuworld nw_beta_menu_png ${CMAKE_CURRENT_SOURCE_DIR}/assets/wizard/beta-menu.png)
 # Window icon: the exe's icon resource on Windows (SDL takes the first one), a PNG set at runtime elsewhere.
 if(WIN32)
-  # Plus the version in the exe's properties (FILEOS VOS_NT_WINDOWS32, FILETYPE VFT_APP).
   set(NW_RC_ICON ${CMAKE_CURRENT_SOURCE_DIR}/assets/branding/nuworld.ico)
   string(STRIP "${PROJECT_VERSION} ${NUWORLD_TAG}" NW_RC_VERSION)
   set(NW_RC_NAME NuWorld)
@@ -182,8 +180,6 @@ add_custom_target(nuworld_buildid
   BYPRODUCTS ${nw_buildid}
   VERBATIM)
 
-# Runtime for the generated stubs and function map, the vblank clock the game thread runs on, the build ID, the
-# check for a newer release and the game's doubles.
 add_library(nuworld_port STATIC
   src/hle/eedouble.c
   src/hle/eefpu.c
@@ -201,7 +197,6 @@ if(WIN32)
   target_link_libraries(nuworld_port PUBLIC winhttp)
 endif()
 
-# Disc images, the data folder and the game file system.
 set(NW_VFS_SOURCES
   src/platform/paths.c
   src/vfs/canon.c
@@ -219,8 +214,6 @@ target_include_directories(nuworld_vfs PUBLIC src)
 target_compile_options(nuworld_vfs PRIVATE -Wall -Wextra)
 target_link_libraries(nuworld_vfs PUBLIC SDL3::SDL3)
 
-# Scenes without the decomp: the NU20 reader, the VIF and texture decoders, the material state, the frame packets, the
-# gem materials.
 add_library(nuworld_gfx STATIC
   src/gfx/gem.c
   src/gfx/gsc.c
@@ -234,7 +227,6 @@ target_include_directories(nuworld_gfx PUBLIC src)
 target_compile_options(nuworld_gfx PRIVATE -Wall -Wextra)
 target_link_libraries(nuworld_gfx PUBLIC nuworld_vfs)
 
-# NUSOUND: the IRX's RPC side, the VAG decoder and SFX.DAT.
 add_library(nuworld_audio STATIC
   src/audio/libsd.c
   src/audio/nusound.c
@@ -245,8 +237,6 @@ target_include_directories(nuworld_audio PUBLIC src)
 target_compile_options(nuworld_audio PRIVATE -Wall -Wextra)
 target_link_libraries(nuworld_audio PUBLIC nuworld_vfs)
 
-# Frontend logic without the UI: import folder listing, background import job, settings.toml and its controls,
-# Discord Rich Presence.
 add_library(nuworld_frontend STATIC
   src/frontend/import.c
   src/frontend/presence.c
@@ -258,7 +248,6 @@ target_include_directories(nuworld_frontend PUBLIC src)
 target_compile_options(nuworld_frontend PRIVATE -Wall -Wextra)
 target_link_libraries(nuworld_frontend PUBLIC nuworld_vfs nuworld_save)
 
-# Saves: the TOML document, the save records in it, the saves folder and PS2 card images (no decomp).
 set(NW_SAVE_SOURCES
   src/save/saveio.c
   src/save/saveworker.c
@@ -423,7 +412,6 @@ if(NUWORLD_FUZZ)
   if(NOT CMAKE_C_COMPILER_ID MATCHES "Clang" OR MINGW)
     message(FATAL_ERROR "NUWORLD_FUZZ needs clang on Linux or macOS (libFuzzer does not support MinGW).")
   endif()
-  # The VFS, VIF and save readers instrumented for libFuzzer, seeded from the synthetic test builders.
   set(nw_fuzz_flags -fsanitize=address,undefined -fno-sanitize-recover=undefined -fno-omit-frame-pointer)
   add_library(nuworld_vfs_fuzz STATIC ${NW_VFS_SOURCES} ${NW_SAVE_SOURCES} src/gfx/vif.c)
   target_include_directories(nuworld_vfs_fuzz PUBLIC src)

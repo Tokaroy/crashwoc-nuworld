@@ -1,9 +1,5 @@
 #!/usr/bin/env python3
-"""Lock the retail functions NuWorld depends on by their decomp text.
-
-Overrides replace the decomp's definition and value rules find values by count, so a decomp change needs a look.
-A wrap needs no lock: its decomp C compiles and <unit>.retail.h makes the compiler check its signature.
-"""
+"""Lock the retail functions NuWorld depends on by their decomp text."""
 from __future__ import annotations
 
 import argparse
@@ -18,13 +14,11 @@ import patches  # noqa: E402
 LOCK = nwunits.REPO / "port" / "copies.lock"
 HEADER = ("# Hashes of the decomp functions NuWorld depends on by their text: [copies] overrides, [values] value\n"
           "# rules. Written by tools/copies.py --update.\n")
-# table: (what its functions are, the look a decomp change needs)
 TABLES = {"copies": ("replaced by NuWorld", "bring NuWorld's definition in line"),
           "values": ("with value rules", "prove its rules with tools/ntsc_diff.py check")}
 
 
 def bodies(tree: Path, source: str, cache: dict) -> dict[str, str]:
-    """{function: body hash} of one decomp source."""
     key = (tree, source)
     if key not in cache:
         path = tree / source
@@ -33,14 +27,12 @@ def bodies(tree: Path, source: str, cache: dict) -> dict[str, str]:
 
 
 def replaced(model: nwunits.Model) -> list[nwunits.Function]:
-    """Overridden functions with decomp C whose NuWorld copy takes the calls."""
     return [f for u in model.units if u.kind == "wrapper" for f in u.functions
             if f.overridden and f.provider == "port" and f.definition is not None]
 
 
 def current(decomp: Path, pristine: Path, units: Path, port_src: Path,
             values: Path | None = patches.VALUES) -> tuple[dict[str, dict[str, str]], list[str]]:
-    """({table: {function: retail hash}}, errors for port patches that edit an overridden one)."""
     model = nwunits.load(decomp, units, port_src)
     if not nwunits.report(model, sys.stderr):
         raise SystemExit(1)

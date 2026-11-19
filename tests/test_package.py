@@ -1,4 +1,3 @@
-"""tools/package.py and tools/deny_gamedata.py on a stand-in build: staged files, archives, checksums, the deny-list."""
 import contextlib
 import hashlib
 import io

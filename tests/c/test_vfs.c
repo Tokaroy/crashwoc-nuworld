@@ -1,5 +1,3 @@
-/* VFS: SHA-256, synthetic disc images, verification and import, data folders, game paths, overlays, .DAT archives and
-   the import wizard; NUWORLD_TEST_DISC and NUWORLD_TEST_DATA add checks against your own disc. */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -33,7 +31,6 @@ static const char *scratch;
         } \
     } while (0)
 
-/* call must fail with an error containing text. */
 #define CHECK_FAILS(call, text) \
     do { \
         if (call) { \
@@ -45,8 +42,6 @@ static const char *scratch;
             failures++; \
         } \
     } while (0)
-
-/* ---- SHA-256 ---------------------------------------------------------------------------------------------- */
 
 static bool sha_is(const void *data, size_t size, const char *hex)
 {
@@ -67,7 +62,6 @@ static void test_sha256(void)
     CHECK(sha_is(abc448, strlen(abc448), "248d6a61d20638b8e5c026930c3e6039a33ce45964ff2167f6ecedd419db06c1"));
     CHECK(sha_is(abc896, strlen(abc896), "cf5b16a778af8380036ce59e7b0492370b249b11e8f07a51afac45037afee9d1"));
 
-    /* One million 'a', fed in uneven pieces. */
     static uint8_t million[1000000];
     uint8_t digest[NW_SHA256_SIZE];
     char hex[NW_SHA256_HEX];
@@ -81,8 +75,6 @@ static void test_sha256(void)
     nw_sha256_hex(digest, hex);
     CHECK(strcmp(hex, "cdc76e5c9914fb9281a1c7e284d73e67f1809a48a497200e046d39ccc7112cd0") == 0);
 }
-
-/* ---- Committed manifest ---------------------------------------------------------------------------------- */
 
 static void test_disc_manifest(void)
 {
@@ -147,8 +139,6 @@ static void write_text(const char *name, const char *text)
 {
     write_file(name, text, strlen(text));
 }
-
-/* ---- Manifest of the synthetic disc ---------------------------------------------------------------------- */
 
 typedef struct TestManifest {
     NwManifestEntry entries[8];
@@ -259,7 +249,6 @@ static void test_formats(void)
     write_text("empty.cue", "REM nothing\n");
     CHECK_FAILS(nw_disc_open(&disc, scratch_path("empty.cue")), "no FILE");
 
-    /* Not ISO9660. */
     memset(img->data, 0, sizeof(img->data));
     write_file("zero.iso", img->data, img->size);
     CHECK_FAILS(nw_disc_open(&disc, scratch_path("zero.iso")), "ISO9660");
@@ -281,14 +270,12 @@ static bool progress_cb(void *user, uint64_t done, uint64_t total)
     return true;
 }
 
-/* Cancels once more than *user bytes are done. */
 static bool cancel_cb(void *user, uint64_t done, uint64_t total)
 {
     (void)total;
     return done <= *(uint64_t *)user;
 }
 
-/* Opens a synthetic image of spec as .iso and indexes it. */
 static bool open_spec(const Spec *spec, NwDisc *disc, NwIso *iso)
 {
     Image *img = malloc(sizeof(*img));
@@ -323,7 +310,6 @@ static void test_verify(void)
     CHECK(nw_verify_files(&disc, &iso, &t.m, NW_VERIFY_SKIPPED, progress_cb, last));
     CHECK(last[0] == ELF_SIZE + GSC_SIZE + DUMMY_SIZE + strlen(pal_cnf));
 
-    /* A changed file is named with both hashes. */
     t.hex[2][0] = t.hex[2][0] == '0' ? '1' : '0';
     CHECK_FAILS(nw_verify_files(&disc, &iso, &t.m, 0, NULL, NULL), "LEVELS/B/HUB/HUB.GSC: SHA-256");
     manifest_build(&t);
@@ -359,7 +345,6 @@ static void test_verify(void)
         }
     }
 
-    /* Picked by BOOT2 and VER. */
     NwManifest usa = { t.entries, t.m.count, "USA v1.00", "SLUS_202.38", "1.00",
                        "NTSC", NW_REGION_US, NW_DISC_ENGLISH };
     NwManifest pal2 = { t.entries, t.m.count, "PAL v2.01", "SLES_503.86", "2.01", "PAL", NW_REGION_PAL, 0 };
@@ -412,14 +397,12 @@ static void test_refused(void)
     CHECK(!open_spec(&spec, &disc, &iso) && SDL_strstr(SDL_GetError(), "duplicate name SYSTEM.CNF"));
     spec.duplicate = false;
 
-    /* A truncated dump: HUB.GSC runs past the end. */
     build_image(img, &spec);
     write_file("short.iso", img->data, (LSN_GSC + 1) * NW_DISC_SECTOR);
     CHECK(nw_disc_open(&disc, scratch_path("short.iso")));
     CHECK_FAILS(nw_iso_index(&iso, &disc), "LEVELS/B/HUB/HUB.GSC lies past the end");
     nw_disc_close(&disc);
 
-    /* Form 2 sectors are not file data. */
     uint8_t *raw = to_raw(img, 2, LSN_GSC + 1, &size);
     write_file("form2.bin", raw, size);
     free(raw);
@@ -432,8 +415,6 @@ static void test_refused(void)
     nw_disc_close(&disc);
     free(img);
 }
-
-/* ---- Import and data folder ----------------------------------------------------------------------------- */
 
 static bool exists(const char *path)
 {
@@ -495,24 +476,20 @@ static void test_import(void)
     SDL_SaveFile(AT("disc/" NW_DISC_STAMP), "", 0);
     CHECK(nw_extract_manifest(root, nw_disc_manifests) == &nw_disc_manifest);
 
-    /* --verify notices a changed file. */
     SDL_SaveFile(AT("disc/LEVELS/B/HUB/HUB.GSC"), "changed", 7);
     CHECK_FAILS(nw_extract_verify(root, &t.m, NULL, NULL), "LEVELS/B/HUB/HUB.GSC is 7 bytes, expected 4100");
 
-    /* A hash mismatch aborts the import: no disc.partial/ is left and the old disc/ is untouched. */
     SDL_SaveFile(AT("disc/OLD.TXT"), "old", 3);
     t.hex[2][0] = t.hex[2][0] == '0' ? '1' : '0';
     CHECK_FAILS(nw_extract_disc(&disc, &iso, t.known, root, NULL, NULL), "LEVELS/B/HUB/HUB.GSC: SHA-256");
     CHECK(!exists(AT("disc.partial")));
     CHECK(exists(AT("disc/OLD.TXT")));
 
-    /* A good import replaces the old disc/. */
     manifest_build(&t);
     CHECK(nw_extract_disc(&disc, &iso, t.known, root, NULL, NULL));
     CHECK(!exists(AT("disc/OLD.TXT")) && !exists(AT("disc.old")) && !exists(AT("disc.partial")));
     CHECK(nw_extract_verify(root, &t.m, NULL, NULL));
 
-    /* Cancelling from the progress callback stops the import like a failure; verify can be cancelled too. */
     uint64_t limit = 0;
     SDL_SaveFile(AT("disc/OLD.TXT"), "old", 3);
     CHECK_FAILS(nw_extract_disc(&disc, &iso, t.known, root, cancel_cb, &limit), "cancelled");
@@ -536,7 +513,6 @@ static void test_import(void)
     CHECK(!nw_extract_has_disc(root));
     CHECK_FAILS(nw_extract_verify(root, &t.m, NULL, NULL), "no imported disc");
 
-    /* A refused disc creates nothing. */
     SDL_snprintf(root, sizeof(root), "%s/data2/", scratch);
     spec.cnf = "BOOT2 = cdrom0:\\SLES_503.86;1\r\nVER = 2.01\r\nVMODE = PAL\r\n";
     if (open_spec(&spec, &disc, &iso)) {
@@ -559,7 +535,6 @@ static void test_paths(void)
     CHECK(root && strcmp(root, "pref/") == 0);
     SDL_free(root);
 
-    /* portable.txt beside the exe: <exe dir>/user/. */
     SDL_snprintf(want, sizeof(want), "%s" NW_PATHS_PORTABLE, base);
     CHECK(SDL_SaveFile(want, "", 0));
     root = nw_paths_data_root(base, "pref/");
@@ -572,7 +547,6 @@ static void test_paths(void)
     SDL_free(saves);
     SDL_free(root);
 
-    /* The data folder layout: root, import/ and saves/, also when root does not exist yet. */
     SDL_snprintf(want, sizeof(want), "%sfresh/data", base);
     CHECK(nw_paths_create_layout(want));
     SDL_snprintf(want, sizeof(want), "%sfresh/data/" NW_PATHS_IMPORT, base);
@@ -592,8 +566,6 @@ static void test_paths(void)
     CHECK(nw_paths_remove_tree(base) && !exists(base));
     CHECK(nw_paths_remove_tree(base));
 }
-
-/* ---- Game paths --------------------------------------------------------------------------------------- */
 
 static bool maps_to(const char *game_path, NwVfsDevice device, const char *want)
 {
@@ -641,7 +613,6 @@ static void test_vfs(void)
     CHECK(vfs.mounts[NW_VFS_DISC].count == 2 && vfs.manifest == &nw_disc_manifest);
     CHECK(vfs.mounts[NW_VFS_OVERLAY].count == 0 && !vfs.mounts[NW_VFS_OVERLAY].root);
 
-    /* Case-insensitive lookups; open, read, seek, size, close. */
     f = nw_vfs_open(&vfs, "cdrom0:\\STUFF\\FONT.GSC;1", NW_VFS_READ);
     CHECK(f && nw_vfs_size(f) == 4 && nw_vfs_read(f, buf, sizeof(buf)) == 4 && memcmp(buf, "font", 4) == 0);
     CHECK(f && nw_vfs_seek(f, 1, 0) == 1 && nw_vfs_read(f, buf, 2) == 2 && memcmp(buf, "on", 2) == 0);
@@ -652,7 +623,6 @@ static void test_vfs(void)
           SDL_strstr(SDL_GetError(), "read-only"));
     CHECK(!nw_vfs_open(&vfs, "cdrom0:\\.NUWORLD-DISC;1", NW_VFS_READ));
 
-    /* The overlay slot comes first. */
     CHECK(SDL_CreateDirectory(AT("mod/levels/b/hub")));
     CHECK(SDL_SaveFile(AT("mod/levels/b/hub/hub.gsc"), "mod hub", 7));
     CHECK(nw_vfs_mount(&vfs, NW_VFS_OVERLAY, AT("mod")));
@@ -665,7 +635,6 @@ static void test_vfs(void)
     nw_vfs_close(f);
     CHECK_FAILS(nw_vfs_mount(&vfs, NW_VFS_OVERLAY, AT("missing")), "not a folder");
 
-    /* host0: is writable and uppercased like NuFileOpen. */
     f = nw_vfs_open(&vfs, "host0:SAVES\\SLOT0.BIN", NW_VFS_WRITE);
     CHECK(f && nw_vfs_write(f, "abc", 3) == 3);
     nw_vfs_close(f);
@@ -676,8 +645,6 @@ static void test_vfs(void)
     nw_vfs_shutdown(&vfs);
 #undef AT
 }
-
-/* ---- --overlay ------------------------------------------------------------------------------------------- */
 
 typedef struct OverlayEach {
     char seen[4][64];
@@ -727,14 +694,12 @@ static void test_overlay(void)
         return;
     }
 
-    /* The newest overlay wins and reports the file the older one has too. */
     CHECK(nw_vfs_overlay(&vfs, AT("old"), overlay_conflict, &each) && each.conflicts == 0);
     CHECK(nw_vfs_overlay(&vfs, AT("new"), overlay_conflict, &each) && each.conflicts == 1);
     f = nw_vfs_open(&vfs, "cdrom0:\\LEVELS\\A.GSC;1", NW_VFS_READ);
     CHECK(f && nw_vfs_read(f, buf, sizeof(buf)) == 3 && memcmp(buf, "new", 3) == 0);
     nw_vfs_close(f);
 
-    /* An archive entry by its folder; only what the disc has, never the fixed files. */
     CHECK(nw_vfs_overlay(&vfs, AT("entry"), overlay_conflict, &each));
     nw_vfs_overlay_each(&vfs, "TEST.DAT/", overlay_each, &each);
     CHECK(each.count == 1 && strcmp(each.seen[0], "ARC/A/Y.BIN") == 0);
@@ -745,13 +710,11 @@ static void test_overlay(void)
     CHECK(nw_vfs_overlay(&vfs, AT("old"), NULL, NULL));
     CHECK_FAILS(nw_vfs_overlay(&vfs, AT("old"), NULL, NULL), "more than");
     f = nw_vfs_open(&vfs, "cdrom0:\\LEVELS\\A.GSC;1", NW_VFS_READ);
-    CHECK(f && nw_vfs_read(f, buf, sizeof(buf)) == 3 && memcmp(buf, "old", 3) == 0); /* the failed ones left none */
+    CHECK(f && nw_vfs_read(f, buf, sizeof(buf)) == 3 && memcmp(buf, "old", 3) == 0);
     nw_vfs_close(f);
     nw_vfs_shutdown(&vfs);
 #undef AT
 }
-
-/* ---- .DAT archives -------------------------------------------------------------------------------------- */
 
 typedef struct DatListing {
     const NwDat *dat;
@@ -809,10 +772,10 @@ static void test_dat(void)
     CHECK(nw_dat_find(&dat, "ARC\\A\\X.BIN") == 1);
     CHECK(nw_dat_find(&dat, "arc\\a\\y.bin") == 3);
     CHECK(nw_dat_find(&dat, "arc\\b\\deep.bin") == 2);
-    CHECK(nw_dat_find(&dat, "arc\\a") == -1);            /* a directory */
-    CHECK(nw_dat_find(&dat, "arc\\missing.bin") == -1);  /* runs into the back link */
-    CHECK(nw_dat_find(&dat, "arc\\top.bin\\x") == -1);   /* a file mid-path */
-    CHECK(nw_dat_find(&dat, "arc/a/x.bin") == -1);       /* '\' only, like the engine */
+    CHECK(nw_dat_find(&dat, "arc\\a") == -1);
+    CHECK(nw_dat_find(&dat, "arc\\missing.bin") == -1);
+    CHECK(nw_dat_find(&dat, "arc\\top.bin\\x") == -1);
+    CHECK(nw_dat_find(&dat, "arc/a/x.bin") == -1); /* '\' only, like the engine */
     CHECK(nw_dat_find(&dat, "other\\top.bin") == -1);
     CHECK((dat.entries[1].flags & NW_DAT_PACKED) && dat.entries[1].unpacked_size == 100);
     CHECK(!(dat.entries[0].flags & NW_DAT_PACKED) && dat.entries[0].unpacked_size == 4);
@@ -824,7 +787,6 @@ static void test_dat(void)
     CHECK(strcmp(listing.paths[2], "arc\\b\\deep.bin") == 0 && strcmp(listing.paths[3], "arc\\a\\Y.BIN") == 0);
     nw_dat_close(&dat);
 
-    /* Bounds checks. */
     size_t nodes_at = 8 + 4 * 16 + 4;
     CHECK(!dat_parse_patched(&d, 0, 0x12345678) && SDL_strstr(SDL_GetError(), "magic"));
     CHECK(!dat_parse_patched(&d, 8 + 16, 2000) && SDL_strstr(SDL_GetError(), "outside the archive"));
@@ -833,7 +795,6 @@ static void test_dat(void)
     CHECK(!dat_parse_patched(&d, nodes_at + 8 * 8, 1000) && SDL_strstr(SDL_GetError(), "names are"));
     CHECK(!dat_parse_patched(&d, 4, 1000) && SDL_strstr(SDL_GetError(), "file table"));
 
-    /* Through the VFS. */
     char root[1024], path[1024];
     NwVfs vfs;
     SDL_snprintf(root, sizeof(root), "%s/datvfs/", scratch);
@@ -868,8 +829,6 @@ static void test_dat(void)
     }
 }
 
-/* ---- Import folder and job (wizard) ------------------------------------------------------------------- */
-
 static bool listed(const NwImageList *list, const char *const *names, size_t count)
 {
     if (list->count != count) {
@@ -883,7 +842,6 @@ static bool listed(const NwImageList *list, const char *const *names, size_t cou
     return true;
 }
 
-/* Polls a job until it ends (10 s at most). */
 static NwImportState job_wait(NwImport *job, uint64_t *done, uint64_t *total)
 {
     NwImportState state = NW_IMPORT_RUNNING;
@@ -905,7 +863,7 @@ static void test_import_folder(void)
     CHECK(!nw_import_is_image("x.img") && !nw_import_is_image("iso") && !nw_import_is_image("x.iso.txt"));
 
     SDL_snprintf(dir, sizeof(dir), "%s/import/", scratch);
-    CHECK(nw_import_scan(dir, &list) && list.count == 0); /* missing folder */
+    CHECK(nw_import_scan(dir, &list) && list.count == 0);
     nw_import_list_free(&list);
 
     CHECK(SDL_CreateDirectory(dir));
@@ -915,10 +873,9 @@ static void test_import_folder(void)
     }
     SDL_snprintf(path, sizeof(path), "%sfolder.iso", dir);
     CHECK(SDL_CreateDirectory(path));
-    /* b.BIN belongs to b.cue; directories and dot files are left out. */
     CHECK(nw_import_scan(dir, &list) && listed(&list, want, SDL_arraysize(want)));
     nw_import_list_free(&list);
-    dir[strlen(dir) - 1] = '\0'; /* without the trailing separator */
+    dir[strlen(dir) - 1] = '\0';
     CHECK(nw_import_scan(dir, &list) && listed(&list, want, SDL_arraysize(want)));
     nw_import_list_free(&list);
 }
@@ -952,7 +909,6 @@ static void test_import_job(void)
         nw_import_free(job);
     }
 
-    /* Errors come from the job's thread. */
     job = nw_import_start(scratch_path("missing.iso"), root, t.known);
     CHECK(job);
     if (job) {
@@ -968,9 +924,8 @@ static void test_import_job(void)
         CHECK(SDL_strstr(nw_import_error(job), "LEVELS/B/HUB/HUB.GSC: SHA-256"));
         nw_import_free(job);
     }
-    CHECK(nw_extract_has_disc(root)); /* the earlier import is kept */
+    CHECK(nw_extract_has_disc(root));
 
-    /* Freeing a running job cancels it and waits; whatever it got to, no disc.partial/ is left. */
     manifest_build(&t);
     job = nw_import_start(scratch_path("spec.iso"), root, t.known);
     CHECK(job);
@@ -978,8 +933,6 @@ static void test_import_job(void)
     SDL_snprintf(path, sizeof(path), "%sdisc.partial", root);
     CHECK(!exists(path) && nw_extract_has_disc(root));
 }
-
-/* ---- Real disc (local only) ------------------------------------------------------------------------------ */
 
 static bool real_progress(void *user, uint64_t done, uint64_t total)
 {
@@ -1068,7 +1021,6 @@ static void test_real_dats(const char *dir)
     nw_vfs_shutdown(&vfs);
 }
 
-/* The bounded unpacker: the fixture whole, and never a byte outside its ranges when the stream or the room is short. */
 static void test_rnc(void)
 {
     uint32_t unpacked = 0, packed = 0;

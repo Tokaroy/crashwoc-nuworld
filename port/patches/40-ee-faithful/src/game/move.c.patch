@@ -1,13 +1,12 @@
 --- a/src/game/move.c
 +++ b/src/game/move.c
-@@ -2834,8 +2834,13 @@ void AnimateOFFROADER(struct creature_s *plr) {
+@@ -2834,8 +2834,12 @@ void AnimateOFFROADER(struct creature_s *plr) {
  void AnimateSUBMARINE(struct creature_s *plr) {
      plr->obj.anim.newaction = 0x62;
      UpdateCharacterIdle(plr, 0);
 -    AddGameDebrisRot(0x56, (struct nuvec_s *)&plr->mtxLOCATOR[2][0]._30, 1, 0, 0);
 -    AddGameDebrisRot(0x56, (struct nuvec_s *)&plr->mtxLOCATOR[3][0]._30, 1, 0, 0);
-+    /* Models 2 and 3 of two (a retail bug): retail's layout has momLOCATOR[0][4] and the next creature's
-+       ai.radius, ai.distance and ai.height there. */
++    /* Models 2 and 3 of two (a retail bug): retail reads momLOCATOR[0][4] and the next creature's ai there. */
 +    AddGameDebrisRot(0x56, NW_RETAIL((struct nuvec_s *)&plr->mtxLOCATOR[2][0]._30, &plr->momLOCATOR[0][4]), 1, 0,
 +                     0);
 +    AddGameDebrisRot(0x56,
@@ -16,7 +15,7 @@
  }
  
  void AnimateMINECART(struct creature_s *plr) {
-@@ -3256,9 +3261,9 @@ void MoveTub(struct tubinfo_s *tub, s32 LEFT, s32 RIGHT) {
+@@ -3256,9 +3260,9 @@ void MoveTub(struct tubinfo_s *tub, s32 LEFT, s32 RIGHT) {
          NuVecRotateY(&p1, &p1, -ang);
          ang = -NuAtan2D(p1.y - p0.y, p1.z - p0.z);
          if (tub->count != 0 && tub->wait != 0) {

@@ -1,4 +1,3 @@
-/* Crash in side-on sections: line_2d. */
 #ifndef NUWORLD_GAMEPLAY_LINE2D_H
 #define NUWORLD_GAMEPLAY_LINE2D_H
 

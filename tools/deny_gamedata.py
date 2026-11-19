@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
-"""Fail if any tracked file, or any file under the given paths, looks like data from the game disc (CI: every push and
-pull request, and the release packages)."""
+"""Fail if any tracked file, or any file under the given paths, looks like data from the game disc."""
 import os
 import subprocess
 import sys
@@ -15,8 +14,7 @@ DENY_EXTENSIONS = {
 }
 DENY_NAMES = {"sles_503.86", "slus_202.38", "sceu_000.01", "system.cnf"}
 
-# (offset, magic): 32-bit little-endian ELF (the PS2's; NuWorld's own Linux build is 64-bit), RNC, NU20 scene, VAG,
-# memory card image, raw CD sector, ISO9660 volume descriptor.
+# 32-bit LE ELF (the PS2's; NuWorld's Linux build is 64-bit), RNC, NU20, VAG, memory card, raw CD sector, ISO9660.
 DENY_MAGIC = [
     (0, b"\x7fELF\x01\x01"),
     (0, b"RNC\x02"),
@@ -69,7 +67,6 @@ def files_under(paths):
 
 
 def check(files):
-    """Prints each problem; True when there is none."""
     bad = [(p, why) for p in files for why in problems(p)]
     for path, why in bad:
         print(f"{path}: {why}")

@@ -1,14 +1,4 @@
-"""The title cut's sound trace from a stepped boot (local only), up to UPTO vblanks of the cut.
-
-  default    a second run traces the same
-  --pcsx2 T  PCSX2's trace exactly up to logos2 and the logos stream's end; music key-ons within a vblank, either
-             order (stream slot order follows the module's ticks since boot; boot disc reads take no time here)
-  --instant  instant loading; against --pcsx2 counted from the logos key-on (the texanim is not compared), music at
-             most a vblank later, and the stub hits of a hardware-speed run
-
-    run_local.py python tests/cut_trace.py <crashwoc-nuworld> {root} [--pcsx2 tests/fixtures/pcsx2_title_cut.txt]
-        [--instant]
-"""
+"""Title cut sound trace (local only): a second run's, or with --pcsx2 PCSX2's (music key-ons within a vblank)."""
 import re
 import subprocess
 import sys
@@ -34,7 +24,6 @@ def run(exe: str, root: str, instant: bool) -> list[str]:
 
 
 def stubs(lines: list[str]) -> list[tuple]:
-    """The stub and near-match hits in first-hit order, without their counts."""
     return [m.groups() for line in lines if (m := STUB.match(line))]
 
 

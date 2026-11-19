@@ -1,5 +1,4 @@
-/* [game] retail_menu = false: the NuWorld mark (tools/title_logo.py) is a second character of the title cuts, in the
-   movie's model cache so CloseCutMovie frees it. */
+/* The mark (tools/title_logo.py) sits in the movie's model cache so CloseCutMovie frees it. */
 #include <stdbool.h>
 #include <stddef.h>
 #include <string.h>
@@ -47,8 +46,7 @@ int NuHGobjRndrMtxDwa(struct NUHGOBJ_s *hobj, struct numtx_s *wm, int nlayers, s
 #define MARK_CHARS 8
 #define MARK_SHARDS 10
 
-/* Logos cut frames (30/s): TT voice until 722 and a "tss" until 731, the title sets off at 710, camera dive until 872,
-   letters from 876. */
+/* Logos cut frames (30/s): TT voice until 722, the title sets off at 710, camera dive until 872, letters from 876. */
 #define MENU_START 700.0f
 #define MENU_SOUND 732.0f /* silent until here */
 #define MENU_SOUND_RISE 0.2f
@@ -61,7 +59,7 @@ int NuHGobjRndrMtxDwa(struct NUHGOBJ_s *hobj, struct numtx_s *wm, int nlayers, s
 static const char *const menu_hidden[] = { "island", "bag", "stick4", "ttLogo100", "w1", "w2", "w3", "dot1", "t1",
                                            "dash", "t2", "a", "l", "e", "s", "dot2", "c", "o", "m" };
 #define MENU_SPARKLE "sparkle"
-#define MENU_EXHAUST "exhaust2" /* the title's green exhaust */
+#define MENU_EXHAUST "exhaust2"
 
 #define TITLE_SETOFF 710
 #define TITLE_ENTER 700   /* shown from here, still off the screen */
@@ -111,7 +109,6 @@ static float mark_clock_at;
 static struct numtl_s *vortex_mtl; /* while its tid is ours */
 static int vortex_own_tid, vortex_set_tid;
 
-/* The mark's character motion: the title's rest pose and visibility. */
 static struct nuanimdata2_s mark_motion[2];
 static union nuanimcurve2_u mark_motion_curves[2][MARK_CHAR_CURVES];
 static signed char mark_motion_flags[2][MARK_CHAR_CURVES];
@@ -337,7 +334,6 @@ static bool mark_track(MarkTrack *tr, struct NUHGOBJ_s *obj, struct nuanimdata2_
     return first >= 0;
 }
 
-/* The chase in the logos cut, else at rest. */
 static struct nuanimdata2_s *mark_anim(struct NUHGOBJ_s *obj, struct NUGCUTCHAR_s *title, bool flight)
 {
     static struct nuanimdata2_s *built[2];
@@ -433,7 +429,6 @@ static struct nuanimdata2_s *mark_anim(struct NUHGOBJ_s *obj, struct NUGCUTCHAR_
     return a;
 }
 
-/* Frames since the first shard set off, on through the title loop. */
 static float mark_float_clock(struct instNUGCUTSCENE_s *scene, const struct NUGCUTCHAR_s *desc, float f)
 {
     if (desc->joint_anim->time > (float)MARK_CUT) {
@@ -448,7 +443,7 @@ static float mark_float_clock(struct instNUGCUTSCENE_s *scene, const struct NUGC
     return mark_clock;
 }
 
-/* The float t frames in, in joint 0's space; a landing shard takes w of it. */
+/* In joint 0's space; a landing shard takes w of it. */
 static void mark_float(struct nuvec_s mid, float t, float w, struct numtx_s *s)
 {
     float x = SDL_min(t / MARK_EASE_IN, 1.0f), ease = w * x * x * (3.0f - 2.0f * x);
@@ -466,7 +461,6 @@ static void mark_float(struct nuvec_s mid, float t, float w, struct numtx_s *s)
     NuMtxTranslate(s, &mid);
 }
 
-/* AppCutSceneCharacterRender for the mark, floating. */
 static void mark_render(struct instNUGCUTSCENE_s *scene, struct instNUGCUTCHAR_s *ichar, struct NUGCUTCHAR_s *desc,
                         float f)
 {
@@ -529,8 +523,7 @@ static struct nutexanim_s *vortex_flipbook(const struct NUHGOBJ_s *obj, int v)
     return NULL;
 }
 
-/* A flipbook frame, or (frame < 0) the flipbook's own back. Materials draw after the scene; the flipbook writes tid
-   only when it steps. */
+/* frame < 0: the flipbook's own back; materials draw after the scene, the flipbook writes tid only when it steps. */
 static void vortex_frame(struct nutexanim_s *book, int frame)
 {
     struct numtl_s *mtl = book->mtl;
@@ -549,7 +542,6 @@ static void vortex_frame(struct nutexanim_s *book, int frame)
     }
 }
 
-/* The title with its vortex glass until the last shard lands, then forming; false once formed. */
 static bool vortex_render(struct instNUGCUTSCENE_s *scene, struct NUGCUTSCENE_s *def, struct instNUGCUTCHAR_s *ichar,
                           struct NUGCUTCHAR_s *desc, float f)
 {
@@ -599,7 +591,7 @@ bool nw_title_menu_render(struct instNUGCUTSCENE_s *scene, struct NUGCUTSCENE_s 
     return marked && strcmp(desc->name, "title") == 0 && vortex_render(scene, def, ichar, desc, f);
 }
 
-/* Hides the Traveller's Tales logo. The scene draws a rigid's instance unless it is invisible. */
+/* The scene draws a rigid's instance unless it is invisible. */
 static void menu_hide(struct NUGCUTSCENE_s *def, struct NUGCUTCHARSYS_s *sys)
 {
     bool logos = false;
@@ -647,7 +639,6 @@ static int title_count(const union nuanimmask_u *mask, unsigned short *ixs, int 
     return run;
 }
 
-/* Frame f on the title's own clock: TITLE_DELAY late, caught up from TITLE_CATCH to TITLE_CAUGHT. */
 static float title_clock(float f)
 {
     float u = SDL_clamp((f - TITLE_CATCH) / (float)(TITLE_CAUGHT - TITLE_CATCH), 0.0f, 1.0f);
@@ -661,14 +652,13 @@ static float title_curve(struct nuanimdata2_s *a, union nuanimcurve2_u *curve, f
     return NuAnimCurve2CalcVal(curve, &atime, 1);
 }
 
-/* A curve of the title at time t; before its first move (key k) that move carried back on the same line and turn. */
+/* Before its first move (key k) that move is carried back on the same line and turn. */
 static float title_value(struct nuanimdata2_s *a, union nuanimcurve2_u *curve, const struct nuanimkey2_s *k, float t)
 {
     return t < k->time ? k->value + k->slope * (t - k->time) : title_curve(a, curve, t);
 }
 
-/* The logos cut's title (slot 0) and its exhausts fly in late and from further out: a key a frame on the title's own
-   clock until it has caught up, retail's keys after. The title is shown from TITLE_ENTER, an exhaust once it moves. */
+/* A key a frame on the title's own clock until it has caught up, retail's keys after. */
 static void title_flight(struct nuanimdata2_s *a, int slot)
 {
     static struct nuanimcurvedata2_s data[TITLE_SLOTS][TITLE_CURVES];

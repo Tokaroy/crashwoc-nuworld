@@ -1,4 +1,3 @@
-/* Native title/pause menus, save confirmation, autosave consent and notifications. */
 #include <SDL3/SDL.h>
 
 #include "game/gametypes.h"

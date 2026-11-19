@@ -1,8 +1,6 @@
-/* Hand-written converters for what port/convert.toml marks `hook = true`. */
 #include "nw_convert.h"
 
-/* The animation's per-curve flags decide between the constant and the curve data: the .cut loader converts
-   these. */
+/* The per-curve flags decide between the constant and the curve data. */
 void nw_xh_nuanimcurve2_u(union nuanimcurve2_u *dst, const nw_ps2_nuanimcurve2_u *src, NwXCtx *ctx)
 {
     (void)dst, (void)src;

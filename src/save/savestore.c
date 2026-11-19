@@ -7,7 +7,7 @@
 #include "save/saveio.h"
 
 #define NW_SAVE_PS2_SIZE (NW_SAVE_PS2_GAMES * NW_SAVE_GAME_SIZE) /* a PS2 save's file */
-#define NW_SAVE_PS2_ICON "crash.ico"                               /* the save's icon on the card */
+#define NW_SAVE_PS2_ICON "crash.ico"
 #define NW_SAVE_PS2_ICON_SYS 0x3C4                                 /* icon.sys */
 #define NW_SAVE_TIME_KEY "saved"
 #define NW_SAVE_COMMENT                                                                                              \
@@ -31,7 +31,6 @@ static void nw_save_files_free(NwSaveFiles *f)
     SDL_zerop(f);
 }
 
-/* base.toml in dir and its siblings. */
 static bool nw_save_files_at(NwSaveFiles *f, const char *dir, const char *base)
 {
     SDL_zerop(f);
@@ -56,7 +55,6 @@ static bool nw_save_files(NwSaveFiles *f, const char *dir, int n)
     return nw_save_files_at(f, dir, base);
 }
 
-/* Puts "path: " before the SDL error. */
 static void nw_save_blame(const char *path)
 {
     char why[512];
@@ -69,8 +67,7 @@ static bool nw_save_empty(const uint8_t *game)
     return game[NW_SAVE_EMPTY] != 0;
 }
 
-/* The envelope is a TOML comment so tools can still read the document. Keeping the length and CRC at the start
-   detects truncation even at a syntactically valid table boundary. Legacy, unenveloped saves remain readable. */
+/* A TOML comment, so tools still read the document; length and CRC catch a truncation at a table boundary. */
 #define NW_SAVE_ENVELOPE "# NuWorld integrity 1 "
 static bool nw_save_protected(const char *path)
 {
@@ -143,8 +140,7 @@ static int nw_save_open(const char *path, const NwSaveRegistry *reg, NwDoc *doc)
     return r;
 }
 
-/* f's file into doc: NW_SAVE_OK, NW_SAVE_BACKUP (the .bak; the SDL error says why the file did not load),
-   NW_SAVE_NONE (no file) or NW_SAVE_FAILED (an SDL error); doc is set for the OK ones. */
+/* doc is set for NW_SAVE_OK and NW_SAVE_BACKUP. */
 static NwSaveResult nw_save_read(const NwSaveFiles *f, const NwSaveRegistry *reg, NwDoc *doc)
 {
     if (SDL_GetPathInfo(f->deleted, NULL)) {
@@ -171,7 +167,6 @@ static NwSaveResult nw_save_read(const NwSaveFiles *f, const NwSaveRegistry *reg
     return got == 1 ? NW_SAVE_BACKUP : NW_SAVE_FAILED;
 }
 
-/* doc as the file: written to .tmp, the current file copied to .bak when keep, then the rename over it. */
 static bool nw_save_write(const NwSaveFiles *f, const NwDoc *doc, bool keep, const NwSaveRegistry *reg)
 {
     size_t size = 0;
@@ -229,7 +224,6 @@ static bool nw_save_time_valid(const NwSaveTime *t)
            t->hour >= 0 && t->hour <= 23 && t->minute >= 0 && t->minute <= 59 && t->second >= 0 && t->second <= 60;
 }
 
-/* The document's "saved" as "YYYY-MM-DDTHH:MM:SS". */
 static bool nw_save_time_set(NwDoc *doc, const NwSaveTime *t)
 {
     char text[32];
@@ -243,7 +237,6 @@ static bool nw_save_time_set(NwDoc *doc, const NwSaveTime *t)
     return nw_doc_str(&v, text, (size_t)len) && nw_doc_set(doc, doc->tables[0], NW_SAVE_TIME_KEY, &v);
 }
 
-/* The document's "saved"; all zero when it has none that reads. */
 static void nw_save_time_get(const NwDoc *doc, NwSaveTime *t)
 {
     const NwDocValue *v = nw_doc_get(doc->tables[0], NW_SAVE_TIME_KEY);
@@ -412,7 +405,6 @@ NwSaveResult nw_save_remove(const char *dir, int n)
     }
     NwSaveResult r = NW_SAVE_NONE;
     if (SDL_GetPathInfo(f.main, NULL)) {
-        /* A durable tombstone prevents automatic recovery from resurrecting an intentional deletion. */
         bool ok = nw_saveio_copy(f.main, f.bak) && nw_saveio_write(f.tmp, "deleted\n", 8) &&
                   nw_saveio_replace(f.tmp, f.deleted);
         r = ok && SDL_RemovePath(f.main) ? NW_SAVE_OK : NW_SAVE_FAILED;
@@ -480,8 +472,6 @@ int nw_save_scan_auto(const char *dir, int *last)
     return nw_save_scan_range(dir, last, NW_SAVE_GAMES, NW_SAVE_TOTAL);
 }
 
-/* -- conversion ------------------------------------------------------------------------------------------------- */
-
 static void nw_save_ps2_file(char *out, size_t size, const char *name)
 {
     SDL_snprintf(out, size, "%sslot00", name);
@@ -510,8 +500,7 @@ static void nw_save_ps2_size_error(const char *name, size_t len)
     SDL_SetError("/%s/%s is %u bytes, a save %u", name, file, (unsigned)len, (unsigned)NW_SAVE_PS2_SIZE);
 }
 
-/* The checked games of the PS2 save in file, a raw save or a card image; SDL_free them. NULL with *none when the
-   card holds no such save, else with an SDL error. */
+/* NULL with *none when the card holds no such save, else with an SDL error. */
 static uint8_t *nw_save_ps2_games(const char *file, const NwSaveRegistry *reg, bool *none)
 {
     size_t size = 0, len = 0;
@@ -547,8 +536,7 @@ static int SDLCALL nw_save_by_name(const void *a, const void *b)
     return SDL_strcmp(*(char *const *)a, *(char *const *)b);
 }
 
-/* The folder's PS2 save: its raw file, else the first card image by name that holds it; NULL when there is none.
-   A file that does not convert is logged and passed over, so a stray file never stops the saves. */
+/* A file that does not convert is logged and passed over, so a stray file never stops the saves. */
 static uint8_t *nw_save_ps2_folder(const char *dir, const NwSaveRegistry *reg)
 {
     uint8_t *games = NULL;
@@ -581,7 +569,7 @@ static uint8_t *nw_save_ps2_folder(const char *dir, const NwSaveRegistry *reg)
     return games;
 }
 
-/* An older NuWorld build's file of 4 games (or its .bak); NULL when there is none, *failed with an SDL error. */
+/* An older NuWorld build's file of 4 games (or its .bak). */
 static uint8_t *nw_save_older(const NwSaveFiles *f, const NwSaveRegistry *reg, bool *failed)
 {
     NwDoc doc;
@@ -723,8 +711,7 @@ static bool nw_save_blank(const uint8_t *image, size_t size)
     return image[0] == 0xFF || image[0] == 0x00;
 }
 
-/* The card's save of the game into games (NW_SAVE_PS2_SIZE): 1 read, 0 none (the card formatted), -1 an SDL error;
-   *blank when the card is not formatted. */
+/* 1 read, 0 none (the card formatted), -1 an SDL error; *blank when the card is not formatted. */
 static int nw_save_card_read(const uint8_t *image, size_t size, const char *name, const NwSaveRegistry *reg,
                              uint8_t *games, bool *blank)
 {
@@ -780,7 +767,7 @@ static void nw_save_float(uint8_t *p, float f)
     nw_save_le32(p, v);
 }
 
-/* The icon.sys the game writes: the PS2 browser's title, colours and light for the icon NW_SAVE_PS2_ICON. */
+/* The icon.sys the game writes. */
 static void nw_save_icon_sys(uint8_t *out)
 {
     static const int32_t background[16] = { 64, 64, 0, 0, 64, 64, 0, 0, 64, 0, 0, 0, 64, 0, 0, 0 };
@@ -810,7 +797,6 @@ static void nw_save_icon_sys(uint8_t *out)
     }
 }
 
-/* What the PS2 slots get, over games (the card's, had, or all zero). */
 static bool nw_save_picked(const char *dir, const NwSaveRegistry *reg, const int *picks, bool had, uint8_t *games)
 {
     for (int i = 0; i < NW_SAVE_PS2_GAMES; i++) {
@@ -834,7 +820,6 @@ static bool nw_save_picked(const char *dir, const NwSaveRegistry *reg, const int
     return nw_save_check(reg, games, NW_SAVE_PS2_GAMES);
 }
 
-/* image as card: via .tmp, the card before copied to .bak. */
 static bool nw_save_card_write(const char *card, const uint8_t *image, size_t size)
 {
     char *tmp = NULL, *bak = NULL;
@@ -899,7 +884,7 @@ bool nw_save_export(const char *dir, const NwSaveRegistry *reg, const char *card
         SDL_GetCurrentTime(&now);
         ok = nw_ps2card_put(image, size, ps2_name, files, (int)SDL_arraysize(files), now);
         uint8_t *back = ok ? nw_ps2card_file(image, size, ps2_name, file, &len, &missing) : NULL;
-        if (ok && !(back && len == NW_SAVE_PS2_SIZE && SDL_memcmp(back, games, len) == 0)) { /* as the import reads */
+        if (ok && !(back && len == NW_SAVE_PS2_SIZE && SDL_memcmp(back, games, len) == 0)) {
             ok = back ? SDL_SetError("the card did not read back what was written") : false;
         }
         SDL_free(back);

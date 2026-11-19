@@ -1,9 +1,5 @@
 #!/usr/bin/env python3
-"""Check typedb.json against the PS2 compiler: STABS of every named record under SN ee-gcc 2.95.2 (`default`).
-
-The `sce` profile (EE GCC 2.9) cannot parse the game headers: its C front end has no anonymous struct/union members.
-Runs in the decomp image (the EE compilers are Linux-only); from a host it re-runs itself there with docker.
-"""
+"""Check typedb.json against the PS2 compiler: STABS of every named record under SN ee-gcc 2.95.2 (`default`)."""
 from __future__ import annotations
 
 import argparse
@@ -34,7 +30,6 @@ def in_container() -> bool:
 
 
 def forward(argv: list[str]) -> int:
-    """Re-run this script in the decomp image with the repo at /nw."""
     for a in argv:
         p = Path(a)
         if p.is_absolute():
@@ -63,7 +58,6 @@ def stab_strings(asm: str) -> list[str]:
 
 
 def probe_source(db: dict) -> tuple[str, dict[str, str]]:
-    """Probe TU text and {variable: record id} for every named record the PS2 build has (not NW_HOST-only ones)."""
     names = {}
     lines = [f'#include "{h}"' for h in db["headers"]]
     records = db["records"]
@@ -97,8 +91,6 @@ def compile_probe(text: str, profile: str, keep: Path | None) -> str:
 
 
 class Checker:
-    """Compares typedb records with STABS structs; collects mismatches."""
-
     def __init__(self, db: dict, table, profile: str):
         self.db, self.table, self.profile = db, table, profile
         self.mismatches: list[str] = []

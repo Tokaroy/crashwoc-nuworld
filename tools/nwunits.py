@@ -1,7 +1,4 @@
-"""Shared model: each retail function with its unit's treatment and host provider (decomp C, port or stub).
-
-Unit kinds: wrapper (decomp source + <unit>.stubs.inc + <unit>.funcmap.inc), standalone (<unit>.stubs.c), none (shim).
-"""
+"""Shared model: each retail function with its unit's treatment and host provider (decomp C, port or stub)."""
 from __future__ import annotations
 
 import fnmatch
@@ -734,7 +731,6 @@ def print_outputs(out: Path, paths) -> None:
 
 
 def decomp_tree(path: Path | None) -> Path:
-    """The decomp tree a tool reads: `path`, else the patched tree, first refreshed from the submodule."""
     if path is not None:
         return path
     import patches

@@ -1,5 +1,4 @@
-/* Overrides nu3d/nuhgobj's .ghg loader (port/units.toml): host copies of the records retail fixes in place live with
-   the object's meshes until NuHGobjDestroy; carved records keep their PS2 size in the buffer (src/port/heap.h). */
+/* .ghg loader override: host copies live until NuHGobjDestroy; carved records keep their PS2 size in the buffer. */
 #include <stddef.h>
 #include <stdint.h>
 #include <string.h>
@@ -51,7 +50,6 @@ typedef struct NwGhgBlock {
 
 #define NW_GHG_HEAD ((sizeof(NwGhgBlock) + 15) & ~(size_t)15)
 
-/* A loaded object: the blocks of its host records and the GPU objects of its geoms. */
 typedef struct NwGhg {
     struct NUHGOBJ_s *hobj;
     NwGhgBlock *blocks;
@@ -99,8 +97,7 @@ static void *nw_ghg_new(NwGhgLoad *ld, size_t size, size_t align)
     return (char *)b + NW_GHG_HEAD + at;
 }
 
-/* n zeroed host records. Every count comes from the file and each record has at least a byte there: a negative or
-   larger count is a damaged file, which would wrap the size. */
+/* A negative or larger count than the file has bytes is a damaged file, which would wrap the size. */
 static size_t nw_ghg_count_ok(NwGhgLoad *ld, long long n, size_t each)
 {
     if (n < 0 || (unsigned long long)n > ld->size) {
@@ -111,7 +108,6 @@ static size_t nw_ghg_count_ok(NwGhgLoad *ld, long long n, size_t each)
 }
 #define NW_GHG_NEW(ld, type, n) ((type *)nw_ghg_new((ld), nw_ghg_count_ok((ld), (n), sizeof(type)), _Alignof(type)))
 
-/* size bytes of the image at off. */
 static char *nw_ghg_at(const NwGhgLoad *ld, int32_t off, size_t size)
 {
     if (off < 0 || (size_t)off > ld->size || size > ld->size - (size_t)off) {
@@ -147,8 +143,7 @@ static void nw_ghg_gpu(NwGhgLoad *ld, void *obj, bool ok, NwGpuOp upload, NwGpuO
     nw_gpu_queue(upload, obj);
 }
 
-/* A gobj's geom chain (next, material index, rigid and skin DMA), decoded once; the DMA has no size, so the image's
-   end bounds it. */
+/* The DMA has no size, so the image's end bounds it. */
 static struct nugeom_s *nw_ghg_geoms(NwGhgLoad *ld, int32_t off)
 {
     struct nugeom_s *first = NULL, **link = &first;
@@ -184,8 +179,7 @@ static struct nugeom_s *nw_ghg_geoms(NwGhgLoad *ld, int32_t off)
     return first;
 }
 
-/* NuGHGFixupGobj's work along next_gobj (its int base cannot hold a host address); a file gobj is nugobj_s up to
-   origin, so blend, tricount and faceon_blend (the next geom record on the PS2) and sysnext/syslast stay 0. */
+/* NuGHGFixupGobj's work (its int base cannot hold a host address); a file gobj is nugobj_s up to origin. */
 static struct nugobj_s *nw_ghg_gobjs(NwGhgLoad *ld, int32_t off)
 {
     struct nugobj_s *first = NULL, **link = &first;
@@ -209,7 +203,6 @@ static struct nugobj_s *nw_ghg_gobjs(NwGhgLoad *ld, int32_t off)
     return first;
 }
 
-/* A layer's gobj per joint. */
 static struct nugobj_s **nw_ghg_joint_gobjs(NwGhgLoad *ld, int32_t off)
 {
     struct nugobj_s **gobjs = NW_GHG_NEW(ld, struct nugobj_s *, ld->hobj->num_joints);
@@ -350,8 +343,7 @@ static void nw_ghg_collide(NwGhgLoad *ld, const struct nughgheader_s *h)
     }
 }
 
-/* As ReadTexAnimSet: tids and mtl by index, the names into the string table, the envs carved after the object. ptr
-   is the buffer's, returned past them. */
+/* As ReadTexAnimSet; ptr is the buffer's, returned past the envs carved after the object. */
 static char *nw_ghg_texanims(NwGhgLoad *ld, const struct nughgheader_s *h, char *ptr)
 {
     struct NUHGOBJ_s *hobj = ld->hobj;

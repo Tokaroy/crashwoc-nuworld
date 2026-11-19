@@ -39,15 +39,15 @@ struct NwWizard {
     NwWizardPage page;
     NwImport *job;
     const NwManifest *imported;
-    char *image;     /* the image being or last imported */
-    bool had_disc;   /* a disc was imported before the wizard opened */
-    NwImageList list; /* import folder */
+    char *image;
+    bool had_disc;
+    NwImageList list;
     Uint64 scanned;  /* SDL_GetTicks of the last scan, 0 = never */
     char notice[512];
     char error[512];
-    GLuint shot; /* the welcome page's debug menu screenshot, 0 = not loaded */
+    GLuint shot; /* 0 = not loaded */
     int shot_w, shot_h;
-    bool zoom; /* the screenshot fills the window */
+    bool zoom;
 };
 
 static const SDL_DialogFileFilter nw_wizard_filters[] = {
@@ -85,7 +85,7 @@ static void nw_wizard_start(NwWizard *w, const char *image)
     }
 }
 
-/* Runs on the dialog's thread: hands the result to the main thread as a user event. */
+/* Runs on the dialog's thread. */
 static void SDLCALL nw_wizard_picked(void *user, const char *const *files, int filter)
 {
     SDL_Event e;
@@ -103,7 +103,6 @@ static void SDLCALL nw_wizard_picked(void *user, const char *const *files, int f
     }
 }
 
-/* Opens dir in the file manager through a file:// URL. */
 static void nw_wizard_open_folder(const char *dir)
 {
     size_t n = SDL_strlen(dir);
@@ -203,7 +202,6 @@ static void nw_wizard_wrapped(const ImVec4 &color, const char *text)
     ImGui::PopStyleColor();
 }
 
-/* Starts the next button so that the buttons labelled in labels end flush right. */
 static void nw_wizard_align_right(const char *const *labels, int count)
 {
     const ImGuiStyle &style = ImGui::GetStyle();
@@ -366,7 +364,6 @@ static void nw_wizard_done(NwWizard *w)
     }
 }
 
-/* Uploads the embedded screenshot once; the page goes on without it if that fails. */
 static void nw_wizard_load_shot(NwWizard *w)
 {
     SDL_IOStream *io = SDL_IOFromConstMem(nw_beta_menu_png, nw_beta_menu_png_size);
@@ -417,7 +414,6 @@ static NwWizardResult nw_wizard_welcome(NwWizard *w)
     }
     ImGui::Spacing();
     if (w->shot) {
-        /* Left of the feedback: 60 % of the width at most, and the room left above the button row. */
         const ImGuiStyle &style = ImGui::GetStyle();
         float limit = ImGui::GetMainViewport()->WorkSize.y - 2.0f * NW_WIZARD_MARGIN * style.FontScaleDpi;
         float footer = ImGui::GetFrameHeight() + style.ItemSpacing.y * 3.0f + style.WindowPadding.y;
@@ -458,7 +454,6 @@ static NwWizardResult nw_wizard_welcome(NwWizard *w)
     return ImGui::Button("Start game") ? NW_WIZARD_CLOSED : NW_WIZARD_OPEN;
 }
 
-/* The screenshot over the whole window; a click or Escape closes it. */
 static void nw_wizard_zoom(NwWizard *w)
 {
     const ImGuiViewport *vp = ImGui::GetMainViewport();

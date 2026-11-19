@@ -1,4 +1,3 @@
-/* sceCd* and the file system reset NuFileInitEx calls: the imported disc is always ready. */
 #include "shim/shim.h"
 
 #define NW_SCE_CD_COMPLETE 2

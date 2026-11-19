@@ -1,7 +1,4 @@
-"""Runner of the local-only ctests: skipped (77) unless NUWORLD_TEST_DATA names <data root>/disc, which fills {root}.
-
-    run_local.py <program> [args with {root}]
-"""
+"""Local-only ctests: skipped (77) unless NUWORLD_TEST_DATA names <data root>/disc, which fills {root}."""
 import os
 import subprocess
 import sys

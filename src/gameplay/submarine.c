@@ -79,8 +79,7 @@ void nw_sub_move(const struct creature_s *c)
     }
 }
 
-/* turning: retail only faces 0 (+z), 0x8000 (-z) or the screen (0x4000), takes a new one only once a turn is done,
-   and from the screen only with the stick near level. This keeps MovePlayer's heading from before its turn. */
+/* Retail only faces 0 (+z), 0x8000 (-z) or the screen (0x4000), and takes a new one only once a turn is done. */
 void nw_sub_turn(struct creature_s *plr)
 {
     const NwSubMovement *s = &nw_profile.movement.submarine;
@@ -114,7 +113,6 @@ static u8 nw_sub_reload(int frames, int rate)
     return (u8)(n < 1 ? 1 : n);
 }
 
-/* weapons: the reload MoveSUBMARINE just started, shortened. */
 void nw_sub_fire_after(struct creature_s *plr)
 {
     const NwSubMovement *s = &nw_profile.movement.submarine;
@@ -131,8 +129,7 @@ void nw_sub_fire_after(struct creature_s *plr)
     }
 }
 
-/* The torpedo (type 4) flies at its mom; the bomb (10) drops at the sub's speed and 0.02 a frame more, then eases to
-   terminal_fall_speed, which nw_sub_apply scales. */
+/* The torpedo (type 4) flies at its mom; the bomb (10) drops at the sub's speed and 0.02 a frame more. */
 struct nuvec_s *nw_sub_launch(int type, struct nuvec_s *mom, const struct obj_s *owner, struct nuvec_s *out)
 {
     const NwSubMovement *s = &nw_profile.movement.submarine;
@@ -176,7 +173,7 @@ static float nw_sub_step(float v, float want, float base, const NwSubMovement *s
     return v < want ? fminf(v + extra, want) : fmaxf(v - extra, want);
 }
 
-/* speed: MovePlayer steps the sub's speed toward the stick's by a fixed amount a frame; this adds to the step. */
+/* MovePlayer steps the sub's speed toward the stick's by a fixed amount a frame; this adds to the step. */
 void nw_sub_accel(struct nuvec_s *vvel)
 {
     const NwSubMovement *s = &nw_profile.movement.submarine;
@@ -206,8 +203,7 @@ static void nw_sub_scale(float *lo, float *hi, float k)
     *hi = mid + (*hi - mid) * k;
 }
 
-/* hitbox: the sub against what kills it, round its middle; walls, crates and fruit keep retail's size. MoveCreature
-   and UpdateProjectiles take its height afresh (GetTopBot from CData, NewTopBot), so its CData entry shrinks too. */
+/* MoveCreature and UpdateProjectiles take its height afresh from CData, so its CData entry shrinks too. */
 void nw_sub_shrink(void)
 {
     struct obj_s *obj = &Character[0].obj;

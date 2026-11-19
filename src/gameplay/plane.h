@@ -1,4 +1,3 @@
-/* The plane (GLIDER): steering in Tornado Alley, Atmospheric Pressure and the unused AIRSHIP, aim in Tornado Alley. */
 #ifndef NUWORLD_GAMEPLAY_PLANE_H
 #define NUWORLD_GAMEPLAY_PLANE_H
 

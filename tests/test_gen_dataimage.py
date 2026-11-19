@@ -1,4 +1,3 @@
-"""gen_dataimage on tests/fixtures/mini (libclang; clang or $CC for the end-to-end test)."""
 import shutil
 import struct
 import subprocess
@@ -18,8 +17,7 @@ import typedb  # noqa: E402
 
 
 def fixture_elf(cb_offset: int, bad: str = "", trip: bool = False) -> bytes:
-    """One PT_LOAD at 0x00100000. bad: a pointer into "text" or a "vu" package; trip: two bytes the image cannot
-    reproduce (a C value, a padding byte)."""
+    """bad: a pointer into "text" or a "vu" package; trip: two bytes the image cannot reproduce (a C value, padding)."""
     base, filesz, memsz = 0x00100000, 0x1100, 0x1300
     seg = bytearray(filesz)
 
@@ -131,7 +129,6 @@ class Fixture(unittest.TestCase):
                       outputs[str(Path("nucore/fixcore.data.inc"))])
 
     def broken(self, edits):
-        """Errors of the fixture with its sources edited: [(relative path, old, new)]."""
         with tempfile.TemporaryDirectory() as tmp:
             decomp = Path(tmp) / "decomp"
             shutil.copytree(fb.DECOMP, decomp)

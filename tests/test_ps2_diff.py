@@ -1,5 +1,3 @@
-"""ps2_diff's dump reader, placement, comparison and classes, and pcsx2_dump's pokes, on synthetic files (no PCSX2,
-no game data)."""
 import struct
 import sys
 import tempfile

@@ -1,8 +1,5 @@
 #!/usr/bin/env python3
-""".ghg read/write in NuGHGWrite's order; retail files round trip byte-identical.
-
-    python tools/nughg.py <file.ghg>...   check the round trip
-"""
+""".ghg read/write in NuGHGWrite's order; retail files round trip byte-identical."""
 from __future__ import annotations
 
 import struct

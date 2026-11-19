@@ -1,4 +1,3 @@
-/* Floating-point traps for sweeps (src/port/fptrap.c). */
 #ifndef NUWORLD_PORT_FPTRAP_H
 #define NUWORLD_PORT_FPTRAP_H
 

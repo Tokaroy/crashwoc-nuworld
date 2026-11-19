@@ -1,8 +1,5 @@
 #!/usr/bin/env python3
-"""The --check-scenes lines of every .gsc as the crashwoc tooling decodes it (nus_scene, nus_ps2, ps2_texture, rnc).
-
-Exits 77 (skipped) without the tooling (--tooling or $CRASHWOC_TOOLING).
-"""
+"""The --check-scenes lines of every .gsc as the crashwoc tooling decodes it (nus_scene, nus_ps2, ps2_texture, rnc)."""
 from __future__ import annotations
 
 import argparse
@@ -28,7 +25,6 @@ EMPTY = hashlib.sha256().hexdigest()
 
 
 def scene_paths(manifest: Path = MANIFEST) -> list[str]:
-    """The .GSC entries of the disc manifest, in its order (NW_MANIFEST_SKIP ones left out)."""
     out = []
     for m in re.finditer(r'\{ "([^"]+)", (\d+)u, "[0-9a-f]{64}", ([^ ]+) \}', manifest.read_text()):
         if m.group(1).upper().endswith(".GSC") and m.group(3) == "0":
@@ -59,8 +55,7 @@ def blocks(nu: bytes) -> tuple[list[tuple[bytes, int, int]], int, bool]:
 
 
 def linear(blob: bytes) -> bytes:
-    """A geom's DMA chain as the VIF receives it: the first tag whole (blob_geoms skips it), then per later tag its two
-    VIF words, each followed by the tag's data."""
+    """A geom's DMA chain as the VIF receives it: the first tag whole, then per later tag its two VIF words and data."""
     out, off, first = bytearray(), 0, True
     while True:
         if off + 16 > len(blob):
@@ -101,13 +96,11 @@ def tooling_decodes(version: int, tex_type: int) -> bool:
 
 
 def tex_line(texid: int, w: int, h: int, tex_type: int, version: int, levels: int, rgba: bytes) -> str:
-    """The TEX line of a texture's level 0 as decode_rgba returns it."""
     return (f"TEX {texid} {w}x{h} type={tex_type} version={version} levels={levels} "
             f"rgba={hashlib.sha256(rgba).hexdigest()}")
 
 
 def obj_line(objid: int, geoms: list[dict], strip_tris) -> tuple[str, int, int, int]:
-    """The OBJ line of an object's decoded batches (the tooling's blob_geoms dicts) and its counts."""
     vtx, idx = hashlib.sha256(), hashlib.sha256()
     nverts = ntris = 0
     for g in geoms:
@@ -193,7 +186,6 @@ def all_lines(root: Path, tooling: dict) -> list[str]:
 
 
 def compared(line: str) -> bool:
-    """Whether a TEX line of crashwoc-nuworld is one the tooling has a line for."""
     fields = dict(f.split("=", 1) for f in line.split() if "=" in f)
     return tooling_decodes(int(fields["version"]), int(fields["type"]))
 

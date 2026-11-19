@@ -1,4 +1,4 @@
-/* Window and OpenGL context (SDL3). Owned by the main/render thread. */
+/* Owned by the main/render thread. */
 #ifndef NUWORLD_PLATFORM_PLATFORM_H
 #define NUWORLD_PLATFORM_PLATFORM_H
 

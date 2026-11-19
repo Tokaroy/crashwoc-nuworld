@@ -1,4 +1,4 @@
-/* The VU1 microcode as GLSL: needs a current GL 3.3 context. */
+/* Needs a current GL 3.3 context. */
 #ifndef NUWORLD_GFX_VU_H
 #define NUWORLD_GFX_VU_H
 
@@ -17,8 +17,7 @@ typedef enum NwTexFilter {
     NW_FILTERS
 } NwTexFilter;
 
-/* The packages' triangle programs (tri runs tric's code), face-on sprite programs, skin programs (MSCAL 0x302) and ptl;
-   water, wateruv, triglass and sknglass read the frame copy at the pixel each vertex lands on. */
+/* tri runs tric's code; water, wateruv, triglass and sknglass read the frame copy at each vertex's pixel. */
 typedef enum NwVuProgram {
     NW_VU_TRIC,
     NW_VU_TRICU,
@@ -40,10 +39,7 @@ typedef enum NwVuProgram {
     NW_VU_PROGRAMS
 } NwVuProgram;
 
-/* What vu1init leaves for an object: lv is VF01-04 (local times screen, PS2 row-major); VF23-29 the lights, or the xuv
-   UV matrix; sprite is faceon's clip-space corner offset per unit size (x, y), facey's axis VF15, or for ptl clip space
-   per GS unit (x, y) and texture per texel unit (z, w); frag maps a pixel to GS coordinates:
-   x = gl_FragCoord.x * frag[0] + frag[2], y = gl_FragCoord.y * frag[1] + frag[3]. */
+/* lv: VF01-04 (local x screen); sprite: faceon/facey/ptl corner scale; GS xy = gl_FragCoord.xy * frag.xy + frag.zw */
 typedef struct NwVuObject {
     float lv[16];
     float ambient[4];
@@ -54,16 +50,13 @@ typedef struct NwVuObject {
     float frag[4];
 } NwVuObject;
 
-/* A corner of a face-on sprite: the point, s and t of the corner with the sprite's size, the colour. */
 typedef struct NwVuSpriteVertex {
     float pos[4];
     float tex[4];
     uint8_t col[4];
 } NwVuSpriteVertex;
 
-/* The lights a lit stream uploads to VU 0x0C-0x12, as NuRndrSetDirectionalLights and NuRndrSetAmbientLight set
-   them: three directions and colours in world space, the ambient colour; or the UV matrix a specular or fx stream
-   uploads to 0x0C-0x0F (NuRndrSetSpecularLight, NuRndrSetFxMtx), row-major with the offset in row 3. */
+/* Lit streams: VU 0x0C-0x12 lights in world space; specular/fx streams: a UV matrix at 0x0C-0x0F, offset in row 3. */
 typedef struct NwLights {
     float dir[3][3];
     float col[3][3];
@@ -71,8 +64,7 @@ typedef struct NwLights {
     float uv[4][4];
 } NwLights;
 
-/* A texture on the GPU: CLUT indices (R8UI) and the CLUT (256x1 RGBA8UI), or colours (RGBA8UI) and no CLUT, or a
-   surface the renderer draws into (RGBA8: colour / 255, alpha / 128, GS row y at row height - 1 - y). */
+/* R8UI indices + 256x1 RGBA8UI CLUT, RGBA8UI colours, or a surface (RGBA8: alpha / 128, GS row y at height - 1 - y). */
 typedef struct NwVuTexture {
     unsigned int index, clut;
     bool tcc; /* TEX0.TCC */
@@ -83,9 +75,7 @@ typedef struct NwVuTexture {
     bool power_of_two;
 } NwVuTexture;
 
-/* A depth CLUT (NwZClut) the programs read in place of the texture, or of its alpha alone: the target's Z as a
-   depth texture, the CLUT (256x1 RGBA8UI), and the lookup; clear: 0 none, 1 NuLightFogClear's, 2 a spot light's,
-   then its two Z; ad: NwZClut's, the blend's Ad from it. */
+/* Read in place of the texture or its alpha; clear: 0 none, 1 NuLightFogClear's, 2 a spot light's, then its two Z. */
 typedef struct NwVuZClut {
     unsigned int depth, clut;
     uint32_t shift, base, far, near;
@@ -94,8 +84,7 @@ typedef struct NwVuZClut {
     uint8_t ad;
 } NwVuZClut;
 
-/* diffuse is VU 0x13 (x128); tex NULL or 0 and zclut NULL mean none; dst is a copy of the target to blend over in the
-   program as the GS does (NULL: GL's blend). */
+/* diffuse is VU 0x13 (x128); tex NULL or 0 and zclut NULL mean none; dst NULL: GL's blend. */
 typedef struct NwVuMaterial {
     float diffuse[4];
     float uvoff[4]; /* VU 0x14 u, v; the STROW row u, v (x4096) when the geom unpacks its texcoords under STMOD 1 */
@@ -109,11 +98,9 @@ typedef struct NwVuMaterial {
 bool nw_vu_init(void);
 void nw_vu_shutdown(void);
 NwVuProgram nw_vu_program(const char *package);
-/* The program a package's MSCAL 0x302 runs: skin in tri, skinxuv in xformuv, sknglass in glass; NW_VU_PROGRAMS for
-   the others, whose entry draws nothing (tric, tricu, trica) or falls into the triangle program (tricdv). */
+/* MSCAL 0x302: skin in tri, skinxuv in xformuv, sknglass in glass; NW_VU_PROGRAMS for the other packages. */
 NwVuProgram nw_vu_skin_program(const char *package);
-/* A skin draw's palette and blend-shape weights in the packet's texture buffers (units 3 and 4), its geom's deltas
-   on unit 5. */
+/* Palette and weights on texture units 3 and 4, the geom's deltas on unit 5. */
 void nw_vu_skin(NwVuProgram program, uint32_t joints, uint32_t weights, uint32_t nweights);
 void nw_vu_silhouette(bool skin, const float lv[16], uint32_t joints);
 /* water's and wateruv's VU 0x1B2-0x1D1: the 32 waves a vertex picks by its normal's y, until the next table. */
@@ -121,18 +108,15 @@ void nw_vu_waves(const float waves[32][4]);
 /* ptl's VU 0x3C-0xBF: the effect list as NwPtlList holds it. */
 void nw_vu_ptl(NwVuProgram program, const uint32_t image[132][4]);
 NwVuProgram nw_vu_particle_program(const NwVuTexture *texture, const NwMtlState *state);
-/* The NwPtl attributes of the bound VBO from the byte offset on, one particle per instance. */
+/* One particle per instance, from the byte offset on. */
 void nw_vu_ptl_attribs(size_t offset);
 /* vu1init and clipinit alike (src/gfx/vu1init.c), unlit: the GPU clips, so clip and trivclip need no counterpart. */
 void nw_vu1init(NwVuObject *o, const float local[16], const float view[16]);
-/* Their lights for a lit stream (mode 1): each direction dotted with the normalised rows of the local matrix, the
-   colours with w 0, the ambient colour. */
+/* Lit streams (mode 1): directions dotted with the local matrix's normalised rows, colours with w 0. */
 void nw_vu1init_lights(NwVuObject *o, const float local[16], const NwLights *l);
-/* The UV matrix of a specular or fx stream (mode 4) the same way: its first three rows into the object's space, the
-   offset as it is. */
+/* Specular or fx streams (mode 4): the first three rows into the object's space, the offset as it is. */
 void nw_vu1init_uv(NwVuObject *o, const float local[16], const NwLights *l);
-/* The gem programs' world: local to world and world to clip (row-major, as lv), the eye, the camera's right, up and
-   forward, the gem's tint, kind and role (gfx/gem.h), whether a menu or the HUD draws it, the target's viewport. */
+/* Row-major as lv; cam: right, up, forward; kind and role as gfx/gem.h; panel: drawn by a menu or the HUD. */
 typedef struct NwVuGem {
     float world[16], vp[16];
     float eye[3], cam[9], tint[3];
@@ -140,24 +124,18 @@ typedef struct NwVuGem {
     int viewport[4];
 } NwVuGem;
 void nw_vu_gem(NwVuProgram program, const NwVuGem *g);
-/* Sets the program and the material's state; returns the passes its alpha test draws the triangles in. */
+/* Returns the passes its alpha test draws the triangles in. */
 uint32_t nw_vu_use(NwVuProgram program, const NwVuObject *o, const NwVuMaterial *m, NwMtlPass pass[2]);
 /* Whether the target keeps the alpha the passes write (a PSMCT24 frame does not). */
 void nw_vu_alpha_writes(bool on);
-/* The filter the next draws take. */
 void nw_vu_filter(NwTexFilter filter);
-/* One of those passes: which side of the alpha test it keeps, and the buffers it writes. */
 void nw_vu_pass(NwVuProgram program, const NwVuMaterial *m, const NwMtlPass *pass);
-/* Uploads t with its mip levels. */
 void nw_vu_texture(NwVuTexture *tex, const NwTex *t);
 void nw_vu_texture_free(NwVuTexture *tex);
 /* Lazily expands a particle texture's palette; keeps GS alpha (0x80 = 1), including values above 0x80. */
 bool nw_vu_texture_rgba(NwVuTexture *tex, const NwTex *t);
-/* The NwVifVertex attributes of the bound VAO and VBO. */
 void nw_vu_attribs(void);
-/* The NwVuSpriteVertex attributes of the bound VAO and VBO. */
 void nw_vu_sprite_attribs(void);
-/* The NwVifSkinVertex attributes of the bound VAO and VBO. */
 void nw_vu_skin_attribs(void);
 
 #endif

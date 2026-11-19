@@ -1,8 +1,5 @@
 #!/usr/bin/env python3
-"""Generate src/vfs/disc_manifest*.inc: path, size and SHA-256 of every file on a supported disc.
-
-A manifest.json is {"PATH": {"sha256": hex, "size": n}}; --check without SOURCE only validates the committed file.
-"""
+"""Generate src/vfs/disc_manifest*.inc: path, size and SHA-256 of every file on a supported disc."""
 from __future__ import annotations
 
 import argparse

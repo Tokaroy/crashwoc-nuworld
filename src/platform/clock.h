@@ -1,5 +1,4 @@
-/* The virtual vblank clock: edges on absolute deadlines (t0 + k * period, no drift), from its own thread in real time
-   or emitted on each wait when stepped (deterministic runs and tests). */
+/* Edges on absolute deadlines (t0 + k * period, no drift); stepped, each wait emits them (deterministic runs). */
 #ifndef NUWORLD_PLATFORM_CLOCK_H
 #define NUWORLD_PLATFORM_CLOCK_H
 
@@ -8,8 +7,7 @@
 
 #include <SDL3/SDL.h>
 
-/* More periods late than this (the machine slept, a debugger stopped it) and the clock resyncs to now with one
-   edge instead of a burst. */
+/* More periods late than this (sleep, debugger) and the clock resyncs to now with one edge instead of a burst. */
 #define NW_CLOCK_MAX_LATE 4
 
 typedef struct NwClockTiming {
@@ -18,17 +16,15 @@ typedef struct NwClockTiming {
     uint64_t k;      /* edges since t0 */
 } NwClockTiming;
 
-/* A frame cap: the earliest a frame may start, period after the last one's start; a frame more than a period late
-   starts the count from now. */
+/* A frame more than a period late starts the count from now. */
 typedef struct NwPacer {
     uint64_t next; /* ns, 0 before the first frame */
 } NwPacer;
 
 uint64_t nw_pacer_next(uint64_t next, uint64_t now, uint64_t period);
-/* Waits for the next frame's start at hz frames a second (0: no cap). */
+/* hz 0: no cap. */
 void nw_pacer_wait(NwPacer *p, unsigned hz);
 
-/* The edges due at `now` (0 before the next deadline); advances the timing past them. */
 unsigned nw_clock_due(NwClockTiming *t, uint64_t now);
 uint64_t nw_clock_deadline(const NwClockTiming *t);
 
@@ -37,8 +33,7 @@ typedef enum NwClockMode {
     NW_CLOCK_STEPPED,
 } NwClockMode;
 
-/* Called with the new edges before the waiters wake: on the clock thread in real time, on the caller's thread
-   when stepped. */
+/* Before the waiters wake: on the clock thread in real time, on the caller's thread when stepped. */
 typedef void (*NwClockEdge)(void *user, unsigned edges);
 
 typedef struct NwClock {
@@ -60,14 +55,11 @@ void nw_clock_stop(NwClock *c);
 uint64_t nw_clock_edges(NwClock *c);
 /* The edges and the part of a period since the last of them (at most 1). */
 double nw_clock_time(NwClock *c);
-/* Emits `n` edges now (any mode). */
 void nw_clock_step(NwClock *c, unsigned n);
-/* Blocks until the clock has emitted more than `seen` edges, `timeout_ms` passes (-1: never) or nw_clock_wake;
-   returns the edge count. Stepped, it emits the edge itself. */
+/* timeout_ms -1: never; returns the edge count. Stepped, it emits the edge itself. */
 uint64_t nw_clock_wait(NwClock *c, uint64_t seen, int32_t timeout_ms);
 /* nw_clock_wait that never steps: a stepped clock moves only for the thread that runs on it. */
 uint64_t nw_clock_watch(NwClock *c, uint64_t seen, int32_t timeout_ms);
-/* Wakes every waiter (they return with the count as it is). */
 void nw_clock_wake(NwClock *c);
 
 #endif

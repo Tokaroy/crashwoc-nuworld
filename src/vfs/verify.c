@@ -21,7 +21,6 @@ typedef struct NwProgress {
     uint64_t total;
 } NwProgress;
 
-/* [p, end) without surrounding blanks, truncated to size. */
 static void nw_cnf_copy(char *out, size_t size, const char *p, const char *end)
 {
     while (p < end && (*p == ' ' || *p == '\t')) {
@@ -35,7 +34,6 @@ static void nw_cnf_copy(char *out, size_t size, const char *p, const char *end)
     out[n] = '\0';
 }
 
-/* KEY = VALUE lines. */
 static void nw_cnf_parse(const char *text, NwCnf *cnf)
 {
     SDL_zerop(cnf);

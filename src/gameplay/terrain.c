@@ -1,4 +1,3 @@
-/* Wraps of gamelib/terrain. */
 #include "nu_types.h"
 #include "numath/numathtypes.h"
 #include "gamelib/terrain.retail.h"

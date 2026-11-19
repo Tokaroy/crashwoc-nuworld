@@ -1,11 +1,8 @@
-/* Builds a synthetic .shd in memory: the count, the entry and name offsets, the names, then two entries, each a
-   header and a native texture. */
 #ifndef NUWORLD_TEST_SHD_BUILDER_H
 #define NUWORLD_TEST_SHD_BUILDER_H
 
 #include "gsc_builder.h"
 
-/* Where the test file put what the tests check. */
 typedef struct ShdFile {
     size_t entry[2], name[2];
 } ShdFile;

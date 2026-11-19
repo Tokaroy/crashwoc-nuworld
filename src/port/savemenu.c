@@ -1,6 +1,4 @@
-/* The save menus, the Xbox version's way (port/savemenu.h). game/loadsave is replaced (port/units.toml): its
-   DrawGameSlot and DrawGameSlots are here, retail's slot with the time and date its game was saved, the date in the
-   order of the disc's region (NTSC: month first). */
+/* game/loadsave override: retail's slots plus the save's time and date, in the disc region's order (NTSC: MM.DD). */
 #include "port/savemenu.h"
 
 #include <stdint.h>
@@ -16,7 +14,7 @@
 #include "port/names.h"
 #include "port/saves.h"
 
-#define NW_SAVEMENU_ARROW_X 0.85f /* the page arrows, beside the grid */
+#define NW_SAVEMENU_ARROW_X 0.85f
 #define NW_SAVEMENU_DX 0.7f       /* retail's SLOTPANELDX, SLOTPANELDY, SLOTPANELSX and SLOTPANELSZ */
 #define NW_SAVEMENU_DY 0.65f
 #define NW_SAVEMENU_SX 0.12f
@@ -27,7 +25,7 @@ extern struct game_s Game;
 extern struct game_s SaveSlot[2][2];
 extern struct cursor_s Cursor;
 extern struct gtimer_s GlobalTimer;
-extern int nw_hz; /* port/hz.c */
+extern int nw_hz;
 extern struct objtab_s ObjTab[];
 extern s8 CLetter[];
 extern char tbuf[128];
@@ -51,7 +49,7 @@ void nw_savemenu_platform(bool deck)
     nw_savemenu.deck = deck;
 }
 
-/* When g's game was saved: a slot's from its file, the game in play's now (the load/save menu, a save's confirm). */
+/* A slot's from its file; the game in play's is now (the load/save menu, a save's confirm). */
 static void nw_savemenu_when(const struct game_s *g, NwSaveTime *t)
 {
     uintptr_t at = (uintptr_t)g - (uintptr_t)&SaveSlot[0][0];
@@ -78,7 +76,7 @@ static void nw_savemenu_stat(const char *fmt, int value, int letter, f32 x, f32 
 void DrawGameSlot(struct game_s *game, f32 x, f32 y, s32 colour)
 {
     if (game->empty == 0) {
-        char *name = nw_names_of(game); /* the longer name when it stands, narrower to fit the slot */
+        char *name = nw_names_of(game);
         f32 size = nw_names_scale(0.6f, name, NW_NAMES_OWN_GAME);
         Text3D(name, x, y + 0.15f, 1.0f, size, size, size, 0, colour);
         CalculateGamePercentage(game);
@@ -101,7 +99,6 @@ void DrawGameSlot(struct game_s *game, f32 x, f32 y, s32 colour)
                       ObjTab[129].obj.special, 0);
 }
 
-/* Retail's: the page's 4 slots, the cursor's blinking. */
 void DrawGameSlots(void)
 {
     f32 y = NW_SAVEMENU_DY * 0.5f;
@@ -132,8 +129,7 @@ bool nw_savemenu_grid_open(void)
     return nw_savemenu_grid(Cursor.menu);
 }
 
-/* A save grid opened (from the load/save menu, or the title's LOAD GAME): the page of the save written last, the
-   cursor on it; back from a confirm, as retail left it. */
+/* Opens on the page of the save written last, the cursor on it; back from a confirm, as retail left it. */
 static void nw_savemenu_enter(struct cursor_s *cursor)
 {
     int menu = cursor->menu, from = nw_savemenu.menu;
@@ -223,7 +219,7 @@ void nw_savemenu_draw(struct cursor_s *cursor)
             Text3D("q / r", 0, -0.83f, 1, 0.32f, 0.32f, 0.32f, 0, 0);
         }
     }
-    if (nw_savemenu_grid(menu) && (menu == 23 || nw_saves_any())) { /* the slots are drawn: their pages */
+    if (nw_savemenu_grid(menu) && (menu == 23 || nw_saves_any())) {
         int page = nw_saves_page();
         if (page > 0 || (menu != 23 && nw_saves_automatic())) {
             Text3D("<", -NW_SAVEMENU_ARROW_X, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0, 0);

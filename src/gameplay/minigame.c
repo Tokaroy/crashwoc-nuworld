@@ -1,5 +1,4 @@
-/* Wraps of game/main's MiniGame*: BGLoad still calls them and still moves the character by mg_player_pos, tilt and
-   spin, and the level loop still pays mg_wumpatot into the wumpa count. */
+/* BGLoad still calls game/main's MiniGame* and moves the character by mg_player_pos; the loop pays mg_wumpatot. */
 #include "gameplay/minigame.h"
 
 #include <math.h>
@@ -57,7 +56,7 @@ void Text3D(char *txt, f32 x, f32 y, f32 z, f32 scalex, f32 scaley, f32 scalez, 
 
 typedef enum NwMgState {
     NW_MG_OFF,
-    NW_MG_WAIT, /* the level still loads */
+    NW_MG_WAIT,
     NW_MG_GO,
     NW_MG_PLAY,
     NW_MG_END, /* time is up, the last fruit flies */
@@ -72,7 +71,7 @@ static struct {
     float frames; /* in the state, 50 Hz frames */
     float issue;  /* frames to the next fruit */
     float spin;   /* of a catch's turn still to do */
-    float turn;   /* the spin so far */
+    float turn;
 } nw_mg;
 
 static bool nw_mg_level_ok(int level)

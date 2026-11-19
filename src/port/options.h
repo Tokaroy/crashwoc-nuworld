@@ -1,5 +1,4 @@
-/* The game's own sound options, as its options menu sets them (Game.music_volume, sfx_volume): the port's music and
-   SFX buses. The game reads music every frame and SFX when a sound starts (voices too); any thread. */
+/* Any thread. The game reads music every frame and SFX when a sound starts (voices too). */
 #ifndef NUWORLD_PORT_OPTIONS_H
 #define NUWORLD_PORT_OPTIONS_H
 

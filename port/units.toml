@@ -1,9 +1,7 @@
-# Host treatment per decomp unit; checked by `python tools/gen_stubs.py --check`.
 # treatment: compile | editor (stubs unless built with the editor) | hle | replace | dead (stubs) | shim
 # override/keep: globs NuWorld defines instead of the decomp (without a NuWorld definition: a stub)
-# rename: decomp -> host name within the unit, for symbol collisions
 # wrap: the decomp C stays as <name>__retail (<unit>.retail.h); NuWorld's <name> takes every call
-# expose: file statics (functions or data) made global; a static function is exposed before it is wrapped
+# expose: file statics made global; a static function is exposed before it is wrapped
 # runtime: globs of an editor unit that retail calls outside the editor, compiled in every build
 # called: stubs of an editor or dead unit behind guards retail never passes; any other call into one is an error
 # Overrides marked "dead": code retail never reaches whose C does not build for the host.
@@ -11,7 +9,6 @@
 schema = 1
 
 [units]
-# nucore
 "nucore/nufile" = { treatment = "compile", override = ["NuDat*"], keep = ["NuDatOpen", "NuDatSet"] }
 "nucore/nufpar" = { treatment = "compile" }
 # NuErrorProlog: the file and line NuErrorFunction prints are nuerror.c statics
@@ -24,7 +21,6 @@ schema = 1
 "nucore/asmmem" = { treatment = "hle" }
 "nucore/rnc" = { treatment = "compile", override = ["NuPPLoadBuffer"] }
 
-# numath
 "numath/nuvec" = { treatment = "compile", override = ["NuVecNorm"] }
 "numath/nuvec4" = { treatment = "compile" }
 "numath/numtx" = { treatment = "compile" }
@@ -39,7 +35,6 @@ schema = 1
 "numath/nupatch" = { treatment = "compile" }
 "numath/numath" = { treatment = "hle" }
 
-# nu3d
 "nu3d/nustream" = { treatment = "compile", override = ["*"], keep = ["NuRndrStreamResetStream", "NuRndrSwapStreamBuffers",
     "NuRndrSetGlobalAlpha", "NuRndrStreamSetDirectionalLights", "NuRndrStreamSetAmbientLight"], expose = [
     "rndrstream_buffid"] }
@@ -52,7 +47,6 @@ schema = 1
 "nu3d/nuscene" = { treatment = "compile", override = ["NuNodeRead", "ReadNuIFFTextureSet"], rename = { ReadNuIFFGeomVtx = "ReadNuIFFGeomVtx__nuscene" } }
 "nu3d/numtl" = { treatment = "compile", override = ["CreateStateBlock", "NuMtlBuildRenderList"], wrap = ["NuMtlRelease"] }
 "nu3d/nutex" = { treatment = "compile", override = ["NuTexCreateNative"], expose = ["tinfo", "tpid", "tex_allocmax"] }
-# kept: shadow, footprint and ripple bookkeeping and draws, volume-shadow boxes, bodies retail leaves empty.
 # NuRndrFxCode's Z-byte light passes are unreachable here (depth CLUTs instead).
 "nu3d/nurndr" = { treatment = "compile", override = ["*"], keep = ["NuHGobjEval*", "ClipLinePoint", "NuRndrEndScene",
     "NuRndrEndSceneEx", "NuHGobjRndrMtx", "NuRndrSplineSearch", "NuRndrInitWorld", "NuRndrShadowInit",
@@ -71,12 +65,10 @@ schema = 1
     "CvtNuIFF*", "CvtNodes", "MakeFaceOnDma", "NuGScnConvertScene", "NuGScnSetTmpWkspc", "NuGScnDuplicate", "NuNodeRead",
     "ReadNuIFFTexAnimSet", "ReadTextureSet", "ReadMaterialSet", "ReadTexAnimSet", "ReadSplineSet"] }
 "nu3d/asmstrm" = { treatment = "hle" }
-# NuGHGFixupGobj (an int base): done by NuGHGRead; NuHGobjDestroy frees the port's records; dead: NuGHGWrite*,
-# ReadNuIFFCollideData
+# NuGHGFixupGobj (an int base): done by NuGHGRead; NuHGobjDestroy frees the port's records; the rest is dead
 "nu3d/nuhgobj" = { treatment = "compile", override = ["NuGHGRead", "NuGHGFixupGobj", "NuHGobjDestroy", "NuGHGWrite*",
     "ReadNuIFFCollideData"] }
-# called: ReadNuIFFGeom's, reached only from .nus/.hgo readers the PS2 never calls; NuPs2DestroyRenderStream leaves
-# the port's meshes to their scene
+# called: from .nus/.hgo readers the PS2 never calls; NuPs2DestroyRenderStream leaves the port's meshes to their scene
 "nu3d/nucvtgeo" = { treatment = "dead", override = ["NuPs2DestroyRenderStream"], called = ["NuPs2CreateRenderStream",
     "NuPs2CreateFaceOn"] }
 # NuCvtSknInstFix: done by NuGHGRead's skin DMA decode
@@ -89,7 +81,6 @@ schema = 1
     "nwater_mtl", "nwater_tables", "water_mtls", "water_mtl_tables", "water_table"] }
 "nu3d/bitconv" = { treatment = "compile" }
 
-# nups2
 "nups2/ps2txtr" = { treatment = "replace" }
 # No memory card (port/saves.h): NuMc* has neither C nor a stub
 "nups2/ps2video" = { treatment = "replace", drop = ["NuMc*"] }
@@ -100,7 +91,6 @@ schema = 1
 "nups2/asmdma" = { treatment = "replace" }
 "nups2/clipping" = { treatment = "compile" }
 
-# gamelib
 "gamelib/terrain" = { treatment = "compile", override = ["ReadTerrain"], wrap = ["NewTerrainScaleY", "TerrainImpact",
     "HitWallSpline"] }
 "gamelib/debris" = { treatment = "compile", wrap = ["DebrisCollisionCheck"] }
@@ -132,17 +122,14 @@ schema = 1
 "gamelib/edgra" = { treatment = "editor", runtime = ["edgraInitAllClumps", "edgraDetermineNearestClump", "edgraFileLoad",
     "edgraClumpsReset"] }
 
-# edtools
 # called: behind editor_active
 "edtools/edmain" = { treatment = "editor", runtime = ["edmainRegisterLocVec", "edmainQueryLocVec"], called = [
     "edmainProcess", "edmainRender"] }
 "edtools/edui" = { treatment = "editor" }
 "edtools/edcam" = { treatment = "editor" }
 
-# nusound
 "nusound/nusound" = { treatment = "compile" }
 
-# game
 "game/main" = { treatment = "compile", rename = { main = "nw_game_main" }, wrap = ["MiniGameReset", "MiniGame",
     "MiniGameRender", "MiniGameRenderScore", "DoInput"] }
 "game/particle" = { treatment = "compile" }

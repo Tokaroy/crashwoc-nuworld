@@ -1,4 +1,3 @@
-/* gen/nw_ps2types.h: every named bitfield sets exactly its PS2 bit range; the layouts are _Static_asserts there. */
 #include <stdio.h>
 #include <stdlib.h>
 

@@ -1,9 +1,5 @@
 #!/usr/bin/env python3
-"""Trace the sound key status and the title cut of a running PCSX2, per vblank.
-
-Polls FIELDS over PINE (Settings > Advanced > Enable PINE) faster than the vblank and prints a line per change, counted
-from StartCutMovie (cutmovie_hold 0 -> 1); `crashwoc-nuworld --trace-sound` prints the same lines, for a diff.
-"""
+"""Trace the sound key status and the title cut of a running PCSX2, per vblank."""
 from __future__ import annotations
 
 import argparse
@@ -162,8 +158,6 @@ class TexWatch:
 
 
 class Tracer:
-    """Turns polls into lines: nothing before the sync, then one line per change of state."""
-
     def __init__(self, vblanks: int):
         self.vblanks = vblanks
         self.base = None

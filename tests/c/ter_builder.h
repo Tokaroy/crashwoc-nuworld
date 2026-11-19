@@ -1,5 +1,3 @@
-/* Builds a synthetic .ter in memory: a static object, a platform, two linked wall splines, an unlinked one, the
-   crash data and a skipped entry, then the directory. */
 #ifndef NUWORLD_TEST_TER_BUILDER_H
 #define NUWORLD_TEST_TER_BUILDER_H
 
@@ -7,12 +5,10 @@
 
 #define TER_LINK 0x12345678
 
-/* Where the test file put what the tests check. */
 typedef struct TerFile {
     size_t model[2], wall[2], crash, dir;
 } TerFile;
 
-/* A flat quad at height y over [x0, x1] x [z0, z1] (two triangles' worth of points, normal up). */
 static void ter_quad(GscBuild *b, float x0, float x1, float z0, float z1, float y, const uint8_t info[4])
 {
     const float box[6] = { x0, x1, y, y, z0, z1 };
@@ -24,7 +20,7 @@ static void ter_quad(GscBuild *b, float x0, float x1, float z0, float z1, float 
     gsc_bytes(b, info, 4);
 }
 
-/* A group of n quads tiling [x0, x0 + n] x [-1, 1], then the end group. */
+/* n quads tiling [x0, x0 + n] x [-1, 1], then the end group. */
 static void ter_model(GscBuild *b, float x0, int n, float y, const uint8_t info[4])
 {
     int16_t head[2] = { 0, (int16_t)n };
@@ -39,7 +35,7 @@ static void ter_model(GscBuild *b, float x0, int n, float y, const uint8_t info[
     gsc_zero(b, 16);
 }
 
-/* A wall spline of n points: point i at (i, 0, 2i); linked ones start with the 0x12345678 slot. */
+/* Point i at (i, 0, 2i); linked ones start with the 0x12345678 slot. */
 static void ter_wall(GscBuild *b, uint32_t first, uint16_t n, uint16_t val)
 {
     gsc_u32(b, first);

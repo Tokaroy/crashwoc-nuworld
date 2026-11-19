@@ -1,5 +1,4 @@
-/* nups2/ptl replaced (port/units.toml): SetupDebris's particle sets and effect lists in retail's layout; on the host a
-   set links to the next by an offset, which NuRndrParticleGroup follows. */
+/* On the host a set links to the next by an offset, which NuRndrParticleGroup follows. */
 #include <stdint.h>
 
 #include "gamelib/debris.h"
@@ -67,8 +66,7 @@ struct DmaTag *CreateDmaParticleSet(struct DmaTag *set, int *size)
     return set;
 }
 
-/* Each set's tag a NEXT to the next set, the last's a RET; the address is the next set's offset from this one, all
-   of them being in debbuffer. Retail writes before sets[0] for no sets. */
+/* NEXT tags hold the next set's offset from this one (all in debbuffer); retail writes before sets[0] for no sets. */
 void LinkDmaParticalSets(struct DmaTag **sets, int count)
 {
     if (count <= 0) {

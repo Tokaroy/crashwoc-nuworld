@@ -1,9 +1,5 @@
 #!/usr/bin/env python3
-"""Capture frames of the title cut from a running PCSX2, for a side by side with crashwoc-nuworld --capture.
-
-Saves a state per vblank from the trace's start and takes its screen and the port's frame labels. The label lines are
-tests/fixtures/pcsx2_title_frames.txt; the PNGs are game imagery and stay local. A state can land later than asked.
-"""
+"""Capture frames of the title cut from a running PCSX2, for a side by side with crashwoc-nuworld --capture."""
 from __future__ import annotations
 
 import argparse
@@ -38,7 +34,6 @@ class EeMemory:
 
 
 def labels(ram: bytes, symbols: dict[str, int], base: int) -> tuple[int, str]:
-    """The trace vblank the state holds and its label line."""
     mem = EeMemory(ram)
     vblank = mem.read(address(symbols, "nuvideo_global_vbcnt"), 4) - base
     world = mem.read(address(symbols, "D_00633388"), 4)
@@ -56,7 +51,6 @@ def slot_states(folder: Path, slot: int) -> list[Path]:
 
 
 def read_state(folder: Path, slot: int, asked: float, timeout: float = 30.0) -> tuple[bytes, bytes]:
-    """Waits for the state written to slot after `asked`; returns its screen PNG and EE RAM and deletes it."""
     end = time.monotonic() + timeout
     while time.monotonic() < end:
         for path in slot_states(folder, slot):

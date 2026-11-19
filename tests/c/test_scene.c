@@ -1,4 +1,3 @@
-/* Scene geometry: the VIF decoder and the NU20 reader on synthetic data. */
 #include <stdio.h>
 #include <string.h>
 
@@ -23,7 +22,6 @@ static int failures;
         } \
     } while (0)
 
-/* call must fail with an error containing text. */
 #define CHECK_FAILS(call, text) \
     do { \
         if (call) { \
@@ -43,7 +41,6 @@ static uint32_t fbits(float f)
     return u;
 }
 
-/* One RET-tagged batch of four V4-32 vertices, the first two flagged ADC: the strip 0-1-2-3. */
 static void test_batch(void)
 {
     uint32_t g[40] = {
@@ -90,7 +87,6 @@ static void test_batch(void)
     CHECK(strcmp(line, "OBJ 0 batches=1 verts=4 tris=2 "
                        "vtx=5ff61ee696e31a115059cd16ee188d6eb4aa25b17e7a40ac6583f6893c700941 "
                        "idx=a55571c9db30026e44ac0bdd7674d9c597d8254732feb18418f3aaf8a5b4f418") == 0);
-    /* A second geom appends, indices continue. */
     CHECK(nw_vif_decode(&m, g, sizeof(g)));
     CHECK(m.nverts == 8 && m.ntris == 4 && m.tris[6] == 4);
     nw_vif_free(&m);
@@ -108,7 +104,6 @@ static void make_strip(VifVtx *v, uint32_t n, int seed)
     }
 }
 
-/* The decoded vertices from `first` match v; packed positions carry w 0, V4-32 ones the normal's x and ADC. */
 static bool same_vertices(const NwVifMesh *m, uint32_t first, const VifVtx *v, const bool *adc, uint32_t n,
                           bool packed, bool fast)
 {
@@ -131,7 +126,6 @@ static bool decode(NwVifMesh *m, VifBuild *b)
     return nw_vif_decode(m, b->buf, b->len);
 }
 
-/* Two strips in one batch: ADC restarts the second; winding alternates on the vertex's index in the batch. */
 static void test_strips(void)
 {
     VifVtx v[7];
@@ -181,7 +175,6 @@ static void test_long_strip(void)
     vif_free(&b);
 }
 
-/* Compressed V4-16 positions against the STROW span and VU 2 header; texcoords under STMOD 1 flag the geom. */
 static void test_packed(void)
 {
     const float span[3] = { 4096.0f, 4096.0f, 4096.0f }, mid[3] = { 1.0f, 2.0f, 3.0f };
@@ -203,7 +196,6 @@ static void test_packed(void)
         nw_vif_free(&m);
         vif_free(&b);
     }
-    /* Both STMODs in one geom would need two rows. */
     VifBuild b;
     vif_begin(&b);
     vif_batch(&b, v, adc, 5, VIF_UV_ROW);
@@ -215,7 +207,6 @@ static void test_packed(void)
     vif_free(&b);
 }
 
-/* The chain: a batch split by a NEXT tag over a gap, and the converter's stale bytes after the RET. */
 static void test_chain(void)
 {
     VifVtx v[6];
@@ -245,7 +236,6 @@ static void test_chain(void)
     vif_free(&b);
 }
 
-/* Face-on geoms: faceon (0x304) and facey (0x306) batches of points, sizes and colours, one program a geom. */
 static void test_sprites(void)
 {
     VifBuild b;
@@ -301,7 +291,7 @@ static void test_errors(void)
     CHECK_FAILS(nw_vif_decode(&m, b.buf, 8), "outside the geom");
     b.buf[3] = 0x30; /* REF */
     CHECK_FAILS(decode(&m, &b), "DMA tag id 3");
-    CHECK(m.nverts == 4 && m.ntris == 2); /* failures leave the mesh as it was */
+    CHECK(m.nverts == 4 && m.ntris == 2);
     vif_free(&b);
 
     vif_begin(&b);
@@ -434,7 +424,6 @@ static void test_skin(void)
     nw_vif_skin_free(&s);
     vif_free(&b);
 
-    /* 5 to 8 weights: four in the third quadword, the rest in the fourth. */
     static const float w8[8] = { 0.125f, 0.125f, 0.125f, 0.125f, 0.0625f, 0.1875f, 0.25f, 0.0f };
     static const uint8_t s8[8] = { 0, 1, 2, 3, 4, 5, 6, 7 }, j8[8] = { 10, 11, 12, 13, 14, 15, 16, 17 };
     VifSkinVtx w[4];
@@ -455,8 +444,7 @@ static void test_skin(void)
     nw_vif_skin_free(&s);
     vif_free(&b);
 
-    /* Two groups name slot 0 for different joints; the second group's first batch continues at MSCNT. Blend shapes
-       go to their vertices in shape order, and a blended batch is kicked at 0x302. */
+    /* The second group's first batch continues at MSCNT; a blended batch is kicked at 0x302. */
     static const uint8_t ja[2] = { 1, 2 }, jb[2] = { 7, 3 };
     const VifSkinDelta deltas[3] = {
         { 2, 1, { 1.0f, 2.0f, 3.0f } }, { 2, 0, { 4.0f, 5.0f, 6.0f } }, { 5, 1, { -1.0f, 0.0f, 0.5f } },
@@ -554,7 +542,6 @@ static void test_skin_errors(void)
     vif_free(&b);
 }
 
-/* The synthetic scene: every block, the objects' blobs, the OT and face-on flags, the materials and instances. */
 static void test_gsc(void)
 {
     GscBuild b;
@@ -596,7 +583,6 @@ static void test_gsc(void)
     CHECK(inst.objid == 0 && inst.flags == 1 && inst.mtx[12] == 20.0f && inst.mtx[15] == 1.0f);
     nw_gsc_close(&g);
 
-    /* The last block cut short: the walk stops there. */
     CHECK(nw_gsc_open(&g, b.buf, b.len - 2));
     CHECK(g.truncated && g.nchunks == 11 && g.unknown == 0 && g.nobjects == 2);
     nw_gsc_close(&g);
@@ -644,7 +630,6 @@ static size_t swizzle8(uint32_t x, uint32_t y, uint32_t w)
     return block + (size_t)py * w * 2 + ((x + swap) & 7) * 4 + ((y >> 1) & 1) + ((x >> 2) & 2);
 }
 
-/* Native records: PSMT4, PSMT8 linear and as PSMCT32 with the CSM1 CLUT, the old header, and bad records. */
 static void test_texture(void)
 {
     GscBuild b = { 0 };
@@ -750,7 +735,6 @@ static void test_texture(void)
         gsc_free(&b);
     }
 
-    /* The old header, its level a CNT tag with the A+D setup and a RET tag with the IMAGE. */
     const uint32_t head[3] = { 16, 16, 0 };
     const uint8_t formats[4] = { 5, 0x13, 1, 1 };
     gsc_bytes(&b, head, sizeof(head));
@@ -779,7 +763,7 @@ static void test_texture(void)
     gsc_free(&b);
 }
 
-/* ReadTextureSet's walk (a skip of 0 reads two more ints), texture lookups and the TEX lines of the report. */
+/* ReadTextureSet's walk: a skip of 0 reads two more ints. */
 static void test_texset(const char *scratch)
 {
     GscBuild b = { 0 };
@@ -841,7 +825,6 @@ static void test_texset(const char *scratch)
     gsc_free(&b);
 }
 
-/* NuTexWriteMaterialSettings' TEX1 and CLAMP: filter tables, MXL only for filter 2 on a textured material. */
 static void test_mtl(void)
 {
     static const struct {
@@ -856,7 +839,6 @@ static void test_mtl(void)
     }
 }
 
-/* CreateStateBlock's ALPHA_1 by attrib.alpha, and the GL blends of the ALPHA registers. */
 static void test_blend(void)
 {
     static const uint8_t alpha[8] = { 0x44, 0x44, 0x48, 0x42, 0x49, 0x46, 0x89, 0x44 };
@@ -888,7 +870,6 @@ static void test_blend(void)
     CHECK_FAILS(nw_mtl_blend(0x08, &b), "ALPHA 0x08 has no GL blend"); /* Cs * (1 + As) */
 }
 
-/* CreateStateBlock's ZTST and ZMSK by attrib.zmode. */
 static void test_depth(void)
 {
     static const struct {
@@ -902,7 +883,6 @@ static void test_depth(void)
     }
 }
 
-/* TEST_1 (ATE with ABE) and the passes by AFAIL: the passing pixels, then what AFAIL writes of the failing. */
 static void test_atest(void)
 {
     uint32_t attrib[2] = { 1u | 5u << 20 | 0x7Eu << 23, 3 };
@@ -930,7 +910,6 @@ static void test_atest(void)
     CHECK(nw_mtl_passes(&s, pass) == 1);
 }
 
-/* NuMtlUpdateEx's choice of microcode package. */
 static void test_package(void)
 {
     static const struct {
@@ -947,8 +926,6 @@ static void test_package(void)
     }
 }
 
-/* vu1init: local times screen; for a lit stream the light directions in the space of the local matrix's normalised
-   rows, the colours with w 0 and the ambient colour. */
 static void test_vu1init(void)
 {
     /* A quarter turn about y, scaled by 2, then moved. */
@@ -976,16 +953,13 @@ static void test_vu1init(void)
     CHECK(o.uv[1][0] == 0.0f && o.uv[1][1] == 0.0f && o.uv[1][2] == 1.0f);
     CHECK(o.uv[3][0] == 0.5f && o.uv[3][1] == 0.25f && o.lightdir[2][2] == 0.0f);
 
-    /* A row scaled to 0 (the title logo before it grows in): the VU's 1/0 is MAX and 0 x MAX is 0, so that row adds no
-       light and the others still do. */
+    /* A row scaled to 0 (the title logo growing in): the VU's 1/0 is MAX and 0 x MAX is 0. */
     static const float flat[16] = { 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1 };
     nw_vu1init_lights(&o, flat, &l);
     CHECK(o.lightdir[0][0] == 0.0f && o.lightdir[2][0] == 0.0f && o.lightdir[1][1] == 1.0f);
     CHECK(SDL_fabsf(o.lightdir[2][1] - 0.6f) < 1e-6f && SDL_fabsf(o.lightdir[2][2] - 0.8f) < 1e-6f);
 }
 
-/* The hand-off: the newest published packet with its vblank stamp, the last one again while none is newer; a free
-   waits until a packet after the one being built when it was queued is drawn. */
 static void test_packet(void)
 {
     CHECK(nw_packet_take() == NULL);
@@ -1013,7 +987,6 @@ static void test_packet(void)
     SDL_free(jobs);
 }
 
-/* The --check-scenes lines of the synthetic scene. */
 static void test_report(const char *scratch)
 {
     GscBuild b;

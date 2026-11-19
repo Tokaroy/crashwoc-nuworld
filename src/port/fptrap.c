@@ -1,5 +1,4 @@
-/* NUWORLD_FP_TRAPS: trap invalid operations (a NaN, which the EE FPU never makes) and divides by zero (FLT_MAX on the
-   EE); 1 exits on the first, all reports each trapping instruction once (llvm-symbolizer offsets) and steps past it. */
+/* NUWORLD_FP_TRAPS: NaNs and divides by zero, never made by the EE; 1 exits on the first, all reports each once. */
 #ifndef _WIN32
 #define _GNU_SOURCE /* dladdr, REG_EFL */
 #endif
@@ -25,7 +24,6 @@ static uintptr_t nw_fp_seen[256];
 /* Ends the program from a trap handler, past atexit (exit code 3). */
 static _Noreturn void nw_fp_stop(void);
 
-/* Prints the trap at at the first time; false to stop. */
 static bool nw_fp_report(void *at, bool invalid, const char *module, uintptr_t base)
 {
     int n = SDL_GetAtomicInt(&nw_fp_nseen);

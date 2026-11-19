@@ -1,6 +1,3 @@
-/* The port's saves (port/saves.h) as the save menus use them: SaveSlot a page of 4, written and deleted at once, the
-   result screens' frames, the saves from elsewhere converted; with "ps2", NUWORLD_TEST_CARD's games must come back
-   byte for byte. */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -20,7 +17,7 @@
 #include "save/ps2card.h"
 
 #define PAGE_SIZE ((int)sizeof(SaveSlot))
-#define RAW NW_SAVE_PS2_PAL "slot00" /* a raw PS2 save */
+#define RAW NW_SAVE_PS2_PAL "slot00"
 
 extern struct game_s SaveSlot[2][2];
 extern struct game_s *game;
@@ -61,7 +58,7 @@ static void fresh(void)
     CHECK(nw_paths_remove_tree(dir) && SDL_CreateDirectory(dir));
 }
 
-/* SaveSlot as the game would fill it: games in [0][0] and [1][0], [0][1] and [1][1] empty. */
+/* Games in [0][0] and [1][0], [0][1] and [1][1] empty. */
 static void fill(uint32_t seed)
 {
     uint8_t *p = (uint8_t *)SaveSlot;
@@ -69,7 +66,7 @@ static void fill(uint32_t seed)
         seed = seed * 1103515245u + 12345u;
         p[i] = (uint8_t)(seed >> 16);
     }
-    for (struct game_s *g = &SaveSlot[0][0]; g < &SaveSlot[0][0] + 4; g++) { /* what the game writes */
+    for (struct game_s *g = &SaveSlot[0][0]; g < &SaveSlot[0][0] + 4; g++) {
         g->name[8] = 0;
         for (int l = 0; l < 35; l++) {
             for (int i = 0; i < 3; i++) {
@@ -102,7 +99,6 @@ static void delete_save(struct game_s *slot)
     nw_saves_finish();
 }
 
-/* Same games: the empty flags, and the records of the games. */
 static bool same(const struct game_s *a, const struct game_s *b)
 {
     for (int i = 0; i < 4; i++) {
@@ -118,7 +114,6 @@ static bool page_empty(void)
     return SaveSlot[0][0].empty && SaveSlot[0][1].empty && SaveSlot[1][0].empty && SaveSlot[1][1].empty;
 }
 
-/* A result screen's frames before nw_saves_shown says it is over. */
 static int result_frames(void)
 {
     nw_saves_finish();
@@ -139,7 +134,6 @@ static void test_menus(void)
     nw_saves_show(0);
     CHECK(!nw_saves_any() && nw_saves_latest() == -1 && nw_saves_pages() == 1 && page_empty());
 
-    /* SAVE GAME's confirm: the slot's game written as its save, at once */
     fill(1);
     memcpy(expected, SaveSlot, sizeof(expected));
     write_save(&SaveSlot[0][0]);
@@ -154,14 +148,12 @@ static void test_menus(void)
     nw_saves_show(0);
     CHECK(same(&SaveSlot[0][0], &expected[0][0]) && nw_saves_time(2)->year >= 2024);
 
-    /* the LData keys and the time */
     size_t size = 0;
     char *text = SDL_LoadFile(path_of("save001.toml"), &size);
     CHECK(text && strstr(text, "[slot.0.level.\"a/cold_a/cold_a\"]") && strstr(text, "\"a/seashell/seashell\"]"));
     CHECK(text && strstr(text, "saved = \""));
     SDL_free(text);
 
-    /* only the slot written is: the other keeps its file */
     write_save(&SaveSlot[0][0]);
     CHECK(nw_saves_ok() && there("save001.toml.bak") && !there("save003.toml.bak"));
     static struct game_s elsewhere;
@@ -169,13 +161,11 @@ static void test_menus(void)
     write_save(&elsewhere);
     CHECK(!nw_saves_ok());
 
-    /* DELETE GAME's confirm: the slot emptied, its save to .bak */
     delete_save(&SaveSlot[0][0]);
     CHECK(nw_saves_ok() && SaveSlot[0][0].empty && !there("save001.toml") && there("save001.toml.bak"));
     CHECK(nw_saves_time(0)->year == 0 && there("save003.toml") && nw_saves_any());
     CHECK(result_frames() == 0x32 - 1);
 
-    /* pages: the next one holds saves 5 to 8; the menus go up to the last save's page and one more */
     nw_saves_show(1);
     CHECK(nw_saves_page() == 1 && page_empty());
     fill(2);
@@ -192,7 +182,6 @@ static void test_menus(void)
     nw_saves_show(-1);
     CHECK(nw_saves_page() == 0);
 
-    /* the game in play's longer names go with a save, and come back with a load */
     nw_saves_show(0);
     fill(9);
     strcpy(nw_names_game()->game, "NUWORLD TEAM");
@@ -212,11 +201,9 @@ static void test_menus(void)
     CHECK(nw_saves_ok() && !nw_names_slot(0)->game[0]);
     SDL_zerop(nw_names_game());
 
-    /* GAME LOADED's frames */
     nw_saves_loaded();
     CHECK(result_frames() == 0x28 - 1);
 
-    /* a save from a newer build: an empty slot, and not overwritten */
     static const char newer[] = "format = 2\n";
     CHECK(SDL_SaveFile(path_of("save001.toml"), newer, sizeof(newer) - 1));
     nw_saves_show(0);
@@ -228,7 +215,6 @@ static void test_menus(void)
     CHECK(text && size == sizeof(newer) - 1 && memcmp(text, newer, size) == 0);
     SDL_free(text);
 
-    /* a saves folder that cannot be written; none at all */
     nw_saves_init(path_of("missing/folder/"));
     nw_saves_show(0);
     CHECK(page_empty() && !nw_saves_any());
@@ -243,7 +229,6 @@ static void test_menus(void)
     delete_save(&SaveSlot[1][0]);
     CHECK(!nw_saves_ok());
 
-    /* the folder's PS2 save, converted on first use by its places; imported after, into the free saves */
     fresh();
     fill(5);
     memcpy(expected, SaveSlot, sizeof(expected));
@@ -257,7 +242,6 @@ static void test_menus(void)
     CHECK(there("save002.toml") && there("save004.toml") && !there("save005.toml"));
 }
 
-/* NUWORLD_TEST_CARD's save: converted from the folder, shown by the menus, then saved again by them. */
 static int test_ps2(void)
 {
     const char *card = SDL_getenv("NUWORLD_TEST_CARD");
@@ -347,7 +331,6 @@ static void test_autosaves(void)
     CHECK(nw_save_load_meta(dir, NW_SAVE_GAMES, 0, reg, (uint8_t *)&saved, NULL, NULL, &first) == NW_SAVE_OK);
     CHECK(first.autosave && first.campaign[0] && saved.lives == 4);
 
-    /* A completed level's rewards are durable even before the hub's award animation assigns them to Game. */
     Level = 0;
     new_lev_flags = 0x10;
     nw_autosave_checkpoint(true);
@@ -366,7 +349,6 @@ static void test_autosaves(void)
     nw_autosave_checkpoint(false);
     nw_autosave_finish();
 
-    /* An older manual snapshot must not replace newer automatic progress without consent. */
     nw_saves_show(0);
     game = &SaveSlot[0][0];
     Game = *game;
@@ -389,7 +371,6 @@ static void test_autosaves(void)
     CHECK(nw_save_load_meta(dir, NW_SAVE_GAMES, 1, reg, (uint8_t *)&saved, NULL, NULL, NULL) == NW_SAVE_OK);
     CHECK(saved.level[1].flags & 8);
 
-    /* Same name, new campaign, independent autosave. Manual write refuses the automatic bank. */
     nw_autosave_new(true);
     nw_autosave_finish();
     CHECK(there("autosave002.toml"));
@@ -403,7 +384,6 @@ static void test_autosaves(void)
     nw_saves_autos(false);
     CHECK(!nw_saves_automatic() && !SaveSlot[0][0].empty);
 
-    /* Bank switching also works from CANCEL, including an empty manual bank. */
     Cursor.menu = 20;
     GetMenuInfo(&Cursor);
     nw_savemenu_prepare(&Cursor);
@@ -416,7 +396,6 @@ static void test_autosaves(void)
     CHECK(nw_saves_automatic() && Cursor.y == 0);
     nw_saves_autos(false);
 
-    /* The initial name confirmation must show the question without starting or saving the game. */
     nw_autosave_leave();
     play();
     Cursor.menu = 2;
@@ -431,7 +410,7 @@ static void test_autosaves(void)
     Cursor.y = Cursor.y_max - 1;
     press(0x40);
     CHECK(Cursor.menu == NW_MENU_AUTOSAVE_NEW && new_level == -1 && !nw_autosave_active());
-    press(0x10); /* Back preserves the typed name and insertion point. */
+    press(0x10);
     CHECK(Cursor.menu == 2 && i_nameinput == length && !strcmp(nw_nameentry_name(), "NUWORLD_TEAM____"));
     Cursor.y = Cursor.y_max - 1;
     press(0x40);
@@ -442,7 +421,6 @@ static void test_autosaves(void)
     nw_autosave_finish();
     CHECK(!there("autosave003.toml"));
 
-    /* Enabling through the actual guarded menu starts a separate third slot. First-frame confirm does nothing. */
     new_level = cutmovie = -1;
     Cursor.menu = NW_MENU_AUTOSAVE_NEW;
     GetMenuInfo(&Cursor);
@@ -539,7 +517,6 @@ static void test_nonblocking_saves(void)
         total += elapsed;
         if (elapsed > worst) worst = elapsed;
     }
-    /* All game-thread calls returned while the I/O worker was still stalled, not just on a fast local disk. */
     CHECK(!SDL_GetAtomicInt(&disk.released) && !nw_save_worker_done(&blocker));
     CHECK(nw_saves_pending() && nw_autosave_status() == NW_AUTOSAVE_WRITING);
     printf("save performance (worker stalled 1500 ms, 16 existing autosaves): submit %.3f ms; "
@@ -602,7 +579,6 @@ static void test_import(void)
     CHECK(nw_saves_import_games(games) && run_import(&r) == NW_SAVES_IMPORT_DONE);
     CHECK(r.already[0] == 0 && r.already[2] == 1 && r.saved[0] < 0 && r.saved[2] < 0 && !there("save003.toml"));
 
-    /* a grid opened meanwhile reloads */
     for (int i = 0; i < NW_SAVE_PS2_GAMES; i++) {
         games[i * NW_SAVE_GAME_SIZE + NW_SAVE_EMPTY] = 1;
     }
@@ -617,7 +593,6 @@ static void test_import(void)
     CHECK(run_import(&r) == NW_SAVES_IMPORT_DONE && r.saved[0] == 2);
     CHECK(!SaveSlot[1][0].empty && memcmp(&SaveSlot[1][0], &imported, sizeof(imported)) == 0);
 
-    /* a save into a slot shown empty that the import filled is refused */
     Cursor.menu = -1;
     nw_saves_show(0);
     CHECK(SaveSlot[1][1].empty);

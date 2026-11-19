@@ -1,5 +1,4 @@
-/* sce file I/O for the nufile layer, on the game's file system (src/vfs/vfs.c): cdrom0: reads the imported disc,
-   host0: the writable <data>/host0/. Descriptors are 0..15: nufile.c indexes its file_info[16] with them. */
+/* cdrom0: is the imported disc, host0: <data>/host0/; descriptors stay 0..15 for nufile.c's file_info[16]. */
 #include <stdio.h>
 
 #include "audio/nusound.h"

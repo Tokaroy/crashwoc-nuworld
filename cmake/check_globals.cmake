@@ -1,4 +1,3 @@
-# Fails when two decomp objects define the same global, as the link would (ctest decomp-globals):
 execute_process(COMMAND ${NM} --defined-only --extern-only --format=posix @${OBJECTS}
   OUTPUT_VARIABLE out RESULT_VARIABLE result)
 if(NOT result EQUAL 0)

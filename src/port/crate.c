@@ -1,5 +1,4 @@
-/* game/crate's explosion quad (port/units.toml override): AddQuad3DrotXYZ as a VERTS record in GS coordinates instead
-   of a DIRECT GIF packet in the material's stream. */
+/* game/crate override: AddQuad3DrotXYZ as a VERTS record instead of a DIRECT GIF packet in the material's stream. */
 #include <string.h>
 
 #include "gfx/rndr.h"
@@ -12,7 +11,7 @@ void NuVec4MtxTransformVU0(struct nuvec4_s *dst, struct nuvec4_s *src, struct nu
 void NuVec4ScaleXYZVU0(struct nuvec4_s *dst, struct nuvec4_s *src, float scale);
 extern struct rndrstream_s *rndrstream_3d;
 
-/* The corners turned by a, at pos, in GS coordinates, which retail sends as integers. */
+/* GS coordinates, which retail sends as integers. */
 void AddQuad3DrotXYZ(struct nuvec_s *pos, struct nuvec_s *shape, struct numtl_s *mtl, s32 *a, f32 *uvs, u32 colour)
 {
     struct numtx_s m;

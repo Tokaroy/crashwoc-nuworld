@@ -1,4 +1,3 @@
-"""tools/copies.py on the synthetic decomp in tests/fixtures/mini (FixLoad is overridden, FixLocal wrapped)."""
 import shutil
 import sys
 import tempfile

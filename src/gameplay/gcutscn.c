@@ -1,4 +1,3 @@
-/* Wraps of gamelib/gcutscn: title cuts get the NuWorld mark (gameplay/titlemenu.c). */
 #include "nu_types.h"
 #include "gamelib/gcutscn.h"
 #include "gamelib/gcutscn.retail.h"

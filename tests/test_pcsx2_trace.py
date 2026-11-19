@@ -1,5 +1,3 @@
-"""pcsx2_trace: PINE's batched reads, the symbol lookup and the trace lines; cut_trace's comparison with PCSX2's
-trace (no PCSX2, no game data)."""
 import struct
 import sys
 import tempfile

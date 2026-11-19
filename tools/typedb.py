@@ -1,9 +1,5 @@
 #!/usr/bin/env python3
-"""Type DB: every struct/union, typedef and enum of decomp/include with its PS2 (mipsel) and host (x86_64) layout.
-
-Records are keyed by tag (`struct nuvec_s`), unnamed ones by `<parent>$<n>`; offsets in bytes, a bitfield also has
-`bit` (from the record start), `bits` and `unit`. Lint: `long` (8 bytes on the EE, 4 in o32, not modelled) and u128.
-"""
+"""Type DB: every struct/union, typedef and enum of decomp/include with its PS2 (mipsel) and host (x86_64) layout."""
 from __future__ import annotations
 
 import argparse
@@ -44,8 +40,6 @@ def headers(decomp: Path) -> list[str]:
 
 
 class View:
-    """Records, typedefs and enums of one view."""
-
     def __init__(self, clang: nwclang.Clang, names: list[str]):
         self.include = clang.include.resolve()
         tu = clang.parse(clang.include / TU_NAME, "".join(f'#include "{h}"\n' for h in names))
@@ -234,7 +228,6 @@ class View:
 
 
 def merge(ps2: View, host: View) -> dict:
-    """PS2 view with the host layout added as `host` next to each `layout`."""
     records = {}
     for rid in sorted(set(ps2.records) | set(host.records)):
         p, h = ps2.records.get(rid), host.records.get(rid)

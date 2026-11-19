@@ -1,4 +1,3 @@
-/* src/port/hz.c: the rate, H-line length and the 60 Hz table written only where the PAL value is. */
 #include <stdio.h>
 #include <string.h>
 
@@ -48,10 +47,8 @@ int main(void)
     memcpy(&gravity, &ram[0], 4);
     CHECK(gravity == -0.005f && ram[4] == 12 && ram[6] == 0x08 && ram[7] == 0x07);
     CHECK(ram[8] == 0x78 && ram[11] == 0xFF && ram[12] == 7);
-    /* A second pass finds the NTSC values and leaves them. */
     CHECK(nw_hz_apply(patches, sizeof patches / sizeof patches[0], host) == 6 && ram[4] == 12);
 
-    /* Another disc's image (a segmentless ELF for its own) still has every PAL value. */
     unsigned char elf[52] = { 0x7f, 'E', 'L', 'F', 1, 1, 1 };
     elf[18] = 8;  /* EM_MIPS */
     elf[28] = 52; /* e_phoff */

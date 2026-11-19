@@ -28,7 +28,6 @@ static struct {
     uint32_t cap, used;
 } nw_ik;
 
-/* How often base came before in the frame. */
 static uint32_t nw_interp_ordinal(uint64_t base)
 {
     if (nw_ik.used * 2 >= nw_ik.cap) {
@@ -362,7 +361,6 @@ bool nw_interp_redraws(const NwPacket *p)
     return false;
 }
 
-/* b's draws and views with their partners in a. */
 static bool nw_interp_pair(const NwPacket *a, const NwPacket *b)
 {
     if (nw_ir.a == a->seq && nw_ir.b == b->seq) {
@@ -463,7 +461,6 @@ static void nw_mul(double out[16], const double a[16], const double b[16])
     }
 }
 
-/* The inverse of an affine row-vector matrix. */
 static bool nw_affine_inv(double out[16], const double m[16])
 {
     double c00 = m[5] * m[10] - m[6] * m[9], c01 = m[6] * m[8] - m[4] * m[10], c02 = m[4] * m[9] - m[5] * m[8];
@@ -489,8 +486,7 @@ static bool nw_affine_inv(double out[16], const double m[16])
     return true;
 }
 
-/* b's view moved to the camera between a's and b's by t: vs = inv(cam) x scale x (projection x screen), the last
-   part b's, as NuCameraSetEx makes it. */
+/* vs = inv(cam) x scale x (projection x screen), the last part b's, as NuCameraSetEx makes it. */
 static void nw_interp_view_blend(NwView *out, const NwView *a, const NwView *b, float t)
 {
     double cam[16], inv[16], ps[16], vs[16], tmp[16];
@@ -532,7 +528,7 @@ static void nw_interp_view_blend(NwView *out, const NwView *a, const NwView *b, 
     out->faceon[2] = -sinf(y);
 }
 
-/* NuMtlAnimate's UV offset from a's to b's, a scrolling one the short way round 1. */
+/* NuMtlAnimate's UV offset; a scrolling one blends the short way round 1. */
 static void nw_interp_uv(NwMtlSnap *out, const NwMtlSnap *a, const NwMtlSnap *b, float t)
 {
     for (int i = 0; i < 2; i++) {

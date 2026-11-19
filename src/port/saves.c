@@ -1,4 +1,3 @@
-/* NuWorld's saves in the game (port/saves.h). */
 #include "port/saves.h"
 
 #include <stddef.h>
@@ -15,12 +14,11 @@
 #include "port/savemenu.h"
 #include "save/saveworker.h"
 
-/* Retail's result screens, in logic ticks: GAME SAVED / GAME DELETED (NTSC's shorter, port/values/hz.toml's
-   ProcMenu 0x32), GAME LOADED. */
+/* Retail's result screens in logic ticks; NTSC's GAME SAVED/DELETED is shorter (values/hz.toml ProcMenu 0x32). */
 #define NW_SAVES_SAVED_FRAMES (nw_hz == 60 ? 0x28 : 0x32)
 #define NW_SAVES_LOADED_FRAMES 0x28
 
-extern int nw_hz; /* port/hz.c */
+extern int nw_hz;
 
 /* The record layout the codec writes. */
 #define NW_SAVES_AT(type, field, at) _Static_assert(offsetof(struct type, field) == (at), #type "." #field)
@@ -66,7 +64,6 @@ NW_SAVES_AT(time_s, name, NW_SAVE_TIME_NAME);
 _Static_assert(sizeof(((struct time_s *)0)->name) == NW_SAVE_TIME_NAME_SIZE, "time_s.name");
 NW_SAVES_AT(time_s, itime, NW_SAVE_TIME_ITIME);
 
-/* The game's (a root of the data image). */
 extern struct game_s SaveSlot[2][2];
 extern struct game_s *game; /* game/game's: the slot a save menu picked */
 extern struct ldata_s LData[];
@@ -78,7 +75,7 @@ static struct {
     bool reg_ready;
     bool converted; /* the saves from elsewhere converted, or tried */
     int page;
-    NwSaveTime saved[NW_SAVES_PAGE]; /* when SaveSlot's games were saved */
+    NwSaveTime saved[NW_SAVES_PAGE];
     NwSaveMeta meta[NW_SAVES_PAGE];
     bool recovered[NW_SAVES_PAGE];
     bool free[NW_SAVES_PAGE]; /* shown empty: a write must not replace a save made since */
@@ -98,7 +95,7 @@ static struct {
         bool has_autos;
         char error[512];
     } job;
-    int latest, last;                /* nw_save_scan's */
+    int latest, last;
     bool ok;                         /* the last write or delete */
     int wait;                        /* the result screen's frames left */
 } nw_saves;
@@ -158,7 +155,6 @@ const NwSaveRegistry *nw_saves_levels(void)
     return nw_saves.reg_ready ? &nw_saves.reg : NULL;
 }
 
-/* The registry, with dir's saves from elsewhere converted first; NULL without a folder. */
 static const NwSaveRegistry *nw_saves_ready(const char *dir)
 {
     const NwSaveRegistry *reg = dir ? nw_saves_levels() : NULL;
@@ -269,7 +265,6 @@ void nw_saves_show(int page)
     nw_saves_scan();
 }
 
-/* slot's place on the page, -1 when it is not SaveSlot's. */
 static int nw_saves_index(const struct game_s *slot)
 {
     uintptr_t at = (uintptr_t)slot - (uintptr_t)&SaveSlot[0][0];

@@ -1,4 +1,3 @@
-/* Fullscreen mode lookup: matched in pixels, highest refresh rate first, none for a size the display lacks. */
 #include <stdio.h>
 
 #include "platform/display.h"

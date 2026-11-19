@@ -25,8 +25,8 @@ typedef struct NwDebugItem {
     NwDebugFn fn;
     void *user;
     bool open;
-    bool placed; /* its window has a position */
-    bool focus;  /* chosen in the menu: brought to the front */
+    bool placed;
+    bool focus;
     bool *value;
     SDL_Scancode key;
 } NwDebugItem;
@@ -37,7 +37,7 @@ static struct {
     char *root;
     NwDebugItem items[NW_DEBUG_ITEMS];
     uint32_t nitems;
-    uint32_t placed; /* panels opened so far, the next one's cascade slot */
+    uint32_t placed;
     const char *prompt_title;
     NwDebugPromptFn prompt;
     void *prompt_user;
@@ -263,13 +263,11 @@ void nw_debug_warning(const char *text)
     ImGui::PopStyleColor();
 }
 
-/* menu is the path's first len characters or a submenu of it. */
 static bool nw_debug_under(const char *menu, const char *path, size_t len)
 {
     return len == 0 || (SDL_strncmp(menu, path, len) == 0 && (menu[len] == '\0' || menu[len] == '/'));
 }
 
-/* A toggle is an outlined checkbox, a panel ends in "..." and comes to the front when chosen. */
 static void nw_debug_menu_item(NwDebugItem *item)
 {
     if (item->kind == NW_DEBUG_TOGGLE) {
@@ -289,8 +287,6 @@ static void nw_debug_menu_item(NwDebugItem *item)
     }
 }
 
-/* The items and submenus under path's first len characters, each where its first item was registered; menu names are
-   bold. */
 static void nw_debug_menu(const char *path, size_t len)
 {
     for (uint32_t i = 0; i < nw_debug.nitems; i++) {
@@ -324,8 +320,6 @@ static void nw_debug_menu(const char *path, size_t len)
     }
 }
 
-/* A panel first opens on a cascade from the top left, in the order panels open; every frame it is kept inside the
-   work area (the screen below the menu bar), no larger than it, scrolling what does not fit. */
 static void nw_debug_panels(void)
 {
     const ImGuiViewport *vp = ImGui::GetMainViewport();
@@ -373,7 +367,6 @@ static void nw_debug_set_shown(bool shown)
     ImGui::GetIO().ClearInputMouse();
 }
 
-/* Closing hides the overlay too when no other panel is open. */
 static void nw_debug_key_panel(NwDebugItem *panel)
 {
     panel->open = !nw_debug.shown || !panel->open;

@@ -1,5 +1,4 @@
-/* NUSOUND.IRX's state under its own names and types (from the module's STABS), for src/audio/nusound.c and its
-   tests. IOP addresses are host pointers. */
+/* NUSOUND.IRX's state under its STABS names and types; IOP addresses are host pointers. */
 #ifndef NUWORLD_AUDIO_IRX_H
 #define NUWORLD_AUDIO_IRX_H
 
@@ -19,7 +18,6 @@ typedef struct NwIrxFilename {
     int ID; /* >= 0x1000 resident, else streamed */
 } NwIrxFilename;
 
-/* Where a sample's VAG lies; lsn counts the DAT's own sectors, so datfile (host0: only in the IRX) is used here. */
 typedef struct ADPCMFILE {
     int16_t ID;
     uint32_t size; /* 0: not found */
@@ -28,7 +26,6 @@ typedef struct ADPCMFILE {
     NwDat *datfile;
 } ADPCMFILE;
 
-/* A resident sample in SPU RAM, by TransferSFX slot. */
 typedef struct ADPCM_SPOTINFO {
     uint8_t SPUChannel;
     uint8_t SPUCore;
@@ -41,7 +38,6 @@ typedef struct ADPCM_SPOTINFO {
     int AR;
 } ADPCM_SPOTINFO;
 
-/* A stream slot, one per channel. */
 typedef struct STREAMDATA {
     uint32_t SPUAddress;
     uint8_t *IOPAddress;
@@ -111,7 +107,6 @@ typedef struct NwIrx {
     int ldd_size;
     int ldd_remain;
     void (*endfunc_load)(int);
-    /* the read in progress (_CdStreamStart) */
     int cd_stream;
     int cd_stage; /* 0 idle, 1 seeking, 2 reading */
     int cd_startsec;
@@ -125,7 +120,7 @@ typedef struct NwIrx {
     void (*cd_func)(int);
     NwDat *cd_dat;
     uint8_t cd_buffer[2048];
-    uint32_t g_ReverbChans[2]; /* the voices into each core's reverb */
+    uint32_t g_ReverbChans[2];
     int CurrentReverb[2];
     int CurrentRevDepL[2];
     int CurrentRevDepR[2];
@@ -147,7 +142,7 @@ typedef struct NwIrx {
     int AnyFiles;
     unsigned UserMaxStreams;
     uint32_t StreamMemoryEnd; /* SPU RAM: where the next resident sample goes */
-    int GlobalSfxfileinfo_cnt; /* where a level's samples start */
+    int GlobalSfxfileinfo_cnt;
     uint32_t GlobalSfxMemoryEnd;
     int32_t ret[NW_NUSOUND_REPLY / 4];
 } NwIrx;

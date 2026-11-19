@@ -162,7 +162,6 @@ void nw_crunch_draw(void)
     NuHGobjRndrMtxDwa(nw_crunch.obj, &m, 2, layers, tmtx, NULL);
 }
 
-/* Highscore Crunch Minigame */
 static void nw_crunch_best(void)
 {
     int best = nw_minigame_best();

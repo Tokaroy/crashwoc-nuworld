@@ -1,4 +1,3 @@
-"""gen_converters on tests/fixtures/mini (libclang, and clang or $CC)."""
 import copy
 import subprocess
 import sys

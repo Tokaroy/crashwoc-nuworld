@@ -1,8 +1,4 @@
-# Converter annotations; checked by `python tools/gen_converters.py --check`.
-# unions: a union mixing pointers with other members converts through `member`, or with `hook = true` through
-#   nw_xh_<T> / nw_xhr_<T> in src/data/xhooks.c (`$n` and `.` become `__` in the name)
-# arrays: a [0] or [] array needs `hook = true`
-# Anything else that needs an entry is a generator error.
+# member: the union member that converts; hook = true: nw_xh_<T> / nw_xhr_<T> in src/data/xhooks.c (`$n`, `.` -> `__`)
 
 schema = 1
 

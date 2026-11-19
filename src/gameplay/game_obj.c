@@ -1,4 +1,3 @@
-/* Wraps of game/game_obj. */
 #include "game/creature.h"
 #include "game/game_obj.retail.h"
 #include "numath/nuvec.h"

@@ -9,18 +9,17 @@
  
  s32 NuFileLoadBuffer(char *name, void *buf, s32 max);
  void *NuMemFileOpen(void *buf, s32 size, s32 mode);
-@@ -423,7 +425,9 @@ s32 FindNearestLights(struct nuvec_s *vec, struct Nearest_Light_s *nearest_light
+@@ -423,7 +425,8 @@ s32 FindNearestLights(struct nuvec_s *vec, struct Nearest_Light_s *nearest_light
      f32 distance;
      s32 scount;
      struct nuvec_s direction;
 -    f32 sfactor;
-+    /* Read unset when a light's brightness is neither 6 nor 7 (a retail bug): main keeps 1.0f in that register
-+       ($f20), which ProcessCreatures and GetLights leave alone. */
++    /* Read unset unless brightness is 6 or 7 (a retail bug): main leaves 1.0f in its register ($f20). */
 +    f32 sfactor NW_HOST_INIT(1.0f);
      struct pdir_s *tptr;
      struct pdir_s *tptr2;
  
-@@ -553,9 +557,9 @@ s32 FindNearestLights(struct nuvec_s *vec, struct Nearest_Light_s *nearest_light
+@@ -553,9 +556,9 @@ s32 FindNearestLights(struct nuvec_s *vec, struct Nearest_Light_s *nearest_light
      } else if (nearest_light->glbdirectional.Index != -1 &&
                 (Lights[nearest_light->glbdirectional.Index].type == 1 ||
                  Lights[nearest_light->glbdirectional.Index].type == 2)) {
@@ -32,7 +31,7 @@
              sfactor = sf;
          }
          nearest_light->pDir1st->Colour.r =
-@@ -588,9 +592,9 @@ s32 FindNearestLights(struct nuvec_s *vec, struct Nearest_Light_s *nearest_light
+@@ -588,9 +591,9 @@ s32 FindNearestLights(struct nuvec_s *vec, struct Nearest_Light_s *nearest_light
      } else if (nearest_light->glbdirectional.Index != -1 &&
                 (Lights[nearest_light->glbdirectional.Index].type == 1 ||
                  Lights[nearest_light->glbdirectional.Index].type == 2)) {
@@ -44,7 +43,7 @@
              sfactor = sf;
          }
          nearest_light->pDir2nd->Colour.r =
-@@ -623,9 +627,9 @@ s32 FindNearestLights(struct nuvec_s *vec, struct Nearest_Light_s *nearest_light
+@@ -623,9 +626,9 @@ s32 FindNearestLights(struct nuvec_s *vec, struct Nearest_Light_s *nearest_light
      } else if (nearest_light->glbdirectional.Index != -1 &&
                 (Lights[nearest_light->glbdirectional.Index].type == 1 ||
                  Lights[nearest_light->glbdirectional.Index].type == 2)) {

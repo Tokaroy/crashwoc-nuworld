@@ -1,5 +1,4 @@
-/* Maps the PS2 devices onto the data folder: cdrom0: looks up the --overlay folders (newest first), then the imported
-   disc, case-insensitively; host0: is the writable <root>host0/. Errors via SDL_GetError(). */
+/* cdrom0: the --overlay folders (newest first), then the imported disc, case-insensitively; host0: <root>host0/. */
 #ifndef NUWORLD_VFS_VFS_H
 #define NUWORLD_VFS_VFS_H
 
@@ -10,17 +9,17 @@
 #include "vfs/canon.h"
 #include "vfs/manifest.h"
 
-#define NW_VFS_PATH_MAX 256 /* normalised path with the NUL */
-#define NW_VFS_OVERLAYS 4   /* --overlay folders at most */
+#define NW_VFS_PATH_MAX 256 /* with the NUL */
+#define NW_VFS_OVERLAYS 4
 
 typedef enum NwVfsDevice {
     NW_VFS_CDROM, /* cdrom0:, also paths without a device */
-    NW_VFS_HOST,  /* host0: */
+    NW_VFS_HOST,
 } NwVfsDevice;
 
 typedef enum NwVfsSlot {
-    NW_VFS_OVERLAY,                /* the first of the overlay slots, the newest overlay */
-    NW_VFS_DISC = NW_VFS_OVERLAYS, /* the imported disc */
+    NW_VFS_OVERLAY,                /* the first overlay slot, the newest */
+    NW_VFS_DISC = NW_VFS_OVERLAYS,
     NW_VFS_SLOTS,
 } NwVfsSlot;
 
@@ -51,33 +50,27 @@ typedef struct NwVfs {
 
 typedef struct NwVfsFile NwVfsFile;
 
-/* cdrom0:\LEVELS\B\HUB\HUB.GSC;1 -> NW_VFS_CDROM "LEVELS/B/HUB/HUB.GSC"; host0:LEVELS\X -> NW_VFS_HOST
-   "LEVELS/X". Uppercases like NuFileOpen; refuses other devices, "." and ".." components. */
+/* Uppercases like NuFileOpen; refuses other devices, "." and ".." components. */
 bool nw_vfs_map(const char *game_path, NwVfsDevice *device, char out[NW_VFS_PATH_MAX]);
 
-/* Mounts <root>disc/ (an imported disc) and sets host0: to <root>host0/. */
 bool nw_vfs_init(NwVfs *vfs, const char *root);
-/* Indexes dir into a slot; NULL empties it. Names starting with '.' are skipped. */
+/* NULL empties the slot; names starting with '.' are skipped. */
 bool nw_vfs_mount(NwVfs *vfs, NwVfsSlot slot, const char *dir);
 void nw_vfs_shutdown(NwVfs *vfs);
 
-/* --overlay: mounts dir in front of earlier overlays; the newest wins and shadowed files go to conflict. Each file
-   replaces a disc file or, in a folder named after an archive (ATS.DAT/LEVELS/...), one of its entries (not SFX.DAT's);
-   the boot ELF, SYSTEM.CNF, the IRX modules and DUMMY.DAT stay. Needs the disc mounted. */
+/* The newest overlay wins and shadowed files go to conflict; needs the disc mounted. */
 bool nw_vfs_overlay(NwVfs *vfs, const char *dir, void (*conflict)(void *user, const char *key), void *user);
-/* Calls fn with the overlays' files under prefix (an archive's key and '/'), the newest overlay's for a key, with
-   the key's rest and the host path. */
+/* prefix: an archive's key and '/'; fn gets the newest overlay's file per key. */
 void nw_vfs_overlay_each(const NwVfs *vfs, const char *prefix,
                          void (*fn)(void *user, const char *rest, const char *path), void *user);
 
-/* Host path of a game file: the first mount that has it (cdrom0:) or the host0: folder. Free with SDL_free. */
+/* Free with SDL_free. */
 char *nw_vfs_resolve(const NwVfs *vfs, const char *game_path);
 
 NwVfsFile *nw_vfs_open(const NwVfs *vfs, const char *game_path, NwVfsMode mode);
-/* Bytes transferred, -1 on error. */
 int64_t nw_vfs_read(NwVfsFile *f, void *dst, size_t size);
 int64_t nw_vfs_write(NwVfsFile *f, const void *src, size_t size);
-/* whence: 0 set, 1 current, 2 end (NuFileSeek origins). Returns the new position, -1 on error. */
+/* whence: 0 set, 1 current, 2 end (NuFileSeek origins). */
 int64_t nw_vfs_seek(NwVfsFile *f, int64_t offset, int whence);
 int64_t nw_vfs_size(NwVfsFile *f);
 void nw_vfs_close(NwVfsFile *f);

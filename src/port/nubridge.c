@@ -1,5 +1,4 @@
-/* gamelib/nubridge's rope writer (port/units.toml override): NuBridgeStreamRope as a VERTS record in the fx stream
-   instead of fx2 packets. */
+/* gamelib/nubridge override: NuBridgeStreamRope as a VERTS record in the fx stream instead of fx2 packets. */
 #include <string.h>
 
 #include "gfx/rndr.h"
@@ -8,8 +7,7 @@
 /* Declared by no header. */
 float NuFsqrt(float x);
 
-/* Each segment's four faces, the offsets turning a quarter about the rope from face to face as retail's strips do,
-   the texcoords a strip of DebMat's texture. */
+/* Each segment's four faces turn a quarter about the rope from face to face, as retail's strips do. */
 int NuBridgeStreamRope(struct rndrstream_s *rs, struct nuvec_s *points, int npoints, int colour)
 {
     struct nuvec_s side, up, tmp;

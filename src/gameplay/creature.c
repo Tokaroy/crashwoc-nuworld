@@ -1,5 +1,3 @@
-/* Wraps of game/creature: the air indicator's, the hitbox view's, the vehicles', the slide's, the hub Crunch's and the
-   gems' hooks. */
 #include "game/creature.h"
 #include "game/creature.retail.h"
 #include "gameplay/airindicator.h"

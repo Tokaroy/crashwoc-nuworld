@@ -274,7 +274,6 @@ static void test_stream_link(void)
     NuRndrStreamLink(&s);
     CHECK(s.ptr.u8 == buf + 16 && s.base.u8 == buf);
 
-    /* a stream whose links left only their NEXT tag starts over at its next link; one with packets does not */
     memset(buf, 0, sizeof buf);
     memset(&s, 0, sizeof s);
     rndrstream_free = buf;
@@ -309,7 +308,6 @@ static void test_eefloat(void)
     CHECK(inf == 0x1p128 && nw_ee_mul(0.0, inf) == 0.0 && nw_ee_in(-INFINITY) == -0x1p128);
     CHECK(nw_ee_mul(FLT_MAX, 2.0) == NW_EE_MAX && nw_ee_add(-NW_EE_MAX, -inf) == -NW_EE_MAX);
     CHECK(nw_ee_out(NW_EE_MAX) == FLT_MAX && nw_ee_out(-inf) == -FLT_MAX);
-    /* Toward zero where the nearest is a step up, also below a power of two. */
     CHECK(nw_ee_mul(1 + 0x1p-12, 1 + 0x3p-12) == 1 + 0x1p-10 + 0x1p-23);
     CHECK(nw_ee_mul(1 - 0x5p-14, 1 - 0x3p-12) == 1 - 0x5p-14 - 0x3p-12 + 0x3p-24);
     CHECK(nw_ee_add(1.0, -0x1p-40) == 1.0 && nw_ee_add(1.0, 0x1p-40) == 1.0);

@@ -1,4 +1,3 @@
-"""tools/ee_gate.py's count of host-only blocks (the EE build itself needs the decomp image)."""
 import sys
 import tempfile
 import unittest

@@ -1,4 +1,3 @@
-/* The .shd loader override (src/port/shadcom.c) on a synthetic file; with `retail`, every .shd in CHARS.DAT. */
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -36,7 +35,6 @@ extern int no_default_font;
 static int failures;
 static _Alignas(16) char shd_heap[8 << 20];
 
-/* A host record: beside the buffer, never in it (src/port/heap.h). */
 #define BESIDE(p) ((char *)(p) < shd_heap || (char *)(p) >= shd_heap + sizeof(shd_heap))
 
 #define CHECK(cond) \
@@ -47,7 +45,6 @@ static _Alignas(16) char shd_heap[8 << 20];
         } \
     } while (0)
 
-/* GPU jobs since the last call, counted by op. */
 static void take_gpu(uint32_t ops[NW_GPU_FREE_HOST + 1])
 {
     NwGpuJob *jobs = NULL;
@@ -255,7 +252,6 @@ static int retail_main(int argc, char **argv)
     return 0;
 }
 
-/* Every .shd loads to the pinned counts with a texture and a material per entry. */
 static int test_retail(void)
 {
     const char *dir = getenv("NUWORLD_TEST_DATA");

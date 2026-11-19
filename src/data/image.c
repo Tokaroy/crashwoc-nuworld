@@ -30,11 +30,11 @@ typedef struct NwRegion {
 
 typedef struct NwImage {
     const NwImageTables *t;
-    NwObj *objs; /* address order */
+    NwObj *objs;
     size_t nobjs, cap;
-    NwRegion **regions; /* created on demand, converted in creation order */
+    NwRegion **regions;
     size_t nregions, region_cap;
-    const NwObj **by_host; /* the objects outside the mirror in host address order, for the way back */
+    const NwObj **by_host;
     size_t nby_host;
     NwImageStats *stats;
     jmp_buf fail;
@@ -52,7 +52,6 @@ static void nw_image_fatal(NwXCtx *ctx, const char *message)
     longjmp(nw_image.fail, 1);
 }
 
-/* A pointee that converts element by element: no POD, opaque or void type. */
 static bool nw_image_typed(const NwType *type)
 {
     return type && type->ps2_size && !(type->flags & (NW_TYPE_POD | NW_TYPE_OPAQUE));
@@ -78,7 +77,6 @@ static int nw_image_cmp(const void *a, const void *b)
     return x < y ? -1 : x > y;
 }
 
-/* First object starting above addr. */
 static size_t nw_image_upper(uint32_t addr)
 {
     size_t lo = 0, hi = nw_image.nobjs;
@@ -93,7 +91,6 @@ static size_t nw_image_upper(uint32_t addr)
     return lo;
 }
 
-/* Whether a retail data symbol starts at addr. */
 static bool nw_image_symbol_at(uint32_t addr)
 {
     const NwImageTables *t = nw_image.t;
@@ -109,8 +106,7 @@ static bool nw_image_symbol_at(uint32_t addr)
     return lo < t->nregistry && t->registry[lo][0] == addr;
 }
 
-/* The object holding addr, with the offset into it. One past its end counts unless a retail symbol starts
-   there: then the pointer is to that symbol (CData[0].anim is CrashAnim, right after CrashAnim_CREDITS). */
+/* One past an object's end counts unless a retail symbol starts there (CData[0].anim is CrashAnim). */
 static NwObj *nw_image_find(uint32_t addr, uint32_t *off)
 {
     size_t i = nw_image_upper(addr);
@@ -158,8 +154,7 @@ static unsigned char *nw_image_at(NwXCtx *ctx, const NwObj *o, uint32_t addr, ui
     return p;
 }
 
-/* An object only pointers reach: the retail symbol around addr, else up to the next known boundary, typed by
-   the pointer and converted after the roots. */
+/* The retail symbol around addr, else up to the next known boundary; converted after the roots. */
 static void *nw_image_region(NwXCtx *ctx, uint32_t addr, const NwType *type, const char *site)
 {
     const NwImageTables *t = nw_image.t;
@@ -178,7 +173,7 @@ static void *nw_image_region(NwXCtx *ctx, uint32_t addr, const NwType *type, con
         end = start + t->registry[lo - 1][1];
         uint32_t off;
         if ((addr - start) % ps || nw_image_find(start, &off)) {
-            start = addr; /* not an array of this type, or a root holds its head: start at the pointer */
+            start = addr; /* not an array of this type, or a root holds its head */
         }
     }
     if (end <= addr) {
@@ -232,7 +227,6 @@ static bool nw_image_in_vutext(uint32_t addr)
     return addr >= nw_image.t->vutext_base && addr < nw_image.t->vutext_end;
 }
 
-/* The package holding a .vutext address, else NULL. */
 static const NwVuProg *nw_image_vu_find(const NwImageTables *t, uint32_t addr)
 {
     for (unsigned i = 0; i < t->nvu_progs; i++) {
@@ -243,7 +237,6 @@ static const NwVuProg *nw_image_vu_find(const NwImageTables *t, uint32_t addr)
     return NULL;
 }
 
-/* The token of the microcode package starting at addr; any other .vutext address is fatal. */
 static const NwVuProg *nw_image_vu(NwXCtx *ctx, uint32_t addr, const char *site)
 {
     const NwVuProg *p = nw_image_vu_find(nw_image.t, addr);
@@ -311,7 +304,6 @@ static uintptr_t nw_image_addr_in(NwXCtx *ctx, uint32_t value, int is_signed, co
     return is_signed ? (uintptr_t)(intptr_t)(int32_t)value : (uintptr_t)value;
 }
 
-/* A code address the funcmap does not know: a microcode package (a DMA call target), else fatal. */
 static NwFuncPtr nw_image_vutext_in(NwXCtx *ctx, uint32_t addr, const char *site)
 {
     if (!nw_image_in_vutext(addr)) {
@@ -339,7 +331,6 @@ static int nw_image_host_cmp(const void *a, const void *b)
     return x < y ? -1 : x > y;
 }
 
-/* The mirror maps back by itself; every other object goes into the host order. */
 static void nw_image_index_host(void)
 {
     const NwImageTables *t = nw_image.t;
@@ -357,7 +348,6 @@ static void nw_image_index_host(void)
     qsort(nw_image.by_host, nw_image.nby_host, sizeof(*nw_image.by_host), nw_image_host_cmp);
 }
 
-/* The PS2 offset of a host offset into o (its host size included). */
 static bool nw_image_unmap(const NwObj *o, size_t off, uint32_t *ps2_off)
 {
     if (off == o->host_size) {
@@ -392,7 +382,7 @@ void nw_image_free(void)
     memset(&nw_image, 0, sizeof(nw_image));
 }
 
-/* Zeros and the seeds; NULL, else a root that needs the PAL ELF. */
+/* NULL, else a root that needs the PAL ELF. */
 static const char *nw_image_seed(const NwImageTables *t)
 {
     for (unsigned i = 0; i < t->nroots; i++) {
@@ -712,7 +702,6 @@ static uint32_t nw_trip_ptr_out(NwXCtx *ctx, const void *p, const NwType *type, 
     return nw_image_ps2(p, &ps2) ? ps2 : nw_trip_mark(ctx, p, site);
 }
 
-/* A data or code address (nw_image_addr_in), else the plain value it was. */
 static uint32_t nw_trip_addr_out(NwXCtx *ctx, uintptr_t value, const char *site)
 {
     uint32_t ps2;
@@ -729,14 +718,12 @@ static uint32_t nw_trip_addr_out(NwXCtx *ctx, uintptr_t value, const char *site)
     return nw_trip_mark(ctx, (const void *)value, site);
 }
 
-/* A host function with no retail address, or a microcode package token. */
 static uint32_t nw_trip_fn_out(NwXCtx *ctx, NwFuncPtr fn, const char *site)
 {
     const NwVuProg *vu = nw_vu_prog((const void *)fn);
     return vu ? vu->addr : nw_trip_mark(ctx, (const void *)fn, site);
 }
 
-/* Whether the string at host p is the one at PS2 address addr. */
 static bool nw_trip_same_string(const char *p, uint32_t addr)
 {
     const NwImageTables *t = nw_image.t;
@@ -765,8 +752,7 @@ static void nw_trip_hex(char *buf, const unsigned char *p, uint32_t n)
     }
 }
 
-/* got: one element converted back; want: the bytes of the ELF. A marked slot matches when its host pointer is
-   a string with the text the pointer of the ELF points at. */
+/* A marked slot matches when its host pointer is a string with the text the ELF's pointer points at. */
 static void nw_trip_compare(NwTrip *trip, int which, const char *name, int index, uint32_t addr,
                             unsigned char *got, const unsigned char *want, uint32_t size)
 {
@@ -832,7 +818,6 @@ static unsigned char *nw_trip_buf(NwTrip *trip, size_t size)
     return trip->buf;
 }
 
-/* Every element of an object, converted back. */
 static void nw_trip_typed(NwTrip *trip, int which, const char *name, uint32_t addr, const unsigned char *host,
                           const NwType *type, uint32_t count)
 {

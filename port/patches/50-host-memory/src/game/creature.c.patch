@@ -1,6 +1,6 @@
 --- a/src/game/creature.c
 +++ b/src/game/creature.c
-@@ -2208,10 +2208,15 @@ void LoadCharacterModels(void)
+@@ -2207,10 +2207,15 @@ void LoadCharacterModels(void)
          model = CModel;
      next_character:
          if (space != 0) {
@@ -16,7 +16,7 @@
          } else {
              character = LDATA->clist[i];
          }
-@@ -2468,7 +2473,7 @@ s32 AddCreature(s32 character, s32 index, s32 i_aitab)
+@@ -2467,7 +2472,7 @@ s32 AddCreature(s32 character, s32 index, s32 i_aitab)
      if (c->used != 0) {
          return 0;
      }

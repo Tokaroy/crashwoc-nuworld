@@ -1,4 +1,4 @@
-/* One low-priority I/O worker, started before gameplay. A bounded SPSC queue never waits on the producer. */
+/* One low-priority I/O worker; a bounded SPSC queue never waits on the producer. */
 #ifndef NUWORLD_SAVE_SAVEWORKER_H
 #define NUWORLD_SAVE_SAVEWORKER_H
 

@@ -56,7 +56,6 @@ static bool nw_plane_flown(const struct GLIDERSTRUCT *g)
            !(Level == NW_PLANE_BOSS && WBIntroOn);
 }
 
-/* The stick as retail reads it: the deadzone, then retail's ramp from it to full tilt. */
 static void nw_plane_stick(struct nupad_s *p, const NwPlaneMovement *m)
 {
     float x = p->rdata.l_alg_x - NW_PLANE_CENTRE, z = p->rdata.l_alg_y - NW_PLANE_CENTRE;
@@ -113,7 +112,6 @@ bool nw_plane_control(struct GLIDERSTRUCT *g, struct nupad_s *pad)
     return true;
 }
 
-/* Where a shot at speed from p meets something at pos moving at vel; false if it never does. */
 static bool nw_plane_lead(const struct nuvec_s *p, float speed, const struct nuvec_s *pos, const struct nuvec_s *vel,
                           struct nuvec_s *at)
 {
@@ -129,8 +127,6 @@ static bool nw_plane_lead(const struct nuvec_s *p, float speed, const struct nuv
     return true;
 }
 
-/* An enemy at pos moving at vel, picked when its lead point is in reach and nearer the camera's ray r (unit) than
-   *best's cosine. */
 static void nw_plane_pick(const struct nuvec_s *p, float speed, float reach, const struct nuvec_s *r,
                           const struct nuvec_s *pos, const struct nuvec_s *vel, float *best, struct nuvec_s *aim)
 {
@@ -149,7 +145,6 @@ static void nw_plane_pick(const struct nuvec_s *p, float speed, float reach, con
     }
 }
 
-/* aim_assist: the UFO or blimp whose lead point is nearest the reticle, in the cone. */
 static void nw_plane_assist(const struct nuvec_s *p, float speed, float reach, struct nuvec_s *aim)
 {
     const struct nuvec_s *cam = &GameCam[0].pos;
@@ -172,7 +167,6 @@ static void nw_plane_assist(const struct nuvec_s *p, float speed, float reach, s
     }
 }
 
-/* v turned about the unit axis k by the angle of cosine c, sine s. */
 static void nw_plane_turn(float *v, const struct nuvec_s *k, float c, float s)
 {
     float d = k->x * v[0] + k->y * v[1] + k->z * v[2];
@@ -184,7 +178,6 @@ static void nw_plane_turn(float *v, const struct nuvec_s *k, float c, float s)
     v[2] = z;
 }
 
-/* The shot flies to the reticle's point or the enemy it picks, its tracer turned with it. */
 static void nw_plane_aim(struct gliderbullet_s *b)
 {
     float dt = NW_HZ(0.02f, 0.016666668f);

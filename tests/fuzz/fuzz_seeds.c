@@ -1,4 +1,3 @@
-/* Writes seed corpora for fuzz_vfs.c and fuzz_loaders.c from the synthetic test builders, no game data. */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -25,7 +24,6 @@ enum { LOAD_GSC, LOAD_GHG, LOAD_CUT, LOAD_ANI, LOAD_SHD, LOAD_TER, LOAD_VIEWER, 
 
 static const char *corpus;
 
-/* <corpus>/<name>: reader, head, then body. */
 static void seed(const char *name, uint8_t reader, const void *head, size_t head_size, const void *body,
                  size_t body_size)
 {
@@ -182,13 +180,12 @@ int main(int argc, char *argv[])
     seed("vif-faceon", FUZZ_VIF, NULL, 0, b.buf, b.len);
     vif_free(&b);
 
-    /* a save as the codec writes it (level keys "#0".., as fuzz_vfs.c's registry has them), one written by hand, and
-       a card that holds the first */
+    /* Level keys "#0".., as fuzz_vfs.c's registry has them. */
     static uint8_t games[NW_SAVE_PS2_GAMES * NW_SAVE_GAME_SIZE];
     for (size_t i = 0; i < sizeof(games); i++) {
         games[i] = (uint8_t)(i * 7 + (i >> 5));
     }
-    for (uint8_t *g = games; g < games + sizeof(games); g += NW_SAVE_GAME_SIZE) { /* what the game writes */
+    for (uint8_t *g = games; g < games + sizeof(games); g += NW_SAVE_GAME_SIZE) {
         g[NW_SAVE_NAME + NW_SAVE_NAME_SIZE - 1] = 0;
         for (int t = 0; t < NW_SAVE_LEVELS * NW_SAVE_TIMES; t++) {
             g[NW_SAVE_LEVEL + t / NW_SAVE_TIMES * NW_SAVE_LEVEL_SIZE + NW_SAVE_LEVEL_TIME +

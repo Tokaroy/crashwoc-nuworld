@@ -126,7 +126,7 @@ void nw_ground_loaded(void)
     nw_ground_apply();
 }
 
-/* slide: retail lets a slide run its whole time and then stops him dead. */
+/* Retail lets a slide run its whole time and then stops him dead. */
 void nw_ground_before(struct creature_s *plr, const struct nupad_s *pad)
 {
     const NwCrashMovement *c = &nw_profile.movement.crash;

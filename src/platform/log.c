@@ -318,8 +318,7 @@ static void SDLCALL nw_log_output(void *user, int category, SDL_LogPriority prio
 }
 
 #ifdef _WIN32
-/* A GUI exe has no console: redirected output stays as it is, otherwise it goes to the console that started
-   the exe or, with --console, to a new one. */
+/* A GUI exe has no console: redirected output stays, else attach the parent's console or, with --console, a new one. */
 static void nw_log_console(bool open)
 {
     bool out = GetFileType(GetStdHandle(STD_OUTPUT_HANDLE)) == FILE_TYPE_UNKNOWN;

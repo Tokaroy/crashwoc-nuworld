@@ -1,4 +1,3 @@
-/* Crash and Coco on the ground: run_speed, grip; Crash's long_spin, slide. */
 #ifndef NUWORLD_GAMEPLAY_GROUND_H
 #define NUWORLD_GAMEPLAY_GROUND_H
 

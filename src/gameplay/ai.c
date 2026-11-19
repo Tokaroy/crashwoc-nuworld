@@ -1,4 +1,3 @@
-/* Wraps of game/ai. */
 #include "game/creature.h"
 #include "nu_port.h"
 #include "game/ai.retail.h"

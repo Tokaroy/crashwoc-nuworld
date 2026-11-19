@@ -1,4 +1,3 @@
-/* Per-file SHA-256 manifest of a disc: names, sizes and hashes only. */
 #ifndef NUWORLD_VFS_MANIFEST_H
 #define NUWORLD_VFS_MANIFEST_H
 
@@ -22,7 +21,7 @@ typedef enum NwRegion { NW_REGION_PAL, NW_REGION_US } NwRegion;
 typedef struct NwManifest {
     const NwManifestEntry *entries;
     size_t count;
-    const char *name;  /* "PAL v1.03" */
+    const char *name;
     const char *boot;  /* SYSTEM.CNF's BOOT2, VER and VMODE */
     const char *ver;
     const char *vmode;
@@ -35,7 +34,7 @@ extern const NwManifest nw_disc_manifest, nw_disc_manifest_usa100, nw_disc_manif
 /* PAL first, NULL-terminated. */
 extern const NwManifest *const nw_disc_manifests[];
 
-/* Case-insensitive lookup. */
+/* Case-insensitive. */
 const NwManifestEntry *nw_manifest_find(const NwManifest *m, const char *path);
 
 #endif

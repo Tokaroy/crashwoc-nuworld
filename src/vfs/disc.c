@@ -6,7 +6,7 @@
 
 #define NW_DISC_RAW 2352
 #define NW_DISC_BATCH 64        /* raw sectors per read */
-#define NW_DISC_CUE_MAX 0x10000 /* larger files are not cue sheets */
+#define NW_DISC_CUE_MAX 0x10000
 #define NW_DISC_PVD 16          /* LSN of the primary volume descriptor */
 #define NW_DISC_SUBMODE 18      /* Mode 2 subheader submode byte */
 #define NW_DISC_FORM2 0x20
@@ -32,7 +32,6 @@ static bool nw_cue_keyword(const char *p, const char *end, const char *kw)
     return (size_t)(end - p) >= n && SDL_strncasecmp(p, kw, n) == 0 && (p + n == end || nw_cue_space(p[n]));
 }
 
-/* Next token of [p, end): a quoted string or a run of non-blanks. */
 static const char *nw_cue_token(const char *p, const char *end, char *out, size_t size)
 {
     const char *q;
@@ -189,7 +188,6 @@ static bool nw_disc_detect(NwDisc *disc, Sint64 size, NwDiscFormat *format)
     return true;
 }
 
-/* A clearer message for images that are not ISO9660 at all. */
 static bool nw_disc_not_iso(NwDisc *disc)
 {
     uint8_t head[0x20];

@@ -1,4 +1,4 @@
-/* PS2 native textures (NuTexCreateNative's records) decoded to CLUT indices or colours, a port of ps2_texture.py. */
+/* A port of ps2_texture.py. */
 #ifndef NUWORLD_GFX_TEX_H
 #define NUWORLD_GFX_TEX_H
 

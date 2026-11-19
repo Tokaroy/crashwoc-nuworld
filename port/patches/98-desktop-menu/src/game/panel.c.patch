@@ -20,10 +20,12 @@
          NuVpSetSize((float)(MAXVPSIZEX << 4), (float)(MAXVPSIZEY << 3));
          NW_WIDE_ONLY(nw_wide_vp(0);)
      } else {
-@@ -1067,5 +1074,5 @@ void DrawPanel(void) {
+@@ -1073,7 +1080,7 @@ void DrawPanel(void) {
      }
  
      if (paused != 0) {
 -        if ((Cursor.menu >= 3) && (Cursor.menu <= 8)) {
 +        if (((Cursor.menu >= 3) && (Cursor.menu <= 8)) || NW_QUIT_PAUSE_MENU(Cursor.menu)) {
              ys = 0.0f;
+             if (pause_dir != 0) {
+                 f = (25 - paused) * (PAUSEVMUL / 25.0f);

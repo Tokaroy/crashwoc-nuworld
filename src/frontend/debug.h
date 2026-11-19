@@ -1,4 +1,4 @@
-/* F1 debug overlay of the --scene and game windows. Main thread only. */
+/* Main thread only. */
 #ifndef NUWORLD_FRONTEND_DEBUG_H
 #define NUWORLD_FRONTEND_DEBUG_H
 
@@ -22,12 +22,10 @@ void nw_debug_show(bool shown);
 
 void nw_debug_frame(void);
 
-/* Registered by the module that owns the item, dropped by nw_debug_shutdown. Menus appear in the order their first
-   items were registered; a menu may be a path, "Debug/Render", for a submenu. */
+/* A menu may be a path, "Debug/Render", for a submenu. */
 typedef void (*NwDebugFn)(void *user);
 
 void nw_debug_panel(const char *menu, const char *title, NwDebugFn draw, void *user, bool open);
-/* key opens and closes it, the overlay with it. */
 void nw_debug_panel_key(const char *menu, const char *title, SDL_Scancode key, NwDebugFn draw, void *user);
 void nw_debug_toggle(const char *menu, const char *label, bool *value);
 /* key (or SDL_SCANCODE_UNKNOWN) also works while the overlay is hidden. */
@@ -40,29 +38,26 @@ void nw_debug_prompt(const char *title, NwDebugPromptFn draw, void *user);
 /* <data root><folder>/<date-time>.<ext>; SDL_free it. */
 char *nw_debug_file(const char *folder, const char *ext);
 
-/* Wraps at a panel's width. */
 void nw_debug_text(SDL_PRINTF_FORMAT_STRING const char *fmt, ...) SDL_PRINTF_VARARG_FUNC(1);
 /* Shown on hovering the item before it. */
 void nw_debug_tooltip(const char *text);
-/* Text level with the buttons on its line. */
 void nw_debug_label(const char *text);
 bool nw_debug_button(const char *label);
 void nw_debug_enable_begin(bool enabled);
 void nw_debug_enable_end(void);
 bool nw_debug_checkbox(const char *label, bool *value);
 void nw_debug_indent(bool in);
-/* The next item on this line, column font sizes from the window's left edge. */
+/* column: font sizes from the window's left edge. */
 void nw_debug_same_line(float column);
 bool nw_debug_slider(const char *label, float *value, float lo, float hi, bool log);
 bool nw_debug_slider_int(const char *label, int *value, int lo, int hi);
 bool nw_debug_combo(const char *label, int *index, const char *const *items, int count);
 bool nw_debug_filter(const char *hint, char *buf, size_t size);
 bool nw_debug_input(const char *label, char *buf, size_t size);
-/* A scrolling list rows lines high; always closed with nw_debug_list_end. */
+/* Always closed with nw_debug_list_end. */
 void nw_debug_list_begin(const char *id, int rows);
 void nw_debug_list_sized(const char *id, int rows, float width);
 void nw_debug_list_end(void);
-/* A labelled separator heading the items after it. */
 void nw_debug_heading(const char *text);
 bool nw_debug_selectable(const char *label, bool selected);
 bool nw_debug_tree(const char *label, const char *note, bool highlight, bool open);

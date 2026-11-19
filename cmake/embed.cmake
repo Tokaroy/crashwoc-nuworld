@@ -1,6 +1,3 @@
-# Writes a C file holding one binary file as an array:
-#   cmake -DIN=<file> -DOUT=<file.c> -DNAME=<symbol> -P embed.cmake
-# defines `const unsigned char NAME[]` and `const size_t NAME_size`.
 file(READ "${IN}" hex HEX)
 string(LENGTH "${hex}" digits)
 math(EXPR size "${digits} / 2")

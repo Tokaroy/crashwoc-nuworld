@@ -1,4 +1,3 @@
-/* Button prompt glyphs: what auto picks, icons by bound button position, keys, retail's when unbound, the Deck. */
 #include <stdio.h>
 #include <string.h>
 
@@ -57,7 +56,6 @@ static void test_glyphs(void)
     nw_prompts_build(NW_PROMPTS_DECK, &c, &p);
     CHECK(strcmp(p.glyph[2].icon, "steamdeck_button_x") == 0 && strcmp(p.glyph[5].icon, "steamdeck_button_r1") == 0);
 
-    /* Remapped: cross on the right trigger, L1 on east, circle unbound; the PlayStation draws circle for L1. */
     nw_controls_bind(c.pad, NW_CONTROL_BUTTONS, 0, NW_CONTROL_TRIGGER + SDL_GAMEPAD_AXIS_RIGHT_TRIGGER);
     nw_controls_bind(c.pad, NW_CONTROL_BUTTONS, 4, 1 + SDL_GAMEPAD_BUTTON_EAST);
     nw_prompts_build(NW_PROMPTS_XBOX, &c, &p);
@@ -65,12 +63,10 @@ static void test_glyphs(void)
     CHECK(memcmp(&p.glyph[1], &retail.glyph[1], sizeof(p.glyph[1])) == 0);
     nw_prompts_build(NW_PROMPTS_PLAYSTATION, &c, &p);
     CHECK(strcmp(p.glyph[0].text, "R2") == 0 && p.glyph[4].model == 'o' && !p.glyph[4].text[0]);
-    /* A button without an icon: its name in the font's letters. */
     nw_controls_bind(c.pad, NW_CONTROL_BUTTONS, 2, 1 + SDL_GAMEPAD_BUTTON_MISC2);
     nw_prompts_build(NW_PROMPTS_XBOX, &c, &p);
     CHECK(!p.glyph[2].icon[0] && strcmp(p.glyph[2].text, "MISC 2") == 0);
 
-    /* Keys: letters, digits and named keys as icons, others by name; no key, retail's. */
     nw_controls_defaults(&c);
     c.keys[3][0] = SDL_SCANCODE_KP_5;
     c.keys[5][0] = 0;

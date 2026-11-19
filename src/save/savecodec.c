@@ -117,7 +117,6 @@ void nw_save_registry_free(NwSaveRegistry *reg)
     SDL_zerop(reg);
 }
 
-/* The records hold one entry per registry key, and two records must not share one. */
 static bool nw_save_registry_ok(const NwSaveRegistry *reg)
 {
     if (reg->level_count != NW_SAVE_LEVELS || reg->hub_count != NW_SAVE_HUBS) {
@@ -173,7 +172,6 @@ static bool nw_save_zero(const uint8_t *p, size_t size)
     return true;
 }
 
-/* Bytes without their trailing NULs as a string value. */
 static bool nw_save_text(NwDocValue *v, const uint8_t *p, size_t size)
 {
     while (size && !p[size - 1]) {
@@ -228,7 +226,6 @@ static bool nw_save_set_times(NwDoc *doc, NwDocTable *t, const uint8_t *level)
     return nw_doc_set(doc, t, "time", &times);
 }
 
-/* A hub or level record: set when it holds anything; else its fields go, and its table when nothing is left. */
 static bool nw_save_put_record(NwDoc *doc, const char *const *path, const uint8_t *rec, size_t size,
                                const NwSaveField *fields, size_t n, bool times)
 {
@@ -297,8 +294,6 @@ bool nw_save_merge(NwDoc *doc, const NwSaveRegistry *reg, const uint8_t *games, 
     }
     return true;
 }
-
-/* Decoding: where names the table in errors. */
 
 static bool nw_save_bad(const char *where, const char *name, const char *want)
 {
@@ -409,7 +404,7 @@ bool nw_save_decode(const NwDoc *doc, const NwSaveRegistry *reg, uint8_t *games,
     return nw_save_check(reg, games, count);
 }
 
-/* The options' ranges in the game's menus (game.c); the other fields are counts and flags of their full width. */
+/* The options' ranges in the game's menus (game.c). */
 static const struct {
     const char *name;
     uint16_t at;
@@ -470,7 +465,6 @@ bool nw_save_name_ok(const char *text, size_t len, size_t max)
     return true;
 }
 
-/* name as key of t, or no key when it is empty. */
 static bool nw_save_put_name(NwDoc *doc, NwDocTable *t, const char *key, const char *name)
 {
     NwDocValue v;
@@ -526,7 +520,6 @@ bool nw_save_names_merge(NwDoc *doc, const NwSaveRegistry *reg, size_t index, co
     return true;
 }
 
-/* v as a name of at most max, else empty. */
 static void nw_save_get_name(const NwDocValue *v, char *name, size_t max)
 {
     name[0] = 0;

@@ -1,5 +1,3 @@
-/* A synthetic .DAT archive for the tests (no game data): "arc" holding top.bin, a\x.bin (packed), a\Y.BIN and
-   b\deep.bin. Node 2's sibling links back to the root, as on the disc. */
 #ifndef NUWORLD_TESTS_DAT_BUILDER_H
 #define NUWORLD_TESTS_DAT_BUILDER_H
 
@@ -25,8 +23,7 @@ static inline void put_le32(uint8_t *p, uint32_t v)
     }
 }
 
-/* Entry 1 (a\x.bin) stores packed[packed_size], which unpacks to unpacked bytes; without packed it is the text
-   "RNC packed", claiming 100. */
+/* Without packed, entry 1 is the text "RNC packed", claiming 100. */
 static inline void build_dat_with(DatBuild *d, const uint8_t *packed, size_t packed_size, uint32_t unpacked)
 {
     static const struct {
@@ -35,7 +32,7 @@ static inline void build_dat_with(DatBuild *d, const uint8_t *packed, size_t pac
     } nodes[] = {
         { 0, 0, "" },          /* 0 */
         { 4, 0, "arc" },       /* 1: root */
-        { 5, 1, "b" },         /* 2 */
+        { 5, 1, "b" },         /* 2: its sibling links back to the root, as on the disc */
         { 0, 2, "top.bin" },   /* 3: file 0 */
         { 6, 3, "a" },         /* 4 */
         { -2, 0, "deep.bin" }, /* 5: file 2 */

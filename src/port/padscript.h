@@ -1,8 +1,4 @@
-/* --pad-script: pad port 0's reads, one step each once the run's level runs (at once without --level), from a text
-   file, a retail .ppd or .pad recording (played once, then idle), "sweep" (every button and stick direction in a
-   loop) or "auto" (the level's own recording at the run's rate if the disc has one, else "sweep").
-   Text: one step per line, looping, `<reads> <buttons> [<lx> <ly> [<rx> <ry>]]`, buttons `-` or names joined by `|`
-   (cross, square, ...), sticks 0-255 (128 centred); `#` starts a comment. */
+/* Text: `<reads> <buttons> [<lx> <ly> [<rx> <ry>]]` per line, looping; buttons `-` or names joined by `|`. */
 #ifndef NUWORLD_PORT_PADSCRIPT_H
 #define NUWORLD_PORT_PADSCRIPT_H
 
@@ -17,7 +13,7 @@ struct nupadframe_s;
 int nw_pad_script_hz(const char *spec);
 /* Before the game starts; `level` is the run's last level, -1 for none. False with SDL_GetError(). */
 bool nw_pad_script_start(const NwVfs *vfs, const char *spec, int level, int hz);
-/* A text script (NUL-terminated) or a .ppd image in place of the run's script; false with SDL_GetError(). */
+/* In place of the run's script; false with SDL_GetError(). */
 bool nw_pad_script_parse(const char *text);
 bool nw_pad_script_recording(const uint8_t *data, size_t size);
 void nw_pad_script_stop(void);

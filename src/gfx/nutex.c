@@ -1,5 +1,4 @@
-/* nu3d/nutex's NuTexCreateNative (port/units.toml override): retail's TexList slot over the record, which stays in
-   place, and the record decoded for the renderer. */
+/* NuTexCreateNative override (port/units.toml): retail's TexList slot over the record, which stays in place. */
 #include <stddef.h>
 #include <string.h>
 
@@ -59,8 +58,7 @@ static int nw_log2(int size)
     return shift;
 }
 
-/* Header version 0 (old) or 1 (cur), the palette chunk of types 4-7, then a chunk per mip level; an unknown version
-   takes a slot it never marks valid, as retail. */
+/* An unknown header version takes a slot it never marks valid, as retail. */
 int NuTexCreateNative(void *data)
 {
     const uint8_t *hdr = data;

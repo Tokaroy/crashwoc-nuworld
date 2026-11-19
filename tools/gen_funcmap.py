@@ -1,8 +1,5 @@
 #!/usr/bin/env python3
-"""Generate the function map: retail PS2 address -> host function.
-
-<unit>.funcmap.inc is included at the end of the unit's TU so it can reach statics; funcmap.c is the unit index.
-"""
+"""Generate the function map: retail PS2 address -> host function."""
 from __future__ import annotations
 
 import argparse

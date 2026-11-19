@@ -1,5 +1,4 @@
-/* Overrides gamelib/terrain's .ter loader (port/units.toml): each linked wall spline is copied beside the caller's
-   buffer (src/port/heap.h) so its link to the previous one can be a host pointer, not the file's 4-byte slot. */
+/* .ter loader override: linked wall splines are copied beside the buffer so the link can be a host pointer. */
 #include <stddef.h>
 #include <stdint.h>
 #include <string.h>

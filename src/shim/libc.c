@@ -1,16 +1,13 @@
-/* The libc, newlib and libgcc names the decomp calls that the host libc lacks or spells otherwise
-   (nw_strlwr and nw_divdi3 through port/nw_prelude.h). */
 #include <ctype.h>
 #include <stdint.h>
 #include <string.h>
 
 #include "shim/shim.h"
 
-/* The decomp's newlib srand (decomp src/sdk/newlib/libc/stdlib/rand.c, renamed by port/nw_newlib.h). */
+/* The decomp's newlib srand, renamed by port/nw_newlib.h. */
 void nw_srand(unsigned int seed);
 
-/* newlib's reent block (rand's seed, the decomp libm's errno as first member); retail's impure_data holds an SDK code
-   pointer (_cleanup_r), so the port owns it (port/data.toml [owned]). */
+/* newlib's reent block; the port owns it since retail's impure_data holds an SDK code pointer (_cleanup_r). */
 static _Alignas(16) unsigned char nw_reent[1024];
 void *_impure_ptr[1] = { nw_reent };
 

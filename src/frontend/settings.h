@@ -1,5 +1,4 @@
-/* The player's settings in <data root>settings.toml, a TOML document (save/savedoc.h): a key the reader does not take
-   keeps its value, and a save merges into the file, so keys and tables the port does not know stay. */
+/* A save merges into settings.toml, so keys and tables the port does not know stay. */
 #ifndef NUWORLD_FRONTEND_SETTINGS_H
 #define NUWORLD_FRONTEND_SETTINGS_H
 
@@ -32,64 +31,59 @@ typedef enum NwMovementPart {
 #define NW_PARTS_ALL ((1u << NW_MOVEMENT_PARTS) - 1)
 
 typedef struct NwSettings {
-    bool hardware_speed; /* [game]: the PS2's disc and sound load times instead of instant loads */
-    bool retail_menu;    /* the PS2's logos and title cut, from the next start */
-    NwMovement movement; /* [game.movement], N. Hanced Movement */
-    bool air_indicator;  /* a ring under Crash where he lands while he is in the air */
-    bool boss_health;    /* phase lines on the boss bar */
+    bool hardware_speed;
+    bool retail_menu;
+    NwMovement movement;
+    bool air_indicator;
+    bool boss_health;
     bool wombat;         /* the WOMBAT name opens everything in a new game */
-    bool hub_minigame;   /* Crunch on the warp room's top floor starts the loading minigame */
-    bool long_time_names; /* time trial records take names of up to 8 letters instead of 3 */
+    bool hub_minigame;
+    bool long_time_names; /* up to 8 letters instead of 3 */
     bool relic_spin;
-    int camera_stability; /* percent of a jump the game camera ignores, 0 the PS2's */
+    int camera_stability; /* % of a jump the camera ignores; 0 = retail */
     bool hub_gem;
     bool first_boss_cut;
     bool vehicle_hints;
     bool bug_fixes;
-    int master_volume;   /* [audio], 0-100 over the game's own volumes: everything */
-    int voice_volume;    /* the voice stream (cutscenes, hints) */
-    bool discord;        /* [discord]: Rich Presence on the player's profile */
-    bool updates;        /* [updates]: ask GitHub at the start for a newer NuWorld release */
+    int master_volume;   /* 0-100 over the game's own volumes */
+    int voice_volume;
+    bool discord;
+    bool updates;
     char log[64];
     bool gl_debug;
     bool minidump;
-    float aspect;        /* [video]: the picture's width over its height, 0 = the screen's or window's */
+    float aspect;        /* width over height, 0 = the screen's or window's */
     float hud;           /* the widest width over height the HUD spreads to, 0 = the picture's edges */
     NwWindowMode window;
     NwResolution resolution; /* windowed the window's, fullscreen the display mode's; borderless the desktop's */
     NwVsync vsync;
-    int fps;   /* the most frames a second the window shows, 0 = the display's refresh */
-    bool interpolation; /* frames between the game's blended from the two newest */
-    int scale; /* the internal resolution, NwRenderOptions' */
+    int fps;   /* 0 = the display's refresh */
+    bool interpolation;
+    int scale;
     int msaa;
     NwTexFilter filter;
-    bool gems; /* gems, crystals and relics as cut stone and polished metal */
+    bool gems;
     int draw_distance; /* percent of the PS2's */
     int fog;
     bool blur; 
     bool haze; 
     char gpu[NW_GPU_NAME];
-    NwControls controls; /* [input], [pad], [keyboard] */
+    NwControls controls;
 } NwSettings;
 
 void nw_settings_defaults(NwSettings *s);
 bool nw_settings_equal(const NwSettings *a, const NwSettings *b);
-/* An aspect as settings.toml and --aspect write it: "auto" (0), "W:H" or a ratio, quoted or not; false when it is
-   none of them. */
+/* "auto" (0), "W:H" or a ratio, quoted or not. */
 bool nw_settings_aspect(const char *value, float *out);
-/* The aspect's name: auto, one of 4:3 16:9 16:10 21:9 32:9, else its ratio. */
 const char *nw_settings_aspect_name(float aspect, char *buf, int size);
-/* The HUD's reach as settings.toml writes it: "edges" (0) or an aspect, quoted or not; false when it is neither. */
+/* "edges" (0) or an aspect, quoted or not. */
 bool nw_settings_hud(const char *value, float *out);
-/* Its name: edges, else as nw_settings_aspect_name. */
 const char *nw_settings_hud_name(float hud, char *buf, int size);
-/* A resolution as settings.toml writes it: "auto" (0 x 0) or "WxH" in pixels; false when it is neither. */
+/* "auto" (0 x 0) or "WxH" in pixels. */
 bool nw_settings_resolution(const char *value, NwResolution *out);
 const char *nw_settings_resolution_name(NwResolution res, char *buf, int size);
-/* Root's settings.toml over s when there is one. False with an SDL error when it cannot be read, or when it is not
-   TOML: it is then moved to settings.toml.corrupt and s keeps its values. */
+/* A file that is not TOML is moved to settings.toml.corrupt and s keeps its values. */
 bool nw_settings_load(NwSettings *s, const char *root);
-/* s merged into root's settings.toml through a .tmp file; false with an SDL error. */
 bool nw_settings_save(const NwSettings *s, const char *root);
 
 void nw_settings_profile_name(char *name);

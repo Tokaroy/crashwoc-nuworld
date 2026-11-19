@@ -195,7 +195,6 @@ static void nw_hitboxes_objects(const struct obj_s *player)
     }
 }
 
-/* UpdateChase's c_obj for each chaser. */
 static void nw_hitboxes_chasers(void)
 {
     for (int i = 0; i < 3; i++) {
@@ -244,7 +243,6 @@ static void nw_hitboxes_crates(const struct obj_s *player)
     }
 }
 
-/* UpdateWumpa's flying shots, UpdateKabooms' growing spheres, the particles tested this frame. */
 static void nw_hitboxes_shots(void)
 {
     struct nucolour_s c = { NW_HITBOXES_SHOT, 0 };

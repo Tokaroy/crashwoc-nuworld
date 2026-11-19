@@ -1,8 +1,4 @@
-/* Overrides NuDat* and NuPPLoadBuffer (port/units.toml) on the port's .DAT reader (src/vfs/dat.c), reading through the
-   kept nufile layer, so callers see retail's behaviour, quirks included. Differences: the root's back link is a miss
-   ("ats\ats\x" no longer resolves), an --overlay entry is read unpacked from its loose file, without the disc timing,
-   and every load stays inside its buffer: an archive's header and an RNC file's sizes are checked, RNC streams unpack
-   bounded (src/vfs/rnc.c), and NuFileLoadBuffer's size is capped at its buffer's room (NW_LOAD_ROOM). */
+/* Retail's behaviour, quirks included, except: the root's back link misses, overlays read loose, loads stay bounded. */
 #include <limits.h>
 #include <stddef.h>
 #include <stdio.h>
@@ -35,7 +31,6 @@ void *NuMemAllocFn(int size, char *file, int line);
 void NuMemFreeFn(void *ptr, char *file, int line);
 extern int nufile_buffering_enabled;
 
-/* The file NuFileLoadBuffer loads, for the errors of the loads below. */
 static char nw_load_name[NW_VFS_PATH_MAX];
 
 /* datfiles[]: one open entry of an archive. */
@@ -43,7 +38,7 @@ typedef struct NwDatFile {
     struct nudathdr_s *ndh;
     int start, len, uplen, ppack;
     int used;
-    SDL_IOStream *loose; /* an overlaid entry's file */
+    SDL_IOStream *loose;
 } NwDatFile;
 
 typedef struct NwDatLoose {
@@ -54,7 +49,7 @@ typedef struct NwDatLoose {
 typedef struct NwNuDat {
     struct nudathdr_s *ndh; /* NULL: free */
     NwDat dat;
-    NwDatLoose *loose; /* the entries overlays replace */
+    NwDatLoose *loose;
     int loose_count;
 } NwNuDat;
 
@@ -107,7 +102,6 @@ static void nw_nudat_overlay_entry(void *user, const char *rest, const char *pat
     f[3] = 0;                     /* ppack */
 }
 
-/* The entries the overlays replace, by the archive's key ("ATS.DAT/"...). */
 static void nw_nudat_overlay(NwNuDat *slot, struct nudathdr_s *ndh, const char *fname)
 {
     const NwVfs *vfs = nw_shim_file_vfs();
@@ -179,8 +173,7 @@ struct nudathdr_s *NuDatOpenEx(char *fname, char **mem, int *used, short mode)
         if (!nw_dat_parse(&slot->dat, dir, (size_t)hdr[1], (uint64_t)NuFileOpenSize(fh))) {
             nw_log_warn(NW_LOG_LOAD, "NuDatOpenEx: %s: %s", fname, SDL_GetError());
         } else {
-            /* header | data[0..1] = { directory magic, nfiles } | finfo[nfiles]: finfo[-1].uplen is the
-               magic (-1), which NuFileSize returns for a miss */
+            /* finfo[-1].uplen is the directory magic (-1), which NuFileSize returns for a miss */
             int size = (int)(offsetof(struct nudathdr_s, data) + (2 + 4 * (size_t)slot->dat.count) * sizeof(int));
             if (mem) {
                 ndh = (struct nudathdr_s *)*mem;
@@ -346,9 +339,7 @@ static _Noreturn void nw_load_fail(const char *what, unsigned a, unsigned b)
     }
 }
 
-/* The RNC file of total bytes at fh unpacked into dest, its unpacked size at most maxsize; fatal when its sizes do not
-   fit or its stream is damaged. Retail reads bytes 4.. to end at dest + unpacked + 0x100 and unpacks in place; that
-   layout stays when it fits maxsize, else the packed bytes are read beside the buffer. */
+/* Retail unpacks in place from dest + unpacked + 0x100; kept when that fits maxsize, else packed bytes go beside. */
 static int nw_load_packed(int fh, NwLoadRead read, NwLoadSeek seek, int total, unsigned char *dest, int maxsize)
 {
     uint8_t hdr[NW_RNC_HEADER];

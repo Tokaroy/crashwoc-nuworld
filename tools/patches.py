@@ -1,9 +1,5 @@
 #!/usr/bin/env python3
-"""Port patches over the decomp: the patched tree every host tool reads.
-
-The submodule stays retail. apply copies it (LF), adds port/patches/files/, applies each concern's unified diffs in
-series order (a hunk may move but is never fuzzed), then wraps the port/values rules' retail values in a macro.
-"""
+"""Port patches over the decomp: the patched tree every host tool reads."""
 from __future__ import annotations
 
 import argparse
@@ -58,7 +54,6 @@ class Concern:
 
 
 def normalize(data: bytes) -> bytes:
-    """LF line endings for text; binary files (a NUL byte) stay as they are."""
     return data if b"\0" in data else data.replace(b"\r\n", b"\n")
 
 
@@ -76,7 +71,6 @@ def decomp_sha(decomp: Path) -> str | None:
 
 
 def worktree_files(decomp: Path) -> dict[str, bytes]:
-    """The checkout's files, committed or not (ignored ones excepted), local edits included."""
     if (decomp / ".git").exists():
         try:
             names = git(decomp, "ls-files", "-z", "-co", "--exclude-standard").decode().split("\0")
@@ -95,7 +89,6 @@ def worktree_files(decomp: Path) -> dict[str, bytes]:
 
 
 def commit_files(decomp: Path, rev: str) -> dict[str, bytes]:
-    """The files of a decomp commit, from the object store (no checkout)."""
     listing = git(decomp, "ls-tree", "-r", "-z", rev).split(b"\0")
     blobs = []
     for entry in listing:
@@ -194,7 +187,6 @@ def apply_patch(patch: Patch, data: bytes) -> bytes:
 
 
 def load_series(patches: Path | None = PATCHES) -> tuple[list[Concern], dict[str, bytes]]:
-    """The concerns in order and the new files (port/patches/files/); None: no series."""
     if patches is None:
         return [], {}
     files = {}
@@ -225,7 +217,6 @@ def load_series(patches: Path | None = PATCHES) -> tuple[list[Concern], dict[str
 
 def patch_tree(files: dict[str, bytes], patches: Path | None = PATCHES,
                values: Path | None = VALUES) -> dict[str, bytes]:
-    """The decomp files with the series and the value rules applied (None: without them)."""
     concerns, new = load_series(patches)
     tree = dict(files)
     for name, data in new.items():
@@ -270,7 +261,6 @@ def _replace(tmp: Path, dest: Path) -> None:
 
 
 def write_tree(tree: dict[str, bytes], out: Path, stamp: dict) -> int:
-    """Writes the files that changed, removes the ones a previous apply wrote and this one does not."""
     old_stamp = out / STAMP
     previous = set()
     if old_stamp.is_file():
@@ -296,7 +286,6 @@ def write_tree(tree: dict[str, bytes], out: Path, stamp: dict) -> int:
 
 def apply(decomp: Path = PRISTINE, out: Path = TREE, patches: Path | None = PATCHES,
           values: Path | None = VALUES) -> tuple[int, int]:
-    """Builds or refreshes the patched tree (None: without the series or the value rules); returns (files, written)."""
     tree = patch_tree(worktree_files(decomp), patches, values)
     stamp = {"schema": SCHEMA, "decomp": decomp_sha(decomp), "series": series_hash(patches, values)}
     return len(tree), write_tree(tree, out, stamp)
@@ -310,15 +299,12 @@ def link_compiler(tree: Path, decomp: Path = PRISTINE) -> None:
 
 
 def tree_id(tree: Path) -> str | None:
-    """The decomp commit and series a patched tree was built from (None for a plain checkout)."""
     stamp = tree / STAMP
     if not stamp.is_file():
         return None
     doc = json.loads(stamp.read_text(encoding="utf-8"))
     return f"{doc.get('decomp')}+{doc.get('series', '')[:12]}"
 
-
-# -- value rules: single retail values wrapped in a macro ----------------------------------------------------------------
 
 C_TOKEN = re.compile(r"""
     (?P<skip>\s+|/\*.*?\*/|//[^\n]*)
@@ -343,16 +329,14 @@ class Site:
 class Values:
     origin: Path
     macro: str
-    sites: dict[str, list[Site]]  # by decomp path
+    sites: dict[str, list[Site]]
 
 
 def c_tokens(text: str) -> list[tuple[int, int, str]]:
-    """(start, end, spelling) of each token; comments and spacing are skipped."""
     return [(m.start(), m.end(), m.group("tok")) for m in C_TOKEN.finditer(text) if m.group("tok") is not None]
 
 
 def function_bodies(toks) -> dict[str, tuple[int, int]]:
-    """{function: (index of its "{", index of its "}")} for the definitions at file scope."""
     out, depth, i = {}, 0, 0
     while i < len(toks):
         s = toks[i][2]
@@ -426,8 +410,6 @@ def apply_values(rules: Values, path: str, data: bytes) -> bytes:
     return text.encode("latin-1")
 
 
-# -- the work repository: edit, rebuild, rebase -----------------------------------------------------------------------
-
 FILES = "files"  # subject of the commit with the new files
 BASE = "decomp "  # subject prefix of a decomp commit
 SERIES_HEADER = "# The port patch concerns in the order they apply; written by tools/patches.py rebuild.\n"
@@ -472,7 +454,6 @@ def _fast_import_commit(subject: str, body: str, parent: str | None, files: dict
 
 
 def work_commits(work: Path) -> list[tuple[str, str, str]]:
-    """(sha, subject, body) of the first-parent history, oldest first."""
     log = wgit(work, "log", "--first-parent", "--reverse", "--format=%H%x00%s%x00%b%x01", "main").stdout.decode()
     out = []
     for entry in log.split("\x01"):
@@ -484,7 +465,6 @@ def work_commits(work: Path) -> list[tuple[str, str, str]]:
 
 
 def work_layout(work: Path):
-    """The last decomp commit, the files commit and the concern commits after it."""
     commits = work_commits(work)
     bases = [i for i, c in enumerate(commits) if c[1].startswith(BASE)]
     if not bases or len(commits) <= bases[-1] + 1 or commits[bases[-1] + 1][1] != FILES:
@@ -494,7 +474,6 @@ def work_layout(work: Path):
 
 
 def work_busy(work: Path) -> str | None:
-    """Why the work repository cannot be rebuilt or replaced, or None."""
     git_dir = work / ".git"
     if (git_dir / "rebase-merge").exists() or (git_dir / "rebase-apply").exists():
         return "a rebase is in progress (finish it with git rebase --continue, or --abort)"
@@ -504,7 +483,6 @@ def work_busy(work: Path) -> str | None:
 
 
 def setup(decomp: Path = PRISTINE, patches: Path = PATCHES, work: Path = WORK, force: bool = False) -> int:
-    """(Re)creates the work repository from the decomp's HEAD and the series; returns the concern count."""
     if work.exists() and not force:
         why = work_busy(work) if (work / ".git").exists() else None
         if why is None and (work / ".git").exists() and rebuild_outputs(work) != current_outputs(patches):
@@ -536,7 +514,6 @@ def setup(decomp: Path = PRISTINE, patches: Path = PATCHES, work: Path = WORK, f
 
 
 def _split_diff(diff: bytes) -> dict[str, bytes]:
-    """A multi-file git diff as one normalized patch per path."""
     out = {}
     for section in re.split(rb"(?m)^diff --git ", diff)[1:]:
         head, _, rest = section.partition(b"\n--- ")
@@ -552,7 +529,6 @@ def _split_diff(diff: bytes) -> dict[str, bytes]:
 
 
 def rebuild_outputs(work: Path) -> dict[str, bytes]:
-    """port/patches as the work repository's commits say: relative path -> bytes."""
     (base, _, _), (files_sha, _, _), concerns = work_layout(work)
     out = {}
     status = wgit(work, "diff", "--name-status", "-z", "--no-renames", base, files_sha).stdout.split(b"\0")
@@ -581,7 +557,6 @@ def current_outputs(patches: Path) -> dict[str, bytes]:
 
 
 def rebuild(work: Path = WORK, patches: Path = PATCHES) -> int:
-    """Writes port/patches from the work repository; returns the number of files written or removed."""
     why = work_busy(work)
     if why:
         raise PatchError(f"{work}: {why}")
@@ -603,7 +578,6 @@ def rebuild(work: Path = WORK, patches: Path = PATCHES) -> int:
 
 
 def fixup(concern: str, reason: str | None = None, work: Path = WORK, patches: Path = PATCHES) -> int:
-    """Commits the work repository's edits into `concern` (a new one at the end with `reason`), then rebuilds."""
     git_dir = work / ".git"
     if (git_dir / "rebase-merge").exists() or (git_dir / "rebase-apply").exists():
         raise PatchError(f"{work}: a rebase is in progress (finish it with git rebase --continue, or --abort)")
@@ -639,7 +613,6 @@ def resolve_commit(decomp: Path, sha: str) -> str:
 
 
 def rebase(sha: str, decomp: Path = PRISTINE, patches: Path = PATCHES, work: Path = WORK) -> bool:
-    """Moves the series onto decomp commit `sha`; False when git stopped at a conflict."""
     full = resolve_commit(decomp, sha)
     setup(decomp, patches, work)
     (old_base, _, _), _, _ = work_layout(work)

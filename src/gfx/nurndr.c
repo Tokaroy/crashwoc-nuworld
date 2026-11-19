@@ -1,5 +1,4 @@
-/* nu3d/nurndr overridden whole (port/units.toml): the scene bracket and draws as stream records (src/gfx/nustream.c);
-   every other NuRndr* is a stub whose hits are the renderer's worklist. */
+/* Overridden whole (port/units.toml); unported NuRndr* are stubs whose hits are the renderer's worklist. */
 #include <math.h>
 #include <stdio.h>
 #include <string.h>
@@ -37,7 +36,6 @@ void NuMtxMulArrayVU0(struct numtx_s *dst, struct numtx_s *a, struct numtx_s *b,
 struct NUJOINTANIM_s;
 void NuHGobjEval(struct NUHGOBJ_s *hobj, int njanims, struct NUJOINTANIM_s *janim, struct numtx_s *mtx_array);
 
-/* Roots of the data image. */
 extern int nurndr_tritot_this_frame;
 extern int nurndr_pixel_width;
 extern int nurndr_pixel_height;
@@ -151,8 +149,7 @@ void NuRndrOTFlush(void)
     ot_batch_free = NW_OT_ITEMS;
 }
 
-/* Triangles bucketed by view z (XFormVuTriZ, from the batch's end), far to near, each bucket from its latest; the batch
-   enters the ordering table at its nearest triangle. Retail drops a batch over 0x800 triangles or with no item left. */
+/* Buckets by view z (XFormVuTriZ), far to near; retail drops a batch over 0x800 triangles or with no item left. */
 void nw_rndr_ot_batch(struct numtx_s *mtx, struct numtl_s *mtl, const NwGpuMesh *mesh, struct nutristream_s *batch)
 {
     static float depth[NW_OT_TRIS];
@@ -193,8 +190,7 @@ void nw_rndr_ot_batch(struct numtx_s *mtx, struct numtl_s *mtl, const NwGpuMesh 
     nw_rndr_ot_insert(item, batchz);
 }
 
-/* Retail also builds the volume shadows' cylinder DMA data and the default blend-deformer weights, which a NULL
-   weights array stands for here. */
+/* A NULL weights array stands for retail's default blend-deformer weights. */
 void NuRndrInitEx(int streamsize)
 {
     NuRndrStreamInit(streamsize);
@@ -207,8 +203,6 @@ void NuRndrInitEx(int streamsize)
     }
 }
 
-/* The volume shadows' fan of eight directions about the light, which ShadElp reads (src/gfx/fx2.c); retail also
-   packs them into its DMA packet. */
 u32 *NuRndrShadowLightFan(void)
 {
     struct nuvec_s angles;
@@ -222,9 +216,7 @@ u32 *NuRndrShadowLightFan(void)
     return NULL;
 }
 
-/* Level 0xC's volume shadows (nurndr_shadowson): retail counts them in NuLgtHSurf[2]'s colour from 0x7F and takes
-   curlightcol's 0x20 off the frame where the top bit is set (ALPHA 0x42, stretched from 0.4 of the width); here the
-   stencil counts (NW_CMD_VOLUMES) and the mask is grey where it is 0x80 or more. */
+/* Retail counts in NuLgtHSurf[2]'s colour from 0x7F; here the stencil counts and the mask is grey at 0x80 or more. */
 void NuRndrShadow(int mode)
 {
     struct nuvec_s light = curlight;
@@ -293,7 +285,7 @@ void NuRndrShadow(int mode)
     NuRndrStreamFlush();
 }
 
-/* A vertex of NuRndrWater's DIRECT packets: GS (x, y) at z (the port's GS Z stops at 2^23 - 1), s, t, colour. */
+/* The port's GS Z stops at 2^23 - 1. */
 static void nw_water_vertex(NwVuSpriteVertex *v, int x, int y, int z, float s, float t, u32 colour)
 {
     memset(v, 0, sizeof(*v));
@@ -326,9 +318,7 @@ static void nw_water_target(int target)
     NuRndrSetScissor(0, 0, nurndr_pixel_width - 1, nurndr_pixel_height - 1);
 }
 
-/* The view from under the water. Only the uncalled NuRndrWaterLevelTint sets NuRndrWaterLevel, so this runs at most
-   once, from its .sdata 0, if the camera starts below 0.5: an alpha ramp at the water line, then the frame copied into
-   NuLgtHSurf[4] in 64 x 16 cells swayed by watertab and drawn over the frame in NuRndrWaterTint. */
+/* Only the uncalled NuRndrWaterLevelTint sets NuRndrWaterLevel, so this runs at most once, at a start below 0.5. */
 void NuRndrWater(void)
 {
     struct nuvec4_s nearpnt, farpnt;
@@ -427,8 +417,7 @@ void NuRndrWater(void)
     }
 }
 
-/* The store's volumes along the light (fx2's programs, src/gfx/fx2.c) in NuLightAddMat2 under the identity, in a
-   viewport 0.4 of the frame's width (4096 / 16 pixels at 640), which squeezes them; then the store is empty. */
+/* In a viewport 0.4 of the frame's width (4096 / 16 pixels at 640), which squeezes the volumes; empties the store. */
 void NuRndrShadowStack(struct nuvec_s *light)
 {
     NuVpSetSize((float)(PS2_REZ_W << 4) * 0.4f, (float)(PS2_REZ_H << 4));
@@ -462,10 +451,9 @@ void NuRndrShadowStack(struct nuvec_s *light)
 }
 
 static NwCmd *nw_target;    /* the TARGET record NuRndrBeginSceneEx's NuRndrSetZBuffer completes */
-static int nw_zbuffer = -2; /* the last NuRndrSetZBuffer */
+static int nw_zbuffer = -2;
 
-/* The back buffer (-1), front buffer (-3) or a render target texture, which sets nurndr_pixel_width and height; -2 and
-   -4 put the Z buffer behind the frame, which the port does not draw, so their draws go nowhere. */
+/* -2 and -4 put the Z buffer behind the frame, which the port does not draw, so their draws go nowhere. */
 void NuRndrSetRTarget(struct rndrstream_s *stream, int target)
 {
     NwSurf surf = { 0, 0, 0, false };
@@ -498,8 +486,7 @@ void NuRndrSetRTarget(struct rndrstream_s *stream, int target)
     c->target.zback = nw_zbuffer == -2;
 }
 
-/* -2 shares the back buffer's Z when the target is its size, else the target has its own; a render target as Z buffer
-   (zbuffer > 0) is only ever the volume shadows' NuLgtHSurf[1], which NW_CMD_VOLUMES fills. */
+/* A render target as Z buffer (zbuffer > 0) is only ever the volume shadows' NuLgtHSurf[1] (NW_CMD_VOLUMES). */
 void NuRndrSetZBuffer(struct rndrstream_s *stream, int zbuffer)
 {
     (void)stream;
@@ -531,8 +518,7 @@ void NuRndrFlush(int flags)
     NuRndrEndSceneEx(flags);
 }
 
-/* The flush, then a CLEAR at the start of the system stream, which sorts first: colour (flags & 3 = 1), Z (2) or
-   both over the scissor at z = (1 - depth) * (2^23 - 1); flags & 4 flushes the streams alone. */
+/* CLEAR sorts first in the system stream: colour (flags & 3 = 1), Z (2) or both; flags & 4 only flushes. */
 void NuRndrClear(int flags, int colour, float depth)
 {
     if (flags & 4) {
@@ -548,8 +534,7 @@ void NuRndrClear(int flags, int colour, float depth)
     c->clear.mask = (flags & 3) == 1 || (flags & 3) == 2 ? flags & 3 : 3;
 }
 
-/* A sprite in the 2D stream under mtl (numtl_defaultmtl2d without one) from (x, y) in 12.4 pixels of a width x
-   height screen, centred on PS2_VCNTR as the GS sees it. */
+/* (x, y) in 12.4 pixels of a width x height screen, centred on PS2_VCNTR as the GS sees it. */
 static void nw_rndr_rect(int x, int y, int width, int height, int colour, struct numtl_s *mtl, const float st[4],
                          int screen_w, int screen_h)
 {
@@ -623,8 +608,7 @@ void NuRndrRectUVStream(struct rndrstream_s *stream, int x, int y, int width, in
     nw_rndr_rect3d(stream, x, y, width, height, uv, colour, z);
 }
 
-/* Target -3 swaps without counting a frame; of retail's frame counters only the one main.c reads is kept. A new
-   picture aspect starts with the next frame. */
+/* Target -3 swaps without counting a frame; only the frame counter main.c reads is kept. */
 int NuRndrSwapScreen(int target)
 {
     NuPs2DisableAutoScreenSwap();
@@ -638,8 +622,7 @@ int NuRndrSwapScreen(int target)
     return swapped;
 }
 
-/* Each sub-object in view draws its geoms (each material of the mtl->next chain once) and face-on geoms; returns
-   retail's clip state: 0 out of view, 1 in view, 2 partly. */
+/* Returns retail's clip state: 0 out of view, 1 in view, 2 partly. */
 int NuRndrGScnObj(struct nugobj_s *gobj, struct numtx_s *wm)
 {
     struct numtx_s mtx;
@@ -700,8 +683,7 @@ int NuRndrGScnObj(struct nugobj_s *gobj, struct numtx_s *wm)
     return clip;
 }
 
-/* A gobj chain (an hgobj's joint), as NuRndrGScnObj but along next_gobj, never through the ordering table, and
-   with the forced material table left out under a forced material. */
+/* As NuRndrGScnObj but along next_gobj, never through the ordering table, no forced material table under one. */
 int NuRndrGobj(struct nugobj_s *gobj, struct numtx_s *wm)
 {
     struct numtx_s mtx;
@@ -756,8 +738,7 @@ int NuRndrGobj(struct nugobj_s *gobj, struct numtx_s *wm)
     return clip;
 }
 
-/* Each material pass a SKIN record with NuHGobjRndrMtxDwa's palette and weights (NULL: none); like retail it skips
-   next_gobj and ignores njoints and joints. skinskipix is -1 in retail and nothing sets it. */
+/* Like retail it skips next_gobj and ignores njoints and joints; skinskipix is -1 in retail and nothing sets it. */
 int NuRndrGobjSkin(struct nugobj_s *gobj, struct numtx_s *wm, int njoints, struct numtx_s *joints, u32 *weights,
                    int vis)
 {
@@ -785,9 +766,7 @@ int NuRndrGobjSkin(struct nugobj_s *gobj, struct numtx_s *wm, int njoints, struc
     return vis;
 }
 
-/* Each joint's shadow volumes into the store under the joint's matrix times wm, each layer's joint gobjs under that
-   matrix, then its skin objects under wm with the palette INV_WT x mtx_array, dwa[ix] the layer's blend-shape
-   weights. hgobj_enabled is 1 in retail and nothing clears it. */
+/* Skin palette is INV_WT x mtx_array, dwa[ix] the layer's weights; hgobj_enabled is 1 in retail, nothing clears it. */
 int NuHGobjRndrMtxDwa(struct NUHGOBJ_s *hobj, struct numtx_s *wm, int nlayers, short *layer, struct numtx_s *mtx_array,
                       float **dwa)
 {
@@ -861,7 +840,7 @@ void NuHGobjRndr(void *hobj, struct numtx_s *mtx, int nlayers, short *layer)
     NuHGobjRndrMtxDwa(hobj, mtx, nlayers, layer, joints, 0);
 }
 
-/* A quad of the fx streams as fx2 draws it, s and t x4096 truncated as retail sends them. */
+/* s and t x4096 truncated as retail sends them. */
 static NwVuSpriteVertex *nw_rndr_tc1_quad(NwVuSpriteVertex *v, const struct nuvtx_tc1_s q[4])
 {
     NwVuSpriteVertex c[4];
@@ -895,8 +874,7 @@ int NuRndrStreamQuad3dClip(struct nuvtx_tc1_s *verts, int count, void *mtx, stru
     return 1;
 }
 
-/* A strip under mtx (the identity for NULL) through the stream's program, which retail sends in batches of 42 that
-   each start the strip over; the normal goes as the tri programs read it, x in w and y, z x4096 after s and t. */
+/* Retail sends batches of 42 that each restart the strip; the normal goes x in w, y and z x4096 after s and t. */
 NwCmd *nw_rndr_strip(struct nuvtx_tc1_s *verts, int count, struct numtx_s *mtx, struct rndrstream_s *stream)
 {
     NwVuSpriteVertex *v;
@@ -968,8 +946,6 @@ int NuRndrStreamQuadShad(struct rndrstream_s *stream)
     return 1;
 }
 
-/* NuRndrWaterRip's quads: a square of the ripple's size about its point in x and z, in its current colour, over
-   part of the texture. */
 int NuRndrStreamQuadWRip(struct rndrstream_s *stream, short *visible)
 {
     struct nuvtx_tc1_s q[4];
@@ -1038,8 +1014,7 @@ struct nurndrtrail_s {
     int RealIntensity;
 };
 
-/* Retail's trail quads, untextured with ALPHA_1 0x44: two ribbons per segment, from pos1 and pos2 a quarter of the way
-   in, white fading inwards (dark for a negative intensity). The 0xFFFFF is retail's. */
+/* Retail's trail quads (ALPHA_1 0x44): two ribbons per segment, white fading inwards; the 0xFFFFF is retail's. */
 void NuRndrTrail(int trailpt, struct nurndrtrail_s *trail, int trailcount)
 {
     static struct nuvtx_tc1_s vtx[2048];
@@ -1113,8 +1088,7 @@ void NuRndrTrail(int trailpt, struct nurndrtrail_s *trail, int trailcount)
 _Static_assert(sizeof(NwPtl) == sizeof(struct debpart_s), "debpart_s");
 _Static_assert(sizeof(((NwPtlList *)0)->tri) == sizeof(((struct debdma_s *)0)->tri), "debdma_s.tri");
 
-/* chunk's chain of sets is linked by NEXT tags (LinkDmaParticalSets' offset), RET on the last; mode's screen clamp is
-   moot under GPU clipping. */
+/* Sets are linked by NEXT tags (LinkDmaParticalSets' offset), RET on the last; mode's screen clamp is moot here. */
 void NuRndrParticleGroup(struct debchunk_s *chunk, struct debdma_s *list, struct numtl_s *mtl, struct numtx_s *mtx,
                          int mode, float time)
 {
@@ -1148,8 +1122,7 @@ void NuRndrParticleGroup(struct debchunk_s *chunk, struct debdma_s *list, struct
     }
 }
 
-/* Retail's packet: a RET tag, the S-32 unpack of the count and the weights to VU 0x63, the count at u32 [5]; the
-   NuHGobjEvalDwa* write the weights from [6] on. */
+/* Retail's packet: RET tag, S-32 unpack to VU 0x63, count at u32 [5]; NuHGobjEvalDwa* write weights from [6] on. */
 u32 *NuRndrCreateBlendShapeDeformerWeightsArray(u32 count)
 {
     u32 *base = NuRndrStreamAlloc((int)((count + 10) >> 2));

@@ -139,7 +139,7 @@ uint64_t nw_game_us(void)
 void nw_game_spend_us(uint64_t us)
 {
     uint64_t edges = nw_clock_edges(&nw_game.clock), period = nw_game.clock.timing.period / 1000;
-    if (!period) { /* no clock */
+    if (!period) {
         return;
     }
     if (edges != nw_game.spent_edge) {

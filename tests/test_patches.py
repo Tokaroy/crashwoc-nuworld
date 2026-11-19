@@ -1,4 +1,3 @@
-"""tools/patches.py on synthetic decomp trees and series (git for the work repository, no libclang)."""
 import json
 import os
 import subprocess
@@ -220,8 +219,6 @@ def git(repo: Path, *args: str) -> str:
 
 
 class Work(unittest.TestCase):
-    """setup, fixup, rebuild and rebase on a decomp git repository with one concern."""
-
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
         root = Path(self.tmp.name)

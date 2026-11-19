@@ -6,11 +6,10 @@
 #include <SDL3/SDL.h>
 
 #define NW_VIF_MSCAL_TRI 0x300    /* the package's triangle program at VU 0x1800 */
-#define NW_VIF_MSCAL_FACEON 0x304 /* its jump to faceon */
-#define NW_VIF_MSCAL_FACEY 0x306  /* and to facey */
+#define NW_VIF_MSCAL_FACEON 0x304
+#define NW_VIF_MSCAL_FACEY 0x306
 #define NW_VIF_GIFTAG 0xD2     /* the batch's strip GIF tag; its NLOOP is the vertex count */
 
-/* The VIF unit as far as the geometry stream drives it, and the open batch. */
 typedef struct NwVif {
     NwVifMesh *mesh;
     uint32_t row[4];
@@ -352,9 +351,7 @@ bool nw_vif_decode(NwVifMesh *mesh, const void *geom, size_t size)
     return ok;
 }
 
-/* A count, then a block per triangle: a REF tag and three vertices of three V4-32 quadwords, x, y, z and the normal's
-   x as floats, u, v and the normal's y, z x4096 as ints, r, g, b, a as ints. The normal saturates: only the lit
-   programs read it, and the unlit batches carry ones that are not unit length. */
+/* REF + three V4-32 vertices per triangle; the normal saturates: unlit batches carry ones that are not unit length. */
 bool nw_vif_otbatch(NwVifMesh *mesh, const void *batch, size_t size)
 {
     const uint8_t *p = batch;
@@ -396,9 +393,7 @@ void nw_vif_free(NwVifMesh *mesh)
     memset(mesh, 0, sizeof(*mesh));
 }
 
-/* A face-on batch as NuCvtDmaFaceOn and NuCvtDmaFaceY write it: the count x3 at VU 1, then under STCYCL 3,1 each
-   sprite's point (V3-32) at VU 4 + 3i, size (V2-32) at 5 + 3i and colour (V4-8) at 6 + 3i, kicked at MSCAL 0x304
-   or 0x306. The GIF tags they also upload are the programs' own. */
+/* As NuCvtDmaFaceOn/NuCvtDmaFaceY write it: STCYCL 3,1, point at VU 4 + 3i, size 5 + 3i, colour 6 + 3i. */
 static bool nw_vif_sprite_batch(NwVifSprites *s, const uint8_t *st, size_t n)
 {
     uint32_t count = 0, filled = 0;
@@ -507,7 +502,6 @@ typedef struct NwSkinDelta {
     uint32_t shape, slot;
 } NwSkinDelta;
 
-/* VU1 as a skin list drives it: the open batch's TOP-relative input, skinmod's block, the group's matrix slots. */
 typedef struct NwSkinVu {
     uint32_t top[NW_VIF_SKIN_TOP][4];
     uint32_t mod[NW_VIF_SKIN_MODEND - NW_VIF_SKIN_MOD][4];
@@ -593,8 +587,7 @@ static bool nw_skin_mod(NwSkinVu *vu)
     return true;
 }
 
-/* The kick: skin.vsm's vertex loop. A dupe (its first word's low byte d) is output vertex d - 1 again; ADC (the low
-   bits of the second word's w) skips a strip triangle; each weight's low 3 bits name its matrix slot. */
+/* skin.vsm: dupe (low byte d) repeats vertex d - 1, ADC (second word's w low bits) skips, weight low 3 bits = slot. */
 static bool nw_skin_batch(NwVifSkin *s, NwSkinVu *vu)
 {
     int32_t hdr = (int32_t)vu->top[2][0];
@@ -783,8 +776,7 @@ static bool nw_skin_stream(NwVifSkin *s, NwSkinVu *vu, const uint8_t *st, size_t
     return true;
 }
 
-/* The list: per group of at most 8 matrices a CNT (STCYCL 8,1), a REF per slot (joint << 6 into skin_mtx_buffer,
-   unpacked to VU 0x18 + slot) and a CALL of the group's batches; RET ends it. */
+/* Per group of at most 8 matrices: CNT (STCYCL 8,1), a REF per slot (to VU 0x18 + slot), a CALL; RET ends it. */
 static bool nw_skin_list(NwVifSkin *s, NwSkinVu *vu, const uint8_t *l, size_t size)
 {
     for (size_t off = 0;; off += 16) {

@@ -1,5 +1,4 @@
-/* nu3d/numtl's state block (port/units.toml override): the GS state and the VU words of a material, kept for the
-   renderer instead of retail's DMA packet. */
+/* nu3d/numtl override (port/units.toml): material state kept for the renderer instead of retail's DMA packet. */
 #include <string.h>
 
 #include "gfx/rndr.h"
@@ -16,8 +15,7 @@ extern struct rndrstream_s *rndrstream_mtl_sort;
 
 _Static_assert(sizeof(NwStateBlock) <= sizeof(((struct numtl_s *)0)->sbdata), "the state block fits sbdata");
 
-/* NuTexWriteMaterialSettings' K, L and mip levels with CreateStateBlock's registers. keep leaves the VU 0x14-0x15
-   words (NuMtlAnimate's offset); the row is zeroed either way, as retail's STROW. */
+/* keep leaves the VU 0x14-0x15 words (NuMtlAnimate's offset); the row is zeroed either way, as retail's STROW. */
 int CreateStateBlock(struct numtl_s *mtl, int keep)
 {
     NwStateBlock *sb = (NwStateBlock *)mtl->sbdata;

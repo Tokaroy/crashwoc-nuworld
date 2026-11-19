@@ -23,7 +23,7 @@ static struct {
     bool on;
     NwPadStep *steps;
     int nsteps, step, read;
-    uint8_t *rec; /* a recording's frames */
+    uint8_t *rec;
     int nframes, frame;
 } nw_pad_script;
 

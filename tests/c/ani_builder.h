@@ -1,4 +1,3 @@
-/* Builds a synthetic .ani in memory as the exporter lays it out: every pointer an address from ANI_BASE. */
 #ifndef NUWORLD_TEST_ANI_BUILDER_H
 #define NUWORLD_TEST_ANI_BUILDER_H
 
@@ -9,7 +8,6 @@
 
 #define ANI_BASE 0x19190020u
 
-/* Where the test file put what the tests check. */
 typedef struct AniFile {
     size_t names, constants, keys[2];
 } AniFile;
@@ -35,8 +33,7 @@ static size_t ani_keys(GscBuild *b, float d0, float d1)
     return at;
 }
 
-/* One anim of two chunks (the second null), its chunk two nodes (the second null), its curve set nine constants
-   0, 0.25, ... with curve 0 a hermite from 2 to 6 and curve 3 a step at 7; chunk keys and curves file values. */
+/* Nine constants 0, 0.25, ...; curve 0 a hermite from 2 to 6, curve 3 a step at 7. */
 static void ani_build(GscBuild *b, AniFile *f)
 {
     memset(b, 0, sizeof(*b));

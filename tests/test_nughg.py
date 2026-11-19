@@ -1,4 +1,3 @@
-"""nughg, nuvif and title_logo; NUWORLD_TEST_DATA (<data root>/disc) adds the retail .ghg round trips."""
 import os
 import struct
 import sys

@@ -1,4 +1,3 @@
-"""softdouble's IR rewrite."""
 import sys
 import unittest
 from pathlib import Path

@@ -1,6 +1,6 @@
 --- a/src/game/font3d.c
 +++ b/src/game/font3d.c
-@@ -359,7 +359,7 @@ void InitFont3D(struct nugscn_s *gscn) {
+@@ -358,7 +358,7 @@ void InitFont3D(struct nugscn_s *gscn) {
      if (gscn != 0) {
          for (i = 0; Font3DTab[i].ascii != 0; i++) {
              if (NuSpecialFind(gscn, &Font3DTab[i].obj, Font3DTab[i].name) != 0) {

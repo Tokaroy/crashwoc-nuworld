@@ -1,6 +1,6 @@
 --- a/src/game/main.c
 +++ b/src/game/main.c
-@@ -1511,7 +1511,12 @@ s32 BGLoadCutMovie(s32 movie)
+@@ -1529,7 +1529,12 @@ s32 BGLoadCutMovie(s32 movie)
      bg_cutmovie_id = movie;
      BGLoadStart(BGLoadCutScene);
      done = 0;
@@ -13,7 +13,7 @@
      fadeval = 0xFF;
      NuVpSetSize(PS2_REZ_W << 4, PS2_REZ_H << 4);
  
-@@ -1522,6 +1527,7 @@ s32 BGLoadCutMovie(s32 movie)
+@@ -1540,6 +1545,7 @@ s32 BGLoadCutMovie(s32 movie)
          NuCameraSet(pNuCam);
          if (NuRndrBeginScene(-1) != 0) {
              NuRndrClear(3, 0, 1.0f);
@@ -21,7 +21,7 @@
              TimeTunnelRender();
              if (font3d_scene != 0 && font3d_initialised != 0) {
                  pNuCam->mtx = numtx_identity;
-@@ -1533,6 +1539,7 @@ s32 BGLoadCutMovie(s32 movie)
+@@ -1551,6 +1557,7 @@ s32 BGLoadCutMovie(s32 movie)
                  }
                  DrawGameMessage(tLOADING[Game.language], mg_frame, 0.8f);
              }

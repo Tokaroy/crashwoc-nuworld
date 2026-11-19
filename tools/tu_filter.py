@@ -1,9 +1,5 @@
 #!/usr/bin/env python3
-"""Generate the wrapper TU of every compiled decomp unit (prelude, edited source, <unit>.stubs/.funcmap/.data.inc).
-
-Overridden and wrapped functions leave a prototype of the port's one, so callers bind to the port (a wrapped body
-stays as Foo__retail); #line keeps diagnostics and debug info on the decomp source.
-"""
+"""Generate the wrapper TU of every compiled decomp unit (prelude, edited source, <unit>.stubs/.funcmap/.data.inc)."""
 from __future__ import annotations
 
 import argparse
@@ -30,8 +26,6 @@ class FilterError(Exception):
 
 
 class Parser:
-    """The host view of each unit; only the positions of definitions matter."""
-
     def __init__(self, decomp: Path):
         try:
             self.clang = nwclang.Clang(decomp, "host")
@@ -51,7 +45,6 @@ class Parser:
         return self._last[1]
 
     def static_tokens(self, path: Path, names) -> list[int]:
-        """Offsets of the `static` keywords that keep the named file-scope functions or data local."""
         tu = self._parse(path)
         main = Path(tu.spelling).resolve()
         by_token, seen = defaultdict(set), set()
@@ -79,7 +72,6 @@ class Parser:
         return offsets
 
     def definitions(self, path: Path) -> dict:
-        """Top-level function definitions in the file itself, by name."""
         tu = self._parse(path)
         main = Path(tu.spelling).resolve()
         out = {}
@@ -95,7 +87,6 @@ def _line_directive(line: int, path: str) -> str:
 
 
 def _join(tokens, swap: dict[int, str]) -> str:
-    """Token spellings joined by single spaces; `swap` replaces the token at an offset."""
     out, end = [], None
     for t in tokens:
         start = t.extent.start.offset
@@ -107,7 +98,6 @@ def _join(tokens, swap: dict[int, str]) -> str:
 
 
 def prototype(cursor, host: str, exposed: bool = False) -> str:
-    """Declaration of `host` with the signature of the definition at `cursor` (no static when exposed)."""
     body = next((c for c in cursor.get_children()
                  if c.kind == cindex.CursorKind.COMPOUND_STMT), None)
     if body is None:
@@ -132,7 +122,6 @@ def prototype(cursor, host: str, exposed: bool = False) -> str:
 
 
 def references(cursor, name: str, size: int) -> list[int]:
-    """Offsets of the function's declarations, definition and calls in the main file."""
     tu = cursor.translation_unit
     extent = tu.get_extent(tu.spelling, (0, size))
     out = []
@@ -182,7 +171,6 @@ def probed(unit: nwunits.Unit) -> list[nwunits.Function]:
 
 def filter_source(data: bytes, unit: nwunits.Unit, defs: dict, source: str,
                   exposed: list[int] = ()) -> tuple[bytes, list[str]]:
-    """Drop overridden definitions, wrap, rename, expose and probe near-match C; returns (text, changes)."""
     newline = b"\r\n" if b"\r\n" in data else b"\n"
     edits = []                              # (offset, delete, insert)
     dropped = []                            # (start, end) of removed definitions
@@ -223,8 +211,7 @@ def filter_source(data: bytes, unit: nwunits.Unit, defs: dict, source: str,
             dropped.append((line_start, line_end))
             changes.append(f"{f.name} dropped" + ("" if f.host == f.name else f", -> {f.host}"))
         elif f.wrapped:
-            # The definition becomes <name>__retail; a prototype of <name> in front of it keeps the calls below
-            # bound to the port's.
+            # The definition becomes <name>__retail; a prototype of <name> before it keeps calls bound to the port's.
             line_start = data.rfind(b"\n", 0, c.extent.start.offset) + 1
             if data[line_start:c.extent.start.offset].strip():
                 raise FilterError(f"{unit.name}: {f.name}: the definition does not start a line")
@@ -274,7 +261,6 @@ def wants_prelude(unit: nwunits.Unit) -> bool:
 
 
 def prelude(unit: nwunits.Unit) -> str:
-    """Lines the wrapper starts with: the port prelude, or the newlib renames for newlib units."""
     if wants_prelude(unit):
         return f'#include "{PRELUDE}"\n'
     if unit.name.startswith("sdk/newlib/"):

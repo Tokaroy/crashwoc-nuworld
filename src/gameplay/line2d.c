@@ -54,7 +54,6 @@ void nw_line2d_hold(struct creature_s *plr)
     NW_DEVIATION(movement.crash.line_2d);
     u16 a = (u16)(r->angle + 0x4000), t = plr->obj.thdg;
     float ax = NuTrigTable[a], az = NuTrigTable[(u16)(a + 0x4000)];
-    /* The stick well into depth walks there; the line follows. */
     bool depth = plr->obj.pad_speed > 0.0f &&
                  fabsf(NuTrigTable[t] * ax + NuTrigTable[(u16)(t + 0x4000)] * az) > NW_LINE2D_DEPTH;
     if (!kept || nw_line2d_free) {

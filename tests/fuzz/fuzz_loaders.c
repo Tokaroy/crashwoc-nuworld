@@ -1,5 +1,4 @@
-/* libFuzzer target (-DNUWORLD_FUZZ=ON) for the game's loaders and the port's decoders; the first byte picks the reader.
-   A fatal load error returns from its hook and leaks what the load held, so leak detection is off. */
+/* A fatal load error returns from its hook and leaks what the load held, so leak detection is off. */
 #include <setjmp.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -78,7 +77,6 @@ static void fuzz_save(const char *name, const void *data, size_t size)
     SDL_free(path);
 }
 
-/* The render thread's side of the queued GPU jobs: the frees free the objects. */
 static void fuzz_drain(void)
 {
     NwGpuJob *jobs = NULL;
@@ -129,7 +127,6 @@ int LLVMFuzzerInitialize(int *argc, char ***argv)
     return 0;
 }
 
-/* One game load into the heap; a fatal error returns here. */
 static void fuzz_load(int reader)
 {
     union variptr_u buf, end;

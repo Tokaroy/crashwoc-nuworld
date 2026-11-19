@@ -9,7 +9,7 @@
                                e->obj.scene, e->obj.special, 0);
          }
          s.x = scalex;
-@@ -1510,7 +1510,7 @@ void DrawPanel(void) {
+@@ -1516,7 +1516,7 @@ void DrawPanel(void) {
                                  }
                                  if (j != -1) {
                                      DrawPanel3DObject(j, TT_RELICX, TT_RELICY, 1.0f, 0.125f,

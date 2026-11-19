@@ -1,12 +1,5 @@
 #!/usr/bin/env python3
 """Generate the data image: host definitions of the roots, decomp data compiled code uses but no compiled unit defines.
-
-Root kinds (src/data/image_tables.h; src/data/image.c fills them at startup):
-  mirror   plain data, same layout on both sides: an alias into nw_ps2_mirror (retail .vutext to the end of .bss)
-  copy     plain data a host declaration needs aligned better than its PS2 address allows
-  convert  data with pointer, function pointer or nuintptr slots, converted element by element
-  alias    inside a copied or converted root, or inside data a compiled unit defines in C
-  vu       a VU1 microcode package (code only takes its address): a token (NwVuProg) the renderer recognises
 """
 from __future__ import annotations
 
@@ -94,8 +87,6 @@ def local_slots(t) -> set[str]:
     return out
 
 
-# -- registries ----------------------------------------------------------------------------------
-
 @dataclass
 class Sym:
     name: str
@@ -107,8 +98,6 @@ class Sym:
 
 
 class Registry:
-    """data_symbols.toml, sections.json, symbol_addrs.txt, data_map.toml and the status [[data]]."""
-
     def __init__(self, decomp: Path, version: str = nwunits.VERSION):
         cfg = decomp / "config" / version
         self.symbols = [Sym(s["name"], int(s["unit"]), s["scope"], int(s["address"]), s["section"],
@@ -120,7 +109,7 @@ class Registry:
         for s in self.symbols:
             self.at[s.addr].append(s)
         raw = json.loads((cfg / "sections.json").read_text())
-        self.sections = []                  # (name, addr, size, nobits) of the loaded sections
+        self.sections = []
         for s in raw["sections"]:
             addr, size, flags = int(s["addr"], 16), int(s["size"], 16), int(s["flags"], 16)
             if flags & 2 and size:          # SHF_ALLOC
@@ -134,7 +123,7 @@ class Registry:
         end = max(a + n for name, a, n, _nobits in self.sections if name != ".text")
         self.mirror_base = vutext[1] & ~(MIRROR_ALIGN - 1)
         self.mirror_end = (end + MIRROR_ALIGN - 1) & ~(MIRROR_ALIGN - 1)
-        self.addrs: dict[str, int] = {}     # data names of symbol_addrs.txt (linker symbols too)
+        self.addrs: dict[str, int] = {}
         for line in (cfg / "symbol_addrs.txt").read_text().splitlines():
             m = re.match(r"\s*([A-Za-z_][\w.$]*)\s*=\s*0x([0-9A-Fa-f]+)\s*;(.*)$", line)
             if m and "type:func" not in m.group(3):
@@ -170,7 +159,6 @@ class Registry:
         return next((n for n, a, size, _b in self.sections if a <= addr < a + size), None)
 
     def package(self, addr: int) -> tuple[str, int, int] | None:
-        """The microcode package holding a .vutext address."""
         return next((p for p in self.packages if p[1] <= addr < p[1] + p[2]), None)
 
     def owner(self, addr: int) -> int | None:
@@ -180,7 +168,6 @@ class Registry:
         return None
 
     def start(self, addr: int) -> Sym | None:
-        """The largest sized symbol that starts at addr."""
         sized = [s for s in self.at.get(addr, ()) if s.size]
         return max(sized, key=lambda s: s.size) if sized else None
 
@@ -192,8 +179,6 @@ class Registry:
         m = re.fullmatch(r"D_([0-9A-Fa-f]{8})", name)
         return int(m.group(1), 16) if m else None
 
-
-# -- port/data.toml ------------------------------------------------------------------------------
 
 def load_data_toml(path: Path) -> tuple[dict, list[str]]:
     data = tomllib.loads(path.read_text())
@@ -219,17 +204,13 @@ def load_data_toml(path: Path) -> tuple[dict, list[str]]:
     return out, errors
 
 
-# -- types ---------------------------------------------------------------------------------------
-
 class Types:
-    """typedb-style descriptors of host declarations (records by typedb id) and their layouts."""
-
     def __init__(self, db: dict, gen: gen_converters.Gen):
         self.db = db
         self.records = db["records"]
         self.gen = gen
         self.converted = set(gen.named)
-        self.derived: dict[str, tuple] = {}     # nw_rt_* -> (spelling, kind, data)
+        self.derived: dict[str, tuple] = {}
         # Records a .c file defines (not in typedb); plain ones work like POD, PS2 layout from resolve_locals
         self.local: dict[str, dict] = {}
 
@@ -269,8 +250,6 @@ class Types:
                         and info["ps2"] == info["host"]
         finally:
             clang.close()
-
-    # descriptors
 
     def record_id(self, t) -> str:
         sugar = t
@@ -358,7 +337,6 @@ class Types:
         return d, count, complete
 
     def missing(self, d: dict) -> list[str]:
-        """Element records with pointer slots that typedb (decomp/include) does not define."""
         e, _n, _c = self.element(d)
         if e["kind"] != "record":
             return []
@@ -368,7 +346,6 @@ class Types:
         return [] if self.local.get(e["ref"], {}).get("plain") else [e["ref"]]
 
     def sizes(self, d: dict) -> tuple[int, int, int, int]:
-        """(ps2 size, ps2 align, host size, host align) of one element; arrays count."""
         tag = d.get("typedef")
         kind = d["kind"]
         if tag in ADDR_TYPEDEFS:
@@ -407,7 +384,6 @@ class Types:
         return e["kind"] in ("int", "enum", "float", "u128")
 
     def slots(self, d: dict) -> tuple:
-        """Comparable layout of one element: sizes and the pointer slots."""
         e, _n, _c = self.element(d)
         p, _pa, h, _ha = self.sizes(e)
         if e["kind"] == "record" and e["ref"] in self.local:
@@ -449,8 +425,7 @@ class Types:
                 return None if sub is None else ho + i * hs + sub
         return None
 
-    # NwType symbols of root elements: nw_convert.c (records), convert.c (primitives) or derived
-    # here (nw_rt_*, dataimage_types.c)
+    # NwType symbols: nw_convert.c (records), convert.c (primitives) or derived here (nw_rt_*, dataimage_types.c)
 
     def nwtype(self, d: dict) -> str:
         tag = d.get("typedef")
@@ -521,8 +496,6 @@ class Types:
         return rid or sym.split("_", 2)[-1]
 
 
-# -- scanning ------------------------------------------------------------------------------------
-
 @dataclass
 class Decl:
     unit: str
@@ -584,8 +557,7 @@ class Scanner:
         dropped = [(c.extent.start.line, c.extent.end.line) for c in tu.cursor.get_children()
                    if c.kind == K.FUNCTION_DECL and c.is_definition() and c.location.file
                    and self.norm(c.location.file.name) == main and unit.is_overridden(c.spelling)]
-        # Errors inside definitions tu_filter drops do not matter, and the stand-in libc headers declare
-        # no functions: calls to them cannot hide a data reference.
+        # Errors inside definitions tu_filter drops do not matter; calls to stand-in libc cannot hide a data reference.
         errors = []
         for d in tu.diagnostics:
             if d.severity < cindex.Diagnostic.Error:
@@ -652,8 +624,6 @@ class Scanner:
         return out
 
 
-# -- the image -----------------------------------------------------------------------------------
-
 @dataclass
 class Root:
     name: str
@@ -661,7 +631,7 @@ class Root:
     decls: list[Decl]
     kind: str = ""              # mirror | copy | convert | alias | vu
     package: str = ""           # vu: the package's name (the token)
-    desc: dict | None = None    # the chosen declaration's type
+    desc: dict | None = None
     elem: dict | None = None
     count: int = 1
     ps2_size: int = 0           # 0: unsized
@@ -761,8 +731,6 @@ class Image:
                 self.error(f"data.toml: discs.{disc} has no address for {name}, which holds retail's bytes")
             for name in sorted(set(moves) - retail):
                 self.error(f"data.toml: discs.{disc}.{name} is no C definition with retail's bytes")
-
-    # classification
 
     def classify(self, root: Root) -> None:
         where = f"{root.decls[0].where}: {root.name}"
@@ -865,8 +833,6 @@ class Image:
             return 0 if e["pointee"]["kind"] in ("void", "other") else 1
         return 0
 
-    # C definitions at retail addresses
-
     def host_objects(self) -> None:
         for uname, scan in self.scans.items():
             unit = self.units[uname]
@@ -897,8 +863,6 @@ class Image:
                     self.error(f"{unit.name}: {d.name} holds retail's bytes but is not plain data")
                 self.objs.append(obj)
                 self.unit_objs[uname].append(obj)
-
-    # storage and aliases
 
     def place(self) -> None:
         stored = [Obj(r.name, r.addr, r.ps2_size, r.elem, *self.elem_sizes(r), r.count,
@@ -954,8 +918,6 @@ class Image:
         if host.unit is not None:
             self.unit_aliases[host.unit.name].append(root)
 
-    # reports
-
     def replaced(self) -> list[tuple[str, str]]:
         """Roots in the data of units the port replaces (their replacement must write them)."""
         out = []
@@ -972,8 +934,6 @@ class Image:
             out[r.kind] += 1
         return out
 
-
-# -- rendering -----------------------------------------------------------------------------------
 
 def asm_alias(name: str, base: str, off: int, size: int) -> list[str]:
     elf = (f'    ".type " NW_SYM({name}) ", @object\\n"\n'
@@ -1178,8 +1138,6 @@ def types_size(image: Image, decl: Decl) -> int | None:
     except GenError:
         return None
 
-
-# -- driver --------------------------------------------------------------------------------------
 
 def generate(model: nwunits.Model, decomp: Path, db: dict, annotations: dict,
              data: dict) -> tuple[Image, dict[str, str]]:

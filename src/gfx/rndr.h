@@ -1,4 +1,4 @@
-/* What the port's Nu render layer (nurndr.c, nustream.c, numtl.c, nutex.c, ps2txtr.c) shares; game thread. */
+/* Game thread. */
 #ifndef NUWORLD_GFX_RNDR_H
 #define NUWORLD_GFX_RNDR_H
 
@@ -21,52 +21,45 @@ typedef struct NwStateBlock {
 
 const NwStateBlock *nw_rndr_state(const struct numtl_s *mtl);
 
-/* Takes gpu (NULL: none) as the slot's texture and queues its upload; the slot's texture before is freed. */
+/* gpu NULL: none; queues its upload and frees the slot's previous texture. */
 void nw_ps2tx_set(struct nups2tex_s *tex, NwGpuTex *gpu);
 /* tid as NuTexCreate returns it; NULL for 0, a surface (< 0) or a slot with no decoded texture. */
 const NwGpuTex *nw_rndr_texture(int tid);
 void nw_rndr_texture_free(int tid);
-/* -1 and -3 the back and front buffer, a render target at its GS address; addr 0 for the rest, such as the Z buffer
-   and palette and Z targets the port does not draw (reported once). */
+/* -1 and -3 the back and front buffer, else a target's GS address; addr 0 for what the port does not draw. */
 NwSurf nw_ps2tx_surf(int tid);
-/* The render targets as wide as a frame was wide (NuLightMatInit's, InitGlass's, NuWaterInit's) to a frame now that
-   wide; GS memory they reserved stays where it is. */
+/* Render targets as wide as the frame was (NuLightMatInit's, InitGlass's, NuWaterInit's); their GS memory stays. */
 void nw_ps2tx_frame_width(int was, int now);
 
 typedef struct NwViewSnap NwViewSnap;
 typedef struct NwLightSnap NwLightSnap;
 typedef struct NwJointSnap NwJointSnap;
 
-/* A command as a stream (or an OT bin) holds it until a flush copies it to the frame packet. */
+/* Held by a stream or OT bin until a flush copies it to the frame packet. */
 typedef struct NwRecord {
     NwCmd cmd;
     const NwViewSnap *view;
     const NwLightSnap *lights; /* the stream's block at VU 0x0C (lights, specular or fx), NULL for none */
     const uint32_t *idx;       /* DRAW_OT: cmd.count vertex indices */
-    const NwJointSnap *joints; /* SKIN: the palette */
+    const NwJointSnap *joints;
     const uint32_t *blend;     /* SKIN: retail's deformer weights packet, the count at [5] and the weights after it */
     const NwVuSpriteVertex *verts; /* VERTS: cmd.count vertices */
-    const NwPtlList *ptllist;      /* PARTICLES: the effect list */
+    const NwPtlList *ptllist;
     const NwPtl *ptls;             /* PARTICLES: cmd.count particles */
-    const NwZClut *zclut;          /* VERTS: the depth CLUT, NULL none */
-    const NwWaves *waves;          /* WAVES: the table */
+    const NwZClut *zclut;
+    const NwWaves *waves;
     uint8_t misc;              /* the stream's attr & 0x43 */
     struct NwRecord *next;
 } NwRecord;
 
-/* Under the current view and local matrix; latches the VU 0x0C block by attr & 0x43 as retail: 1 the RT lights, 2 the
-   specular UV matrix, 0x40 the fx matrix. */
+/* Latches the VU 0x0C block by attr & 0x43 as retail: 1 the RT lights, 2 the specular UV matrix, 0x40 the fx matrix. */
 NwCmd *nw_rndr_cmd(struct rndrstream_s *stream, NwCmdOp op);
 /* The same as a VERTS record of n vertices, three a triangle, which the caller writes at *v. */
 NwCmd *nw_rndr_verts(struct rndrstream_s *stream, NwVertsMode mode, uint32_t n, NwVuSpriteVertex **v);
-/* The same as a PARTICLES record of an effect list and n particles, which the caller writes at *list and *ptls. */
 NwCmd *nw_rndr_particles(struct rndrstream_s *stream, uint32_t n, NwPtlList **list, NwPtl **ptls);
-/* A WAVES record in stream, whose table the caller fills in. */
 NwWaves *nw_rndr_waves(struct rndrstream_s *stream);
-/* A depth CLUT for the VERTS record c (nw_rndr_verts'), which the caller fills in. */
 NwZClut *nw_rndr_zclut(NwCmd *c);
-/* NuRndrRectUV3di's sprite in stream as a VERTS record in GS coordinates: from (x, y) in 12.4 pixels of the render
-   target, centred on it as the GS sees it, at z (the port's GS Z stops at 2^23 - 1). */
+/* (x, y) in 12.4 pixels of the render target, centred as the GS sees it; the port's GS Z stops at 2^23 - 1. */
 NwCmd *nw_rndr_rect3d(struct rndrstream_s *stream, int x, int y, int width, int height, const float uv[4],
                       int colour, int z);
 /* Its quad at v, for a record of several; returns v + 6. */
@@ -89,22 +82,18 @@ void nw_rndr_latch(NwRecord *r);
 /* Memory that lives as long as this frame's records (and the next frame's, as retail's output buffers). */
 void *nw_rndr_alloc(size_t size);
 struct numtx_s;
-/* The joint palette of the SKIN records from now on, n matrices to fill in that memory; the records share it and a
-   flush copies it to the packet once. */
+/* SKIN records from now on share the n matrices; a flush copies them to the packet once. */
 struct numtx_s *nw_rndr_joints(uint32_t n);
 /* The deformer weights of the SKIN records from now on (NULL: none). */
 void nw_rndr_blend(const uint32_t *weights);
-/* Moves the records of src to the end of dst. */
 void nw_rndr_splice(struct rndrstream_s *dst, struct rndrstream_s *src);
-/* NuRndrOTInsertItem: the item into its depth's bin of the ordering table, which NuRndrOTFlush empties into the
-   ot_sort stream. */
+/* NuRndrOTInsertItem; NuRndrOTFlush empties the bins into the ot_sort stream. */
 void nw_rndr_ot_insert(NwRecord *item, float depth);
 struct nutristream_s;
 /* NuRndrOTInsertTriBatch with the geom's mesh (src/gfx/nurndr.c). */
 void nw_rndr_ot_batch(struct numtx_s *mtx, struct numtl_s *mtl, const NwGpuMesh *mesh, struct nutristream_s *batch);
-/* The packet this frame's flushes build. */
 NwPacket *nw_rndr_packet(void);
-/* The streams found holding packets the compiled decomp wrote into them, which are not drawn. */
+/* Streams holding packets the compiled decomp wrote, which are not drawn. */
 unsigned nw_rndr_raw_streams(void);
 
 #endif
