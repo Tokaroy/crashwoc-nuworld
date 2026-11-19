@@ -5,6 +5,7 @@
 #include "game/gametypes.h"
 #include "platform/log.h"
 #include "port/heap.h"
+#include "port/nameentry.h"
 #include "shim/shim.h"
 #include "vfs/vfs.h"
 
@@ -27,13 +28,15 @@ extern struct ldata_s LData[44];
 extern struct hdata_s HData[6];
 extern char *LevelName[44][6];
 extern s32 Level, Hub, GameMode, Demo, editor_active, cutmovie, gamecut_newlevel;
-extern s32 new_level, new_mode, next_cut_movie, gamecut, logos_played;
+extern s32 new_level, new_mode, next_cut_movie, gamecut, gamecut_hack, logos_played;
 extern void *SpaceGameCutTab[26][2];
 extern struct game_s Game;
+extern struct cursor_s Cursor;
 extern s32 fadeval, fade_rate, fadehack;
 extern int nw_hz;
 extern volatile s32 bgload_complete;
 s32 HubFromLevel(s32 level);
+void NewMenu(struct cursor_s *cursor, s32 menu, s32 y, s32 level);
 
 /* TITLES' own level, which retail never loads: the main loop turns TITLES into the title (the warp room's cut). */
 #define NW_LEVEL_OLD_TITLE ((int)SDL_arraysize(LData))
@@ -335,8 +338,18 @@ bool nw_cutscene_route(int next)
         new_level = NW_LEVEL_SPACE;
         nw_cut.space = -1;
         nw_cut.next = next;
+    } else if (next != NW_LEVEL_HUB) {
+        gamecut_hack = 0;
     }
     return true;
+}
+
+static void nw_cutscene_title_next(int movie)
+{
+    nw_nameentry_finish();
+    NewMenu(&Cursor, -1, -1, -1);
+    next_cut_movie = movie;
+    nw_level_cut();
 }
 
 static void nw_cutscene_start(const NwCutscene *c)
@@ -351,8 +364,7 @@ static void nw_cutscene_start(const NwCutscene *c)
     if (c->movie == 0) {
         logos_played = 0;
         if (title) {
-            next_cut_movie = 0;
-            nw_level_cut();
+            nw_cutscene_title_next(0);
         } else {
             nw_cut.next = NW_LEVEL_TITLES;
             nw_level_enter(NW_LEVEL_TITLES);
@@ -360,9 +372,8 @@ static void nw_cutscene_start(const NwCutscene *c)
     } else if (c->movie > 0) {
         if (title) {
             logos_played = 1;
-            next_cut_movie = c->movie;
             nw_cut.title_movie = c->movie;
-            nw_level_cut();
+            nw_cutscene_title_next(c->movie);
         } else {
             cutmovie = c->movie;
             nw_cut.next = ret;
