@@ -50,6 +50,7 @@ extern f32 D_005F28F8[];
 extern struct nuvec_s v001;
 extern s32 vtog_blend;
 extern s32 plr_terrain_ok;
+extern s32 plr_rebound;
 extern s32 VEHICLECONTROL;
 extern struct ldata_s *LDATA;
 extern struct gtimer_s GameTimer;
@@ -638,6 +639,9 @@ static void air_jump(void)
     Game.powerbits = 2;
     CHECK(air_jump_at(-0.05f, 3, 0) == 4 && air_jump_at(-0.3f, 3, 0) == 4);
     CHECK(air_jump_at(-0.3f, 0, 0) == 4 && air_jump_at(-0.05f, 6, 0) == 4);
+    plr_rebound = 1;
+    CHECK(air_jump_at(-0.05f, 6, 0) == 6 && air_jump_at(-0.3f, 6, 0) == 6);
+    plr_rebound = 0;
     CHECK(air_jump_at(-0.05f, 0, 5) == 0 && air_jump_at(-0.3f, 2, 0) == 2);
     Character[0].slam = 1;
     CHECK(air_jump_at(-0.3f, 3, 0) == 3 && near(Character[0].obj.mom.y, -0.3f + GRAVITY, 1e-6f));
