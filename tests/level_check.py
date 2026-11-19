@@ -5,7 +5,7 @@ repeated level the same scene GPU object count. --pad-script auto: the retail re
 else the sweep script; none: an idle pad. NUWORLD_FP_TRAPS defaults to all (an ASan build needs 0).
 
     run_local.py python tests/level_check.py <crashwoc-nuworld> {root} [--vblanks N] [--pad-script S] [-j N]
-        [--aspect A] [--hz 50|60] <level> ...
+        [--aspect A] [--revision 1.03|late] <level> ...
 """
 import argparse
 from concurrent.futures import ThreadPoolExecutor
@@ -23,10 +23,9 @@ FP_TRAP = re.compile(r"fp trap: (invalid operation|divide by zero) at \S+ \(.*?\
 
 
 def check(exe: str, root: str, level: str, vblanks: int, script: str, aspect: str | None,
-          hz: str | None, revision: str | None) -> tuple[bool, str]:
+          revision: str | None) -> tuple[bool, str]:
     pad = ["--pad-script", script] if script != "none" else []
     pad += ["--aspect", aspect] if aspect else []
-    pad += ["--hz", hz] if hz else []
     pad += ["--revision", revision] if revision else []
     out = subprocess.run([exe, "--data-dir", root, "--stepped", "--hardware-speed", "off", "--boot-check",
                           str(vblanks), "--level", level, *pad], capture_output=True, text=True,
@@ -60,13 +59,12 @@ def main() -> int:
     ap.add_argument("--pad-script", default="auto")
     ap.add_argument("-j", type=int, default=1)
     ap.add_argument("--aspect")
-    ap.add_argument("--hz", choices=("50", "60"))
     ap.add_argument("--revision", choices=("1.03", "late"))
     args = ap.parse_args()
     failed = 0
     with ThreadPoolExecutor(args.j) as pool:
         for ok, report in pool.map(lambda level: check(args.exe, args.root, level, args.vblanks, args.pad_script,
-                                                       args.aspect, args.hz, args.revision),
+                                                       args.aspect, args.revision),
                                    args.levels):
             print(report, end="", flush=True)
             failed += not ok

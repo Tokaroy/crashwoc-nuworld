@@ -567,10 +567,14 @@ static char *nw_game_argv[] = { nw_game_arg0, NULL };
 
 static const char *nw_run_level;  /* --level */
 static const char *nw_pad_script; /* --pad-script */
-static int nw_run_hz;             /* --hz, else the disc's rate */
-static int nw_game_hz;
 static const char *nw_overlays[NW_VFS_OVERLAYS]; /* --overlay, in the order given: the later wins */
 static int nw_overlay_count;
+
+/* --pad-script and --revision 1.03 play the retail game: no [game] switches. */
+static bool nw_run_retail(void)
+{
+    return nw_pad_script || !nw_rev;
+}
 
 static void nw_overlay_conflict(void *user, const char *key)
 {
@@ -632,16 +636,14 @@ static int nw_boot_prepare(const char *data_dir, NwClockMode mode, bool hardware
     if (canon_files) {
         nw_log_info(NW_LOG_LOAD, "late revision: %u level files are USA v1.01's", canon_files);
     }
+    /* Every disc plays at 60 Hz; --revision 1.03 is the PAL PS2's game at its 50 Hz. */
+    int hz = nw_hz_set(nw_rev ? 60 : 50);
     int script_hz = nw_pad_script ? nw_pad_script_hz(nw_pad_script) : 0;
-    if (script_hz && nw_run_hz && nw_run_hz != script_hz) {
-        nw_log_info(NW_LOG_APP, "--pad-script %s replays %d Hz ticks: %d Hz", nw_pad_script, script_hz, script_hz);
+    if (script_hz && script_hz != hz) {
+        nw_log_error(NW_LOG_APP, "--pad-script %s replays %d Hz ticks: %s", nw_pad_script, script_hz,
+                     script_hz == 50 ? "it needs --revision 1.03" : "not with --revision 1.03");
+        return 2;
     }
-    int disc_hz = nw_disc_region() == NW_REGION_PAL ? 50 : 60;
-    int hz = nw_hz_set(script_hz ? script_hz
-                       : nw_run_hz ? nw_run_hz
-                       : !nw_rev   ? 50
-                       : nw_game_hz ? nw_game_hz
-                                    : disc_hz);
     nw_log_info(NW_LOG_LOAD, "disc: %s at %d Hz, revision %s", vfs.manifest->name, hz, nw_rev_name());
     int kept = hz == 60 ? nw_hz_patch() : 0;
     int rev_kept = nw_rev ? nw_rev_patch(hz) : 0;
@@ -651,7 +653,6 @@ static int nw_boot_prepare(const char *data_dir, NwClockMode mode, bool hardware
     if (kept) {
         nw_log_info(NW_LOG_GAME, "60 Hz: %d data values are not retail's and stay", kept);
     }
-    nw_run_hz = hz;
     if (!nw_game_init(mode, (unsigned)hz)) {
         nw_log_error(NW_LOG_APP, "no vblank clock: %s", SDL_GetError());
         return 1;
@@ -864,18 +865,6 @@ static void nw_boot_audio(void *user)
     nw_debug_slider_int("Voice", &s->voice_volume, 0, 100);
 }
 
-static void nw_boot_speed(void *user)
-{
-    NwSettings *s = user;
-    static const char *const rates[] = { "60 Hz", "50 Hz (PAL)" };
-    int pick = s->hz == 50;
-    if (nw_debug_combo("Rate", &pick, rates, (int)SDL_arraysize(rates))) {
-        s->hz = pick ? 50 : 60;
-    }
-    nw_debug_tooltip("60 Hz plays every disc like the US Greatest Hits release; 50 Hz is PAL's timing.");
-    nw_debug_text("running at %d Hz; a change takes effect at the next start", nw_run_hz);
-}
-
 static const char *const nw_movement_profiles[] = { "Retail", "N. Hanced", "Custom" };
 
 static bool nw_boot_switch(const char *label, const char *help, bool *value)
@@ -939,8 +928,8 @@ static void nw_boot_movement(void *user)
     nw_boot_profile(s, 1u << NW_PART_CRASH);
     NW_CRASH_MOVEMENT(NW_BOOT_SWITCH_ITEM, NW_BOOT_FLAG_ITEM, NW_BOOT_VALUE_ITEM)
     nw_debug_slider_int("Monkey Bar Speed %", &s->movement.monkey_bar_speed, 100, 500);
-    if (nw_pad_script) {
-        nw_debug_text("--pad-script plays retail: changes take effect at the next start");
+    if (nw_run_retail()) {
+        nw_debug_text("this run plays retail: changes take effect at the next start");
     }
 }
 
@@ -962,8 +951,8 @@ static void nw_boot_mech(void *user)
 
     nw_boot_profile(s, 1u << NW_PART_MECH);
     NW_MECH_MOVEMENT(NW_BOOT_SWITCH_ITEM, NW_BOOT_FLAG_ITEM, NW_BOOT_VALUE_ITEM)
-    if (nw_pad_script) {
-        nw_debug_text("--pad-script plays retail: changes take effect at the next start");
+    if (nw_run_retail()) {
+        nw_debug_text("this run plays retail: changes take effect at the next start");
     }
 }
 
@@ -975,8 +964,8 @@ static void nw_boot_submarine(void *user)
 
     nw_boot_profile(s, 1u << NW_PART_SUBMARINE);
     NW_SUB_MOVEMENT(NW_BOOT_SWITCH_ITEM, NW_BOOT_FLAG_ITEM, NW_BOOT_VALUE_ITEM)
-    if (nw_pad_script) {
-        nw_debug_text("--pad-script plays retail: changes take effect at the next start");
+    if (nw_run_retail()) {
+        nw_debug_text("this run plays retail: changes take effect at the next start");
     }
 }
 
@@ -988,8 +977,8 @@ static void nw_boot_jeep(void *user)
 
     nw_boot_profile(s, 1u << NW_PART_JEEP);
     NW_JEEP_MOVEMENT(NW_BOOT_SWITCH_ITEM, NW_BOOT_FLAG_ITEM, NW_BOOT_VALUE_ITEM)
-    if (nw_pad_script) {
-        nw_debug_text("--pad-script plays retail: changes take effect at the next start");
+    if (nw_run_retail()) {
+        nw_debug_text("this run plays retail: changes take effect at the next start");
     }
 }
 
@@ -1001,8 +990,8 @@ static void nw_boot_atlas(void *user)
 
     nw_boot_profile(s, 1u << NW_PART_ATLASPHERE);
     NW_ATLAS_MOVEMENT(NW_BOOT_SWITCH_ITEM, NW_BOOT_FLAG_ITEM, NW_BOOT_VALUE_ITEM)
-    if (nw_pad_script) {
-        nw_debug_text("--pad-script plays retail: changes take effect at the next start");
+    if (nw_run_retail()) {
+        nw_debug_text("this run plays retail: changes take effect at the next start");
     }
 }
 
@@ -1014,8 +1003,8 @@ static void nw_boot_firefly(void *user)
 
     nw_boot_profile(s, 1u << NW_PART_FIREFLY);
     NW_FIREFLY_MOVEMENT(NW_BOOT_SWITCH_ITEM, NW_BOOT_FLAG_ITEM, NW_BOOT_VALUE_ITEM)
-    if (nw_pad_script) {
-        nw_debug_text("--pad-script plays retail: changes take effect at the next start");
+    if (nw_run_retail()) {
+        nw_debug_text("this run plays retail: changes take effect at the next start");
     }
 }
 
@@ -1027,8 +1016,8 @@ static void nw_boot_plane(void *user)
 
     nw_boot_profile(s, 1u << NW_PART_PLANE);
     NW_PLANE_MOVEMENT(NW_BOOT_SWITCH_ITEM, NW_BOOT_FLAG_ITEM, NW_BOOT_VALUE_ITEM)
-    if (nw_pad_script) {
-        nw_debug_text("--pad-script plays retail: changes take effect at the next start");
+    if (nw_run_retail()) {
+        nw_debug_text("this run plays retail: changes take effect at the next start");
     }
 }
 
@@ -1040,8 +1029,8 @@ static void nw_boot_spacefighter(void *user)
 
     nw_boot_profile(s, 1u << NW_PART_SPACEFIGHTER);
     NW_SPACE_MOVEMENT(NW_BOOT_SWITCH_ITEM, NW_BOOT_FLAG_ITEM, NW_BOOT_VALUE_ITEM)
-    if (nw_pad_script) {
-        nw_debug_text("--pad-script plays retail: changes take effect at the next start");
+    if (nw_run_retail()) {
+        nw_debug_text("this run plays retail: changes take effect at the next start");
     }
 }
 
@@ -1071,8 +1060,8 @@ static void nw_boot_camera(void *user)
 
     nw_debug_slider_int("Jump stability %", &s->camera_stability, 0, 100);
     nw_debug_tooltip("0 follows the jump as the PS2, 100 holds the height until he lands");
-    if (nw_pad_script) {
-        nw_debug_text("--pad-script plays retail: changes take effect at the next start");
+    if (nw_run_retail()) {
+        nw_debug_text("this run plays retail: changes take effect at the next start");
     }
 }
 
@@ -1199,11 +1188,10 @@ static int nw_boot(const char *data_dir, int hardware_speed, float aspect, NwPla
         nw_gpu_prefer(settings.gpu);
     }
     char aspect_name[32];
-    nw_game_hz = settings.hz;
     nw_log_info(NW_LOG_APP,
-                "settings: hardware speed %s, rate %d Hz, aspect %s, interpolation %s, movement %s, "
+                "settings: hardware speed %s, aspect %s, interpolation %s, movement %s, "
                 "air indicator %s, boss health %s, camera stability %d%%",
-                settings.hardware_speed ? "on" : "off", settings.hz,
+                settings.hardware_speed ? "on" : "off",
                 nw_settings_aspect_name(settings.aspect, aspect_name, sizeof(aspect_name)),
                 settings.interpolation ? "on" : "off", nw_movement_profiles[nw_movement_profile(&settings.movement)],
                 settings.air_indicator ? "on" : "off", settings.boss_health ? "on" : "off", settings.camera_stability);
@@ -1221,8 +1209,9 @@ static int nw_boot(const char *data_dir, int hardware_speed, float aspect, NwPla
     if (window) {
         platform = *window;
     }
-    if (nw_pad_script) {
-        nw_log_info(NW_LOG_APP, "--pad-script plays the retail game: no [game] switches");
+    if (nw_run_retail()) {
+        nw_log_info(NW_LOG_APP, "%s plays the retail game: no [game] switches",
+                    nw_pad_script ? "--pad-script" : "--revision 1.03");
     } else {
         nw_profile_apply(&(NwProfile){ .title_menu = !settings.retail_menu,
                                        .movement = settings.movement,
@@ -1239,7 +1228,6 @@ static int nw_boot(const char *data_dir, int hardware_speed, float aspect, NwPla
     nw_wide_set(nw_video_start(&platform, &settings), settings.hud);
     nw_debug_panel("Settings", "Audio", nw_boot_audio, &settings, false);
     nw_control_panel_start(&settings.controls);
-    nw_debug_panel("Settings", "Game Speed", nw_boot_speed, &settings, false);
     if (presence) {
         nw_debug_toggle("Settings", "Discord Rich Presence", &settings.discord);
         nw_debug_toggle("Settings", "Check for updates", &settings.updates);
@@ -1251,7 +1239,7 @@ static int nw_boot(const char *data_dir, int hardware_speed, float aspect, NwPla
     nw_debug_toggle("Gameplay", "Time trial names of up to 8 letters", &settings.long_time_names);
     nw_debug_toggle("Gameplay", "Turning relic on time trial records", &settings.relic_spin);
     nw_debug_toggle("Gameplay", "Aku Aku after the first boss", &settings.first_boss_cut);
-    if (!nw_pad_script) {
+    if (!nw_run_retail()) {
         nw_cheat_panel_start();
     }
     {
@@ -1279,11 +1267,11 @@ static int nw_boot(const char *data_dir, int hardware_speed, float aspect, NwPla
     nw_debug_panel("Debug", "Load Level", nw_boot_levels, NULL, false);
     nw_debug_panel("Debug", "Play Cutscene", nw_boot_cutscenes, NULL, false);
     bool hitboxes = false, hitboxes_shown = false;
-    if (!nw_pad_script) {
+    if (!nw_run_retail()) {
         nw_debug_action("Debug", "Start Minigame", SDL_SCANCODE_UNKNOWN, nw_boot_minigame, NULL);
     }
     nw_debug_toggle("Debug", "WOMBAT cheat", &settings.wombat);
-    if (!nw_pad_script) {
+    if (!nw_run_retail()) {
         nw_debug_toggle("Debug", "Hitboxes", &hitboxes);
     }
     nw_backend_debug_menu();
@@ -1344,16 +1332,17 @@ static int nw_boot(const char *data_dir, int hardware_speed, float aspect, NwPla
             }
             nw_audio_set_buses(settings.master_volume, settings.voice_volume);
             nw_input_set_controls(&settings.controls);
-            if (!nw_pad_script && (SDL_memcmp(&settings.movement, &applied.movement, sizeof(settings.movement)) != 0 ||
-                                   settings.air_indicator != applied.air_indicator ||
-                                   settings.boss_health != applied.boss_health ||
-                                   settings.wombat != applied.wombat ||
-                                   settings.hub_minigame != applied.hub_minigame ||
-                                   settings.long_time_names != applied.long_time_names ||
-                                   settings.relic_spin != applied.relic_spin ||
-                                   settings.camera_stability != applied.camera_stability ||
-                                   settings.hub_gem != applied.hub_gem ||
-                                   settings.first_boss_cut != applied.first_boss_cut)) {
+            if (!nw_run_retail() &&
+                (SDL_memcmp(&settings.movement, &applied.movement, sizeof(settings.movement)) != 0 ||
+                 settings.air_indicator != applied.air_indicator ||
+                 settings.boss_health != applied.boss_health ||
+                 settings.wombat != applied.wombat ||
+                 settings.hub_minigame != applied.hub_minigame ||
+                 settings.long_time_names != applied.long_time_names ||
+                 settings.relic_spin != applied.relic_spin ||
+                 settings.camera_stability != applied.camera_stability ||
+                 settings.hub_gem != applied.hub_gem ||
+                 settings.first_boss_cut != applied.first_boss_cut)) {
                 nw_boot_request(&settings, hitboxes);
                 hitboxes_shown = hitboxes;
             }
@@ -1759,8 +1748,7 @@ int main(int argc, char *argv[])
              strcmp(argv[i], "--dump") == 0 || strcmp(argv[i], "--dump-dir") == 0 ||
              strcmp(argv[i], "--poke") == 0 || strcmp(argv[i], "--dump-after") == 0 ||
              strcmp(argv[i], "--level") == 0 || strcmp(argv[i], "--pad-script") == 0 ||
-             strcmp(argv[i], "--aspect") == 0 || strcmp(argv[i], "--hz") == 0 ||
-             strcmp(argv[i], "--revision") == 0 ||
+             strcmp(argv[i], "--aspect") == 0 || strcmp(argv[i], "--revision") == 0 ||
              strcmp(argv[i], "--overlay") == 0 || strcmp(argv[i], "--log") == 0 ||
              strcmp(argv[i], "--log-file") == 0 || strcmp(argv[i], "--crash-test") == 0) &&
             i + 1 >= argc) {
@@ -1849,13 +1837,6 @@ int main(int argc, char *argv[])
             hardware_speed = strcmp(value, "on") == 0;
         } else if (strcmp(argv[i], "--aspect") == 0) {
             aspect_arg = argv[++i];
-        } else if (strcmp(argv[i], "--hz") == 0) {
-            const char *value = argv[++i];
-            if (strcmp(value, "50") != 0 && strcmp(value, "60") != 0) {
-                fprintf(stderr, NW_APP_NAME ": --hz takes 50 or 60\n");
-                return 2;
-            }
-            nw_run_hz = atoi(value);
         } else if (strcmp(argv[i], "--revision") == 0) {
             if (!nw_rev_set(argv[++i])) {
                 fprintf(stderr, NW_APP_NAME ": --revision takes 1.03 or late\n");
@@ -1950,7 +1931,7 @@ int main(int argc, char *argv[])
     /* PCSX2 comparison runs keep its load times, the window takes settings.toml's and the checks load at once;
        --hardware-speed overrides all of them. */
     int speed = hardware_speed >= 0 ? hardware_speed : trace_sound || capture || dump ? 1 : -1;
-    /* The checks and comparisons keep the PS2's 4:3 and the disc's rate unless --aspect or --hz names another. */
+    /* The checks and comparisons keep the PS2's 4:3 unless --aspect names another. */
     float aspect = -1.0f;
     if (aspect_arg && !nw_settings_aspect(aspect_arg, &aspect)) {
         fprintf(stderr, NW_APP_NAME ": --aspect takes auto, W:H or a ratio\n");

@@ -399,7 +399,7 @@ static NwWizardResult nw_wizard_welcome(NwWizard *w)
     nw_wizard_heading("Debug menu");
     ImGui::Bullet();
     ImGui::TextWrapped("Press F1 at any time to open the debug menu. Under Settings and Gameplay you also find video, "
-                       "audio, controls, game speed and camera, so you can set NuWorld up the way you like.");
+                       "audio, controls and camera, so you can set NuWorld up the way you like.");
     ImGui::Bullet();
     ImGui::TextWrapped("The debug menu is only for the beta. The first release will have native menus.");
     ImGui::Bullet();

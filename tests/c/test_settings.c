@@ -422,11 +422,8 @@ int main(int argc, char *argv[])
           !s.movement.spacefighter.roll && s.movement.spacefighter.aim && !s.movement.crash.air_jump);
     CHECK(read_text("[game.movement]\nmonkey_bar_speed = 350\n", &s) && s.movement.spacefighter.aim_assist);
 
-    CHECK(read_speed("[game]\nhz = 60\nhardware_speed = true\n") == 1);
-    CHECK(read_text("", &s) && s.hz == 60);
-    CHECK(read_text("[game]\nhz = 50\n", &s) && s.hz == 50);
-    CHECK(read_text("[game]\nhz = 55\n", &s) && s.hz == 60);
-    CHECK(read_text("[game]\npal_60hz = false\n", &s) && s.hz == 60);
+    /* A file from when the rate was a setting. */
+    CHECK(read_speed("[game]\nhz = 50\npal_60hz = false\nhardware_speed = true\n") == 1);
 
     float a = -1.0f;
     char name[16];

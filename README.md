@@ -41,7 +41,7 @@ need your own copy of the game, PAL v1.03 (SLES-50386) or USA v1.00 (SLUS-20238)
 
 - N. Hanced Movement for Crash, Coco and every vehicle, tunable in the game, or the original movement; profiles to
   save and share your tuning
-- 50 or 60 Hz, any aspect ratio, frame interpolation, draw distance up to 400 %
+- 60 Hz on every disc, any aspect ratio, frame interpolation, draw distance up to 400 %
 - Window, fullscreen and borderless, resolution scale, MSAA, enhanced gems and relics
 - Remappable gamepad and keyboard, rumble, button prompts
 - Autosave next to 100 manual slots, readable saves, import from and export to PCSX2 memory cards
