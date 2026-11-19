@@ -3437,6 +3437,31 @@ static void vehicle_hints_once(void)
     vtog_duration = duration;
 }
 
+struct credit_s {
+    char *txt;
+    short colour;
+    short size;
+};
+extern struct credit_s Credit[], CreditLate[];
+extern s32 CREDITCOUNT;
+extern f32 credit_time;
+void InitCredits(void);
+
+static void tropy_credits(void)
+{
+    s32 count = CREDITCOUNT;
+    f32 time = credit_time;
+
+    InitCredits();
+    CHECK(strcmp(CreditLate[185].txt, "N-TROPY") == 0);
+    CHECK(strcmp(CreditLate[343].txt, "N. TROPY AND KAZENOMAJIN") == 0);
+    CHECK(strcmp(Credit[185].txt, "N-TROPHY") == 0 && strcmp(Credit[341].txt, "N. TROPHY") == 0);
+    CHECK(CREDITCOUNT == 362);
+
+    CREDITCOUNT = count;
+    credit_time = time;
+}
+
 int main(void)
 {
     NuTrigInit();
@@ -3492,6 +3517,7 @@ int main(void)
     hub_gem();
     cheats();
     boss_cut();
+    tropy_credits();
 
     NwMovement m = NW_MOVEMENT_RETAIL;
     CHECK(nw_movement_profile(&(NwMovement){ 0 }) == NW_MOVEMENT_PROFILE_RETAIL);
