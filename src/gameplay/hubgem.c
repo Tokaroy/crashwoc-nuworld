@@ -249,8 +249,9 @@ bool nw_hubgem_due(const NwHubGemData *d)
 bool nw_hubgem_idle(const NwHubGemData *d)
 {
     if (!nw_hubgem_here(d) || GameMode != 0 || Paused != 0 || Cursor.menu != -1 || new_level != -1 ||
-        new_mode != -1 || fadeval != 0 || GameTimer.frame < 0x32 || tumble_time < tumble_duration ||
-        nw_level_pending() >= 0 || nw_cutscene_pending() >= 0 || editor_active || !PLAYERCOUNT || !player) {
+        new_mode != -1 || fadeval != 0 || GameTimer.frame < (u32)NW_HZ(0x32, 0x3C) ||
+        tumble_time < tumble_duration || nw_level_pending() >= 0 || nw_cutscene_pending() >= 0 || editor_active ||
+        !PLAYERCOUNT || !player) {
         return false;
     }
     const struct obj_s *o = &player->obj;

@@ -27,6 +27,7 @@ extern struct game_s Game;
 extern struct game_s SaveSlot[2][2];
 extern struct cursor_s Cursor;
 extern struct gtimer_s GlobalTimer;
+extern int nw_hz; /* port/hz.c */
 extern struct objtab_s ObjTab[];
 extern s8 CLetter[];
 extern char tbuf[128];
@@ -109,7 +110,7 @@ void DrawGameSlots(void)
         for (int column = 0; column < 2; column++, x += NW_SAVEMENU_DX) {
             s32 colour = 0;
             if (Cursor.y == row && Cursor.x == column) {
-                colour = (GlobalTimer.frame % 10 < 5) ? 4 : 3;
+                colour = (GlobalTimer.frame % (nw_hz == 60 ? 12 : 10) < 5) ? 4 : 3;
             }
             DrawGameSlot(&SaveSlot[row][column], x, y, colour);
         }

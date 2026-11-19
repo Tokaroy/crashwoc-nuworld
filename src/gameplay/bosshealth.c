@@ -358,8 +358,9 @@ void nw_boss_health_crunch_time(void)
     BossBar(FIREBOSSBARX, FIREBOSSBARY, FIREBOSSBARZ, FIREBOSSBARSCALEX, FIREBOSSBARSCALEY,
             nw_boss_health_crunch_time_hp(crunchtime_attack_phase), 4);
     /* DrawPanel's wobble */
-    short wobble_x = (short)(NuTrigTable[(((GlobalTimer.frame % 250) << 16) / 250) & 0xFFFF] * 2731.0f + 1820.0f);
-    short wobble_y = (short)(NuTrigTable[((((GlobalTimer.frame % 200) << 16) / 200) + 0x4000) & 0xFFFF] * 2731.0f);
+    int px = NW_HZ(250, 300), py = NW_HZ(200, 240);
+    short wobble_x = (short)(NuTrigTable[(((GlobalTimer.frame % px) << 16) / px) & 0xFFFF] * 2731.0f + 1820.0f);
+    short wobble_y = (short)(NuTrigTable[((((GlobalTimer.frame % py) << 16) / py) + 0x4000) & 0xFFFF] * 2731.0f);
     nw_boss_health_cortex((u16)(wobble_x + (s16)PANELCRUNCHXROT), (u16)(-wobble_y + 0x2000), PANELCRUNCHX,
                           PANELCRUNCHY - 0.1f, PANELCRUNCHZ, PANELCRUNCHSCALE);
 }
