@@ -59,7 +59,7 @@ schema = 1
     "NuRndrShadowOnOff", "NuRndrAddShadow", "NuRndrAnglesZX", "NuRndrAddFootPrint", "NuRndrAddWaterRipple",
     "NuRndrWaterRippleUpdate", "NuRndrWaterLevelTint", "NuRndrShadPolys", "NuRndrWaterRip", "NuRndrFx", "NuRndrClose",
     "NuRndrShadowStencil", "NuRndrShadowDirCol", "RotateCyl", "DeRotateVectorAngles", "NuRndrFog*", "NuRndrLine3dDbg*",
-    "NuRndrTest", "NuRndrQuad3d", "NuRndrStarfield"] }
+    "NuRndrTest", "NuRndrQuad3d", "NuRndrStarfield"], wrap = ["NuHGobjEval"] }
 "nu3d/nufont" = { treatment = "compile" }
 "nu3d/nulight" = { treatment = "compile", override = ["NuLightHaze", "NuLightPolyHaze", "NuLightFogDraw",
     "NuLgtArcLaserDraw", "NuLightProcessSpot", "NuLightFxSetup"] }
@@ -157,7 +157,7 @@ schema = 1
 "game/game_obj" = { treatment = "compile", wrap = ["MoveLoopXZ", "PlayerCreatureCollisions", "ObjectRotation",
     "UpdateProjectiles", "AddProjectile"] }
 "game/visi" = { treatment = "compile" }
-"game/vehicle" = { treatment = "compile", wrap = ["BossBar", "ProcessMovementAtlas", "ControlGlider",
+"game/vehicle" = { treatment = "compile", wrap = ["BossBar", "ProcessMovementAtlas", "ControlGlider", "DrawGlider",
     "ProcessGliderMovement", "GliderFire", "DrawTorpedoTarget", "CollideGliderBullets"] }
 "game/vehsupp" = { treatment = "compile" }
 "game/vehterr" = { treatment = "compile" }

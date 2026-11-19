@@ -277,6 +277,8 @@ int main(int argc, char *argv[])
     CHECK(read_text("[game]\nfirst_boss_cut = false\n", &s) && !s.first_boss_cut);
     CHECK(s.vehicle_hints);
     CHECK(read_text("[game]\nvehicle_hints = false\n", &s) && !s.vehicle_hints);
+    CHECK(s.bug_fixes);
+    CHECK(read_text("[game]\nbug_fixes = false\n", &s) && !s.bug_fixes);
     CHECK(!s.long_time_names); /* the original's 3 letters unless asked */
     CHECK(read_text("[game]\nlong_time_names = true\n", &s) && s.long_time_names);
     nw_settings_defaults(&s);

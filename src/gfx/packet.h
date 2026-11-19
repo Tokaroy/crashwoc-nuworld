@@ -155,6 +155,8 @@ typedef struct NwCmd {
             int8_t stencil;             /* VERTS: a shadow volume's +1 or -1, counted into the stencil alone where
                                            the triangles pass the Z test; NW_STENCIL_SHADOWED: drawn only where the
                                            count is 0x80 or more; 0 none */
+            uint32_t silhouette;
+            float silhouette_scale;
             uint32_t ptllist;           /* PARTICLES: the effect list in NwPacket.ptllists */
         };
         struct {

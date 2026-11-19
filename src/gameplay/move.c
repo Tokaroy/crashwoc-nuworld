@@ -2,6 +2,7 @@
 #include "game/creature.h"
 #include "game/move.retail.h"
 #include "gameplay/air.h"
+#include "gameplay/fixes.h"
 #include "gameplay/ground.h"
 #include "gameplay/mech.h"
 #include "gameplay/monkeybars.h"
@@ -13,6 +14,7 @@ void MoveCRASH(struct creature_s *plr, struct nupad_s *pad)
     nw_ground_before(plr, pad);
     nw_air_before(plr, pad);
     nw_slide_spin_before(plr, pad);
+    nw_fix_ground_slam(plr);
     MoveCRASH__retail(plr, pad);
     nw_air_move(plr, pad);
     nw_ground_after(plr);
@@ -22,6 +24,7 @@ void MoveCRASH(struct creature_s *plr, struct nupad_s *pad)
 void MoveCOCO(struct creature_s *plr, struct nupad_s *pad)
 {
     nw_air_before(plr, pad);
+    nw_fix_ground_slam(plr);
     MoveCOCO__retail(plr, pad);
     nw_air_move(plr, pad);
 }

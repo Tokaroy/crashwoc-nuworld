@@ -991,6 +991,61 @@ static void test_shadows(void)
     shadstorecnt = 0;
 }
 
+static void test_silhouette(void)
+{
+    struct numtl_s *mtl = NuMtlCreate(1);
+    NuMtlUpdate(mtl);
+    struct nugeom_s geom;
+    struct nugobj_s g;
+    memset(&geom, 0, sizeof(geom));
+    memset(&g, 0, sizeof(g));
+    geom.mtl = mtl;
+    geom.skindma = (struct SkinDmaTag *)(uintptr_t)0x66;
+    g.geom = &geom;
+    struct numtx_s inv, pose, wm, mirror, quad;
+    set_mtx(&inv, 0.0f, 0.0f, 0.0f, 0.0f);
+    set_mtx(&pose, 0.0f, 0.0f, 0.0f, 0.0f);
+    set_mtx(&wm, 0.25f, 0.5f, 0.0f, 2.0f);
+    mirror = wm;
+    mirror._01 = -mirror._01;
+    mirror._11 = -mirror._11;
+    mirror._21 = -mirror._21;
+    struct NULAYERDATA_s layer = { NULL, NULL, &g, NULL, NULL };
+    struct NUHGOBJ_s h;
+    memset(&h, 0, sizeof(h));
+    h.num_joints = 1;
+    h.num_layers = 1;
+    h.layers = &layer;
+    h.INV_WT = &inv;
+    h.bbox_min = (struct nuvec_s){ -5.0f, -5.0f, -5.0f };
+    h.bbox_max = (struct nuvec_s){ 5.0f, 5.0f, 5.0f };
+
+    CHECK(NuHGobjRndrMtxDwa(&h, &wm, 1, NULL, &pose, NULL) != 0);
+    NuHGobjRndrMtxDwa(&h, &mirror, 1, NULL, &pose, NULL);
+    set_mtx(&quad, 0.25f, 0.6f, 0.0f, 2.1f);
+    for (int k = 0; k < 12; k++) {
+        (&quad._00)[k] *= 0.5f;
+    }
+    float scale = 0.0f;
+    uint32_t id = nw_rndr_silhouette(&quad, &scale);
+    CHECK(id != 0 && SDL_fabsf(scale - 0.5f) < 1e-5f && nw_rndr_silhouette(&quad, &scale) == 0);
+    NuRndrEndScene();
+    const NwPacket *p = nw_rndr_packet();
+    uint32_t tagged = 0, plain = 0;
+    for (uint32_t i = 0; i < p->ncmds; i++) {
+        tagged += p->cmds[i].op == NW_CMD_SKIN && p->cmds[i].silhouette == id;
+        plain += p->cmds[i].op == NW_CMD_SKIN && p->cmds[i].silhouette == 0;
+    }
+    CHECK(tagged == 1 && plain == 1);
+    NuRndrSwapStreamBuffers();
+
+    CHECK(NuHGobjRndrMtxDwa(&h, &wm, 1, NULL, &pose, NULL) != 0);
+    quad._30 += 2.0f;
+    CHECK(nw_rndr_silhouette(&quad, &scale) == 0);
+    NuRndrEndScene();
+    NuRndrSwapStreamBuffers();
+}
+
 /* SetupDebris's sets and effect list as retail lays them out; three sets linked out of order make one PARTICLES record
    of their 96 particles in link order. */
 static void test_particles(void)
@@ -1558,6 +1613,7 @@ int main(void)
     test_rope();
     test_fx_quads();
     test_shadows();
+    test_silhouette();
     test_particles();
     test_clouds();
     test_fog();

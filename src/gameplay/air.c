@@ -212,7 +212,8 @@ void nw_air_before(struct creature_s *plr, const struct nupad_s *pad)
         NW_FOOT_DEVIATION(c, jump_fall);
         plr->jump_frame = plr->jump_frames;
     }
-    if (!c->air_jump || !(power || c->air_jump_free) || !nw_air_flying(plr, false) || plr->obj.dead) {
+    if (!c->air_jump || !(power || c->air_jump_free) || !nw_air_flying(plr, false) || plr->obj.dead ||
+        plr_rebound != 0) {
         return;
     }
     if (c->air_jump_ledge && (plr->jump == 0 || plr->jump == 6) && plr->allow_jump == 0 &&

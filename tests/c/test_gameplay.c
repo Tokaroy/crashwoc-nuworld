@@ -16,6 +16,7 @@
 #include "gameplay/cheats.h"
 #include "gameplay/edges.h"
 #include "gameplay/firefly.h"
+#include "gameplay/fixes.h"
 #include "gameplay/gameplay.h"
 #include "gameplay/ground.h"
 #include "gameplay/hazards.h"
@@ -50,6 +51,7 @@ extern f32 D_005F28F8[];
 extern struct nuvec_s v001;
 extern s32 vtog_blend;
 extern s32 plr_terrain_ok;
+extern s32 plr_rebound;
 extern s32 VEHICLECONTROL;
 extern struct ldata_s *LDATA;
 extern struct gtimer_s GameTimer;
@@ -638,6 +640,9 @@ static void air_jump(void)
     Game.powerbits = 2;
     CHECK(air_jump_at(-0.05f, 3, 0) == 4 && air_jump_at(-0.3f, 3, 0) == 4);
     CHECK(air_jump_at(-0.3f, 0, 0) == 4 && air_jump_at(-0.05f, 6, 0) == 4);
+    plr_rebound = 1;
+    CHECK(air_jump_at(-0.05f, 6, 0) == 6 && air_jump_at(-0.3f, 6, 0) == 6);
+    plr_rebound = 0;
     CHECK(air_jump_at(-0.05f, 0, 5) == 0 && air_jump_at(-0.3f, 2, 0) == 2);
     Character[0].slam = 1;
     CHECK(air_jump_at(-0.3f, 3, 0) == 3 && near(Character[0].obj.mom.y, -0.3f + GRAVITY, 1e-6f));
@@ -662,6 +667,53 @@ static void air_jump(void)
     crash_at(50, &retail);
     CHECK(air_jump_at(-0.05f, 3, 0) == 4 && air_jump_at(-0.3f, 3, 0) == 3 && air_jump_at(-0.05f, 0, 0) == 0);
     Game.powerbits = powers;
+}
+
+static int ground_slam_at(const NwProfile *p, u8 ground, s32 jump_frame)
+{
+    struct creature_s *c = &Character[0];
+    crash_at(60, p);
+    c->obj.ground = ground;
+    c->jump = 2;
+    c->jump_frame = jump_frame;
+    c->jump_frames = 18;
+    c->ok_slam = 1;
+    nw_fix_ground_slam(c);
+    return c->ok_slam;
+}
+
+static void ground_slam(void)
+{
+    NwProfile retail = { 0 }, fixed = { .bug_fixes = true };
+    CHECK(ground_slam_at(&retail, 3, 18) == 1 && ground_slam_at(&retail, 2, 18) == 1);
+    CHECK(ground_slam_at(&fixed, 3, 18) == 0 && ground_slam_at(&fixed, 2, 18) == 0);
+    CHECK(ground_slam_at(&fixed, 0, 18) == 1 && ground_slam_at(&fixed, 3, 10) == 1);
+    crash_at(60, &retail);
+}
+
+static float finish_top_at(const NwProfile *p, short character, short vehicle)
+{
+    struct creature_s *c = &Character[0];
+    crash_at(60, p);
+    VEHICLECONTROL = vehicle != -1;
+    c->obj.character = character;
+    c->obj.vehicle = vehicle;
+    c->obj.max.y = 0.9f;
+    c->obj.top = 0.45f;
+    CHECK(nw_fix_finish_top(&c->obj) == 0.45f);
+    return c->obj.top;
+}
+
+static void finish_top(void)
+{
+    struct creature_s *was = player;
+    NwProfile retail = { 0 }, fixed = { .bug_fixes = true };
+    player = &Character[0];
+    CHECK(finish_top_at(&retail, 0, -1) == 0.45f && finish_top_at(&retail, 1, -1) == 0.45f);
+    CHECK(finish_top_at(&fixed, 0, -1) == 0.9f && finish_top_at(&fixed, 1, -1) == 0.9f);
+    CHECK(finish_top_at(&fixed, 0, 3) == 0.45f);
+    crash_at(60, &retail);
+    player = was;
 }
 
 /* One MoveLoopXZ with MovePlayer's target and air friction; the globals come back. */
@@ -3487,6 +3539,8 @@ int main(void)
     line_2d();
     hazard_hitboxes();
     air_jump();
+    ground_slam();
+    finish_top();
     coco_jump();
     coco_run();
     mech_stand_jump();

@@ -45,6 +45,7 @@ typedef struct NwSettings {
     bool hub_gem;
     bool first_boss_cut;
     bool vehicle_hints;
+    bool bug_fixes;
     int master_volume;   /* [audio], 0-100 over the game's own volumes: everything */
     int voice_volume;    /* the voice stream (cutscenes, hints) */
     bool discord;        /* [discord]: Rich Presence on the player's profile */

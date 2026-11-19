@@ -794,8 +794,10 @@ int NuHGobjRndrMtxDwa(struct NUHGOBJ_s *hobj, struct numtx_s *wm, int nlayers, s
     struct numtx_s mtx;
     int rv = 0;
     NwInterpScope scope = nw_interp_begin(wm, hobj);
+    nw_rndr_model_begin(wm);
     int vis = NuCameraClipTestExtents(&hobj->bbox_min, &hobj->bbox_max, wm);
     if (vis == 0) {
+        nw_rndr_model_end();
         nw_interp_end(scope);
         return 0;
     }
@@ -847,6 +849,7 @@ int NuHGobjRndrMtxDwa(struct NUHGOBJ_s *hobj, struct numtx_s *wm, int nlayers, s
             }
         }
     }
+    nw_rndr_model_end();
     nw_interp_end(scope);
     return rv;
 }

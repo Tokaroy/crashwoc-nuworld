@@ -6,6 +6,7 @@
 
 #include <SDL3/SDL.h>
 
+#include "gameplay/gameplay.h"
 #include "gfx/rndr.h"
 #include "nw_convert.h"
 #include "port/heap.h"
@@ -129,13 +130,15 @@ void ShadRndr(struct numtx_s *mtx, struct shadentry_s *shad, f32 frame, f32 scal
     int pal = n & 3;
     n >>= 2;
     int col = n % shad->xframes, row = n / shad->xframes;
+    float shrink = 1.0f;
+    uint32_t silhouette = nw_profile.bug_fixes ? nw_rndr_silhouette(mtx, &shrink) : 0;
     memset(vtx, 0, sizeof(vtx));
     for (int k = 0; k < 4; k++) {
         vtx[k].pnt.x = corner[k][0];
         vtx[k].pnt.z = corner[k][1];
         vtx[k].diffuse = (int)shadcol;
-        vtx[k].tc[0] = (col + (k & 1)) * du;
-        vtx[k].tc[1] = (row + (k >> 1)) * dv;
+        vtx[k].tc[0] = silhouette ? (f32)(k & 1) : (col + (k & 1)) * du;
+        vtx[k].tc[1] = silhouette ? (f32)(k >> 1) : (row + (k >> 1)) * dv;
     }
     m = *mtx;
     for (int r = 0; r < 3; r++) {
@@ -146,5 +149,11 @@ void ShadRndr(struct numtx_s *mtx, struct shadentry_s *shad, f32 frame, f32 scal
     struct rndrstream_s *rs = &shad->mtl->rs;
     NuRndrStreamAddMtl(rs, shad->mtl);
     NwCmd *c = nw_rndr_strip(vtx, 4, &m, rs);
-    c->clut = palids[pal] ? nw_rndr_texture(palids[pal]) : NULL;
+    if (silhouette) {
+        NW_DEVIATION(bug_fixes);
+        c->silhouette = silhouette;
+        c->silhouette_scale = shrink;
+    } else {
+        c->clut = palids[pal] ? nw_rndr_texture(palids[pal]) : NULL;
+    }
 }

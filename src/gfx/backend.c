@@ -18,6 +18,8 @@
 #include "platform/paths.h"
 
 #define NW_BE_SURFS 16
+#define NW_BE_SILHOUETTES 64
+#define NW_BE_SILHOUETTE_SIZES 4
 
 /* A GS surface (back or front buffer, render target) as a power-of-two texture at scale n, GS row y at rows from
    n * (th - 1 - y). */
@@ -69,6 +71,10 @@ static struct {
     GLuint present_prog, present_vao;
     GLint present_rect, present_level;
     bool checked; /* glGetError after the first packet run */
+    GLuint sil_tex[NW_BE_SILHOUETTES][NW_BE_SILHOUETTE_SIZES], sil_fbo[NW_BE_SILHOUETTES][NW_BE_SILHOUETTE_SIZES];
+    uint32_t sil_id[NW_BE_SILHOUETTES];
+    int sil_level[NW_BE_SILHOUETTES];
+    uint32_t nsil;
 } nw_be;
 
 /* A command with no material: GS defaults, untextured. */
@@ -285,6 +291,8 @@ void nw_backend_shutdown(void)
     glDeleteBuffers(1, &nw_be.ptl_vbo);
     glDeleteProgram(nw_be.present_prog);
     glDeleteVertexArrays(1, &nw_be.present_vao);
+    glDeleteFramebuffers(NW_BE_SILHOUETTES * NW_BE_SILHOUETTE_SIZES, nw_be.sil_fbo[0]);
+    glDeleteTextures(NW_BE_SILHOUETTES * NW_BE_SILHOUETTE_SIZES, nw_be.sil_tex[0]);
     nw_vu_shutdown();
     SDL_free(nw_be.jobs);
     SDL_free(nw_be.rect_verts);
@@ -811,6 +819,149 @@ static void nw_be_object(const NwPacket *p, const NwCmd *c, NwVuProgram program,
     }
 }
 
+static bool nw_be_silhouette_proj(const NwCmd *q, float proj[16])
+{
+    const float *l = q->local;
+    float x[3] = { l[0], l[1], l[2] }, z[3] = { l[8], l[9], l[10] };
+    float y[3] = { x[1] * z[2] - x[2] * z[1], x[2] * z[0] - x[0] * z[2], x[0] * z[1] - x[1] * z[0] };
+    float det = x[0] * (y[1] * z[2] - y[2] * z[1]) - x[1] * (y[0] * z[2] - y[2] * z[0]) +
+                x[2] * (y[0] * z[1] - y[1] * z[0]);
+    if (det == 0.0f || q->silhouette_scale <= 0.0f) {
+        return false;
+    }
+    float f = q->silhouette_scale;
+    float r[3][3] = { { x[0], x[1], x[2] }, { y[0], y[1], y[2] }, { z[0], z[1], z[2] } };
+    float inv[3][3];
+    for (int i = 0; i < 3; i++) {
+        for (int j = 0; j < 3; j++) {
+            int i1 = (i + 1) % 3, i2 = (i + 2) % 3, j1 = (j + 1) % 3, j2 = (j + 2) % 3;
+            inv[j][i] = (r[i1][j1] * r[i2][j2] - r[i1][j2] * r[i2][j1]) / det;
+        }
+    }
+    memset(proj, 0, 16 * sizeof(float));
+    for (int i = 0; i < 3; i++) {
+        proj[i * 4 + 0] = f * inv[i][0];
+        proj[i * 4 + 1] = f * inv[i][2];
+    }
+    proj[12] = -f * (l[12] * inv[0][0] + l[13] * inv[1][0] + l[14] * inv[2][0]);
+    proj[13] = -f * (l[12] * inv[0][2] + l[13] * inv[1][2] + l[14] * inv[2][2]);
+    proj[15] = 1.0f;
+    return true;
+}
+
+static int nw_be_silhouette_level(const NwPacket *p, const NwCmd *q)
+{
+    static const float corner[3][2] = { { -1.0f, 1.0f }, { 1.0f, 1.0f }, { -1.0f, -1.0f } };
+    NwVuObject o;
+    nw_be_object(p, q, NW_VU_TRICU, &o);
+    float px[3][2];
+    for (int k = 0; k < 3; k++) {
+        float clip[4];
+        for (int c = 0; c < 4; c++) {
+            clip[c] = corner[k][0] * o.lv[c] + corner[k][1] * o.lv[8 + c] + o.lv[12 + c];
+        }
+        if (clip[3] <= 1e-6f) {
+            return NW_BE_SILHOUETTE_SIZES - 1;
+        }
+        px[k][0] = clip[0] / clip[3] * 0.5f * (float)(nw_be.width * nw_be.target->n);
+        px[k][1] = clip[1] / clip[3] * 0.5f * (float)(nw_be.height * nw_be.target->n);
+    }
+    float extent = SDL_max(SDL_sqrtf((px[1][0] - px[0][0]) * (px[1][0] - px[0][0]) +
+                                     (px[1][1] - px[0][1]) * (px[1][1] - px[0][1])),
+                           SDL_sqrtf((px[2][0] - px[0][0]) * (px[2][0] - px[0][0]) +
+                                     (px[2][1] - px[0][1]) * (px[2][1] - px[0][1])));
+    int level = 0;
+    while (level < NW_BE_SILHOUETTE_SIZES - 1 && (float)(64 << level) < extent) {
+        level++;
+    }
+    return level;
+}
+
+static void nw_be_silhouette_part(const NwPacket *p, const NwCmd *c, const float proj[16])
+{
+    float lv[16];
+    for (int i = 0; i < 4; i++) {
+        for (int j = 0; j < 4; j++) {
+            lv[i * 4 + j] = c->local[i * 4] * proj[j] + c->local[i * 4 + 1] * proj[4 + j] +
+                            c->local[i * 4 + 2] * proj[8 + j] + c->local[i * 4 + 3] * proj[12 + j];
+        }
+    }
+    if (c->op == NW_CMD_SKIN) {
+        const NwGpuSkin *s = c->skin;
+        if (!s || !s->vao || c->first + c->count > p->njoints) {
+            return;
+        }
+        nw_vu_silhouette(true, lv, c->first);
+        glBindVertexArray(s->vao);
+        glDrawElements(GL_TRIANGLES, (GLsizei)(s->skin.ntris * 3), GL_UNSIGNED_INT, NULL);
+        return;
+    }
+    const NwGpuMesh *mesh = c->mesh;
+    if (!mesh || !mesh->vao) {
+        return;
+    }
+    nw_vu_silhouette(false, lv, 0);
+    glBindVertexArray(mesh->vao);
+    if (c->op == NW_CMD_DRAW_OT) {
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, nw_be.ot_ibo);
+        glDrawElements(GL_TRIANGLES, (GLsizei)c->count, GL_UNSIGNED_INT,
+                       (const void *)(uintptr_t)(c->first * sizeof(uint32_t)));
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh->ibo);
+    } else {
+        glDrawElements(GL_TRIANGLES, (GLsizei)(mesh->mesh.ntris * 3), GL_UNSIGNED_INT, NULL);
+    }
+}
+
+static void nw_be_silhouettes(const NwPacket *p)
+{
+    nw_be.nsil = 0;
+    for (uint32_t i = 0; i < p->ncmds && nw_be.nsil < NW_BE_SILHOUETTES; i++) {
+        const NwCmd *q = &p->cmds[i];
+        float proj[16];
+        if (q->op != NW_CMD_VERTS || !q->silhouette || !nw_be_silhouette_proj(q, proj)) {
+            continue;
+        }
+        if (!nw_be.nsil) {
+            glDisable(GL_DEPTH_TEST);
+            glDisable(GL_BLEND);
+            glDisable(GL_STENCIL_TEST);
+            glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+            glDepthMask(GL_FALSE);
+            glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+        }
+        uint32_t slot = nw_be.nsil++;
+        int level = nw_be_silhouette_level(p, q), size = 64 << level;
+        GLuint *tex = &nw_be.sil_tex[slot][level], *fbo = &nw_be.sil_fbo[slot][level];
+        if (!*tex) {
+            glGenTextures(1, tex);
+            glBindTexture(GL_TEXTURE_2D, *tex);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, size, size, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+            glGenFramebuffers(1, fbo);
+            glBindFramebuffer(GL_FRAMEBUFFER, *fbo);
+            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, *tex, 0);
+        }
+        nw_be.sil_id[slot] = q->silhouette;
+        nw_be.sil_level[slot] = level;
+        glBindFramebuffer(GL_FRAMEBUFFER, *fbo);
+        glViewport(0, 0, size, size);
+        glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+        glClear(GL_COLOR_BUFFER_BIT);
+        for (uint32_t j = 0; j < p->ncmds; j++) {
+            const NwCmd *c = &p->cmds[j];
+            if (c->silhouette == q->silhouette &&
+                (c->op == NW_CMD_DRAW || c->op == NW_CMD_DRAW_OT || c->op == NW_CMD_SKIN)) {
+                nw_be_silhouette_part(p, c, proj);
+            }
+        }
+        glBindTexture(GL_TEXTURE_2D, *tex);
+        glGenerateMipmap(GL_TEXTURE_2D);
+    }
+}
+
 /* A VERTS command's triangles, drawn by its NwVertsMode. */
 static void nw_be_tris(const NwPacket *p, const NwCmd *c)
 {
@@ -832,6 +983,20 @@ static void nw_be_tris(const NwPacket *p, const NwCmd *c)
         nw_be_object(p, c, program, &o);
     }
     NwVuMaterial m = nw_be_material(p, c, false);
+    NwVuTexture silhouette;
+    if (c->silhouette) {
+        uint32_t s = 0;
+        while (s < nw_be.nsil && nw_be.sil_id[s] != c->silhouette) {
+            s++;
+        }
+        if (s == nw_be.nsil) {
+            return;
+        }
+        silhouette = (NwVuTexture){
+            .index = nw_be.sil_tex[s][nw_be.sil_level[s]], .tcc = true, .surface = true, .filtered = true
+        };
+        m.tex = &silhouette;
+    }
     if (c->alpha) {
         m.state.alpha = (uint8_t)c->alpha;
     }
@@ -1319,6 +1484,12 @@ static void nw_be_run(const NwPacket *p, NwBeSurf *back)
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, nw_be.ot_ibo);
         glBufferData(GL_ELEMENT_ARRAY_BUFFER, (GLsizeiptr)p->nidx * (GLsizeiptr)sizeof(uint32_t), p->idx,
                      GL_STREAM_DRAW);
+    }
+    nw_be_silhouettes(p);
+    if (nw_be.nsil) {
+        nw_be_bind(back, nw_be.shown_w, nw_be.shown_h);
+        glEnable(GL_DEPTH_TEST);
+        glPolygonMode(GL_FRONT_AND_BACK, nw_be.wireframe ? GL_LINE : GL_FILL);
     }
     uint32_t rects = 0;
     nw_be.nheld = 0;
