@@ -20,6 +20,7 @@ void Text3D(char *txt, f32 x, f32 y, f32 z, f32 scalex, f32 scaley, f32 scalez, 
 #define NW_VEHICLE_HINT_SIZE 0.45f
 #define NW_VEHICLE_HINT_WIDTH 0.8f
 #define NW_VEHICLE_HINT_NOTE 0.7f
+#define NW_VEHICLE_HINT_SEEN_HUB 0
 #define NW_VEHICLE_HINT_AIRSHIP 0x24
 
 enum {
@@ -98,26 +99,44 @@ static struct {
     int frames;
 } nw_vehicle_hint = { -1, 0 };
 
+static int nw_vehicle_hints_find(int ride)
+{
+    for (int i = 0; i < (int)SDL_arraysize(nw_vehicle_hints); i++) {
+        if (nw_vehicle_hints[i].ride == ride) {
+            return i;
+        }
+    }
+    return -1;
+}
+
 int nw_vehicle_hints_lines(int ride, char lines[NW_VEHICLE_HINT_LINES][NW_VEHICLE_HINT_TEXT])
 {
     u32 l = (u32)Game.language;
-    if (l >= 6 || Level == NW_VEHICLE_HINT_AIRSHIP) {
+    int k = nw_vehicle_hints_find(ride);
+    if (l >= 6 || Level == NW_VEHICLE_HINT_AIRSHIP || k < 0) {
         return 0;
     }
-    for (size_t i = 0; i < SDL_arraysize(nw_vehicle_hints); i++) {
-        const NwVehicleHint *h = &nw_vehicle_hints[i];
-        if (h->ride != ride) {
-            continue;
-        }
-        int n = 0;
-        while (n < NW_VEHICLE_HINT_LINES && h->line[n].glyphs) {
-            SDL_snprintf(lines[n], NW_VEHICLE_HINT_TEXT, *h->line[n].glyphs ? "%s %s" : "%s",
-                         nw_vehicle_hint_action[h->line[n].action][l], h->line[n].glyphs);
-            n++;
-        }
-        return n;
+    const NwVehicleHint *h = &nw_vehicle_hints[k];
+    int n = 0;
+    while (n < NW_VEHICLE_HINT_LINES && h->line[n].glyphs) {
+        SDL_snprintf(lines[n], NW_VEHICLE_HINT_TEXT, *h->line[n].glyphs ? "%s %s" : "%s",
+                     nw_vehicle_hint_action[h->line[n].action][l], h->line[n].glyphs);
+        n++;
     }
-    return 0;
+    return n;
+}
+
+static u32 nw_vehicle_hints_seen(void)
+{
+    const struct hub_s *h = &Game.hub[NW_VEHICLE_HINT_SEEN_HUB];
+    return (u8)h->pad1 | (u32)(u8)h->pad2 << 8;
+}
+
+static void nw_vehicle_hints_mark(int k)
+{
+    u32 seen = nw_vehicle_hints_seen() | 1u << k;
+    Game.hub[NW_VEHICLE_HINT_SEEN_HUB].pad1 = (char)(seen & 0xFF);
+    Game.hub[NW_VEHICLE_HINT_SEEN_HUB].pad2 = (char)(seen >> 8);
 }
 
 static int nw_vehicle_hints_ride(void)
@@ -160,7 +179,8 @@ void nw_vehicle_hints_draw(void)
         nw_vehicle_hint.frames = 0;
     }
     int total = NW_VEHICLE_HINT_SECONDS * NW_HZ(50, 60);
-    if (ride == -1 || Cursor.menu != -1 || nw_vehicle_hint.frames >= total) {
+    int k = nw_vehicle_hints_find(ride);
+    if (k < 0 || Cursor.menu != -1 || (nw_vehicle_hints_seen() >> k & 1)) {
         return;
     }
     char lines[NW_VEHICLE_HINT_LINES][NW_VEHICLE_HINT_TEXT];
@@ -170,6 +190,9 @@ void nw_vehicle_hints_draw(void)
     }
     NW_DEVIATION(vehicle_hints);
     int frames = nw_vehicle_hint.frames++;
+    if (nw_vehicle_hint.frames >= total) {
+        nw_vehicle_hints_mark(k);
+    }
     f32 w = 0.0f;
     for (int i = 0; i < n; i++) {
         w = SDL_max(w, nw_vehicle_hints_width(lines[i]));

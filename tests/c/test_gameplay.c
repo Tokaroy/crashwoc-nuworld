@@ -3379,6 +3379,64 @@ static void boss_cut(void)
     gamecut_newlevel = cut_next;
 }
 
+static void vehicle_hints_once(void)
+{
+    struct cursor_s cursor = Cursor;
+    struct creature_s crash = Character[0], *who = player;
+    struct game_s game = Game;
+    NwProfile profile = nw_profile;
+    s32 count = PLAYERCOUNT, control = VEHICLECONTROL;
+    f32 time = vtog_time, duration = vtog_duration;
+    nw_hz_set(50);
+    nw_profile_apply(&(NwProfile){ .vehicle_hints = true });
+    memset(&Game.hub[0], 0, sizeof(Game.hub[0]));
+    memset(&Character[0], 0, sizeof(Character[0]));
+    player = &Character[0];
+    PLAYERCOUNT = 1;
+    VEHICLECONTROL = 1;
+    vtog_time = vtog_duration = 1.0f;
+    Cursor.menu = -1;
+    Game.language = 0;
+
+    Character[0].obj.vehicle = 0x6B;
+    nw_vehicle_hints_reset();
+    for (int i = 1; i < 8 * 50; i++) {
+        nw_vehicle_hints_draw();
+    }
+    CHECK(Game.hub[0].pad1 == 0);
+    nw_vehicle_hints_draw();
+    CHECK(Game.hub[0].pad1 == 1 && Game.hub[0].pad2 == 0);
+
+    Character[0].obj.vehicle = 0x36;
+    nw_vehicle_hints_reset();
+    for (int i = 0; i < 8 * 50; i++) {
+        nw_vehicle_hints_draw();
+    }
+    CHECK(Game.hub[0].pad1 == 1 && Game.hub[0].pad2 == 2);
+    Character[0].obj.vehicle = 0x6B;
+    nw_vehicle_hints_reset();
+    nw_vehicle_hints_draw();
+    CHECK(Game.hub[0].pad1 == 1 && Game.hub[0].pad2 == 2);
+
+    memset(&Game.hub[0], 0, sizeof(Game.hub[0]));
+    nw_profile_apply(&(NwProfile){ 0 });
+    nw_vehicle_hints_reset();
+    for (int i = 0; i < 8 * 50; i++) {
+        nw_vehicle_hints_draw();
+    }
+    CHECK(Game.hub[0].pad1 == 0);
+
+    Cursor = cursor;
+    Character[0] = crash;
+    player = who;
+    Game = game;
+    nw_profile = profile;
+    PLAYERCOUNT = count;
+    VEHICLECONTROL = control;
+    vtog_time = time;
+    vtog_duration = duration;
+}
+
 int main(void)
 {
     NuTrigInit();
@@ -3388,6 +3446,7 @@ int main(void)
     air_indicator();
     boss_health();
     vehicle_hints();
+    vehicle_hints_once();
     steadycam();
     jump_fall();
     jump_fall_moves();
