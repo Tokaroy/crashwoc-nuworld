@@ -155,6 +155,38 @@ NwWaves *nw_packet_waves(NwPacket *p, uint32_t *index)
     return &p->waves[p->nwaves++];
 }
 
+NwBody *nw_packet_body(NwPacket *p, uint32_t n, uint32_t *index, int8_t **parents)
+{
+    if (!nw_packet_grow((void **)&p->bodies, &p->bodycap, p->nbodies, sizeof(*p->bodies))) {
+        return NULL;
+    }
+    if (p->nbones + n > p->bonecap) {
+        uint32_t cap = p->bonecap ? p->bonecap : 256;
+        while (cap < p->nbones + n) {
+            cap *= 2;
+        }
+        void *bones = SDL_realloc(p->bones, cap * sizeof(*p->bones));
+        if (bones) {
+            p->bones = bones;
+        }
+        void *up = SDL_realloc(p->parents, cap * sizeof(*p->parents));
+        if (up) {
+            p->parents = up;
+        }
+        if (!bones || !up) {
+            return NULL;
+        }
+        p->bonecap = cap;
+    }
+    NwBody *b = &p->bodies[p->nbodies];
+    b->first = p->nbones;
+    b->count = n;
+    *parents = n ? p->parents + p->nbones : NULL;
+    *index = p->nbodies++;
+    p->nbones += n;
+    return b;
+}
+
 void nw_packet_reset(NwPacket *p)
 {
     p->seq = 0;
@@ -173,6 +205,8 @@ void nw_packet_reset(NwPacket *p)
     p->nptls = 0;
     p->nzcluts = 0;
     p->nwaves = 0;
+    p->nbodies = 0;
+    p->nbones = 0;
 }
 
 NwPacket *nw_packet_building(void)

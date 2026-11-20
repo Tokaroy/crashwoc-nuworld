@@ -223,7 +223,7 @@ NwRecord *nw_rndr_record(NwCmdOp op, struct numtl_s *mtl, const void *mpg, int m
         nw_model_parts++;
     }
     r->cmd.op = (uint8_t)op;
-    r->cmd.key = nw_interp_cmd(op);
+    nw_interp_cmd(&r->cmd);
     r->cmd.material = mtl;
     r->cmd.mpg = mpg;
     memcpy(r->cmd.local, nw_local, sizeof(nw_local));
@@ -639,7 +639,6 @@ int NuRndrSetViewMtx(struct numtx_s *vm, struct numtx_s *pm, struct numtx_s *cli
     memcpy(nw_view.vs, vm, sizeof(nw_view.vs));
     memcpy(nw_view.cam, &global_camera.mtx, sizeof(nw_view.cam));
     memcpy(nw_view.camscale, &global_camera.scale, sizeof(nw_view.camscale));
-    nw_view.key = nw_interp_view();
     nw_view_snap = NULL;
     return 1;
 }
