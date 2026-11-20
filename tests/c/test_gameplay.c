@@ -995,6 +995,49 @@ static void slide(void)
     }
 }
 
+static void slide_steer(void)
+{
+    NwProfile retail = { 0 }, on = ONLY(slide);
+    struct creature_s *c = &Character[0];
+    u16 right = (u16)NuAtan2D(1.0f, 0.0f);
+    on.movement.crash.slide_steer = 180;
+    crash_at(50, &on);
+    GameCam[0].yrot = 0;
+    c->slide = 10;
+    c->obj.pad_dx = 1.0f;
+    loop_forward(0.11f, 0.11f);
+    CHECK(c->obj.thdg == 655);
+    for (int i = 0; i < 30; i++) {
+        loop_forward(0.11f, 0.11f);
+    }
+    CHECK(c->obj.thdg == right);
+    c->obj.pad_dx = -1.0f;
+    loop_forward(0.11f, 0.11f);
+    CHECK(c->obj.thdg == right - 655);
+    loop_forward(0.11f, 0.0f);
+    CHECK(c->obj.thdg == right - 655);
+    c->slide = 0;
+    loop_forward(0.11f, 0.11f);
+    CHECK(c->obj.thdg == right - 655);
+
+    crash_at(60, &on);
+    c->slide = 10;
+    c->obj.pad_dx = 1.0f;
+    loop_forward(0.11f, 0.11f);
+    CHECK(c->obj.thdg == 546);
+    on.movement.crash.slide_steer = 0;
+    crash_at(50, &on);
+    c->slide = 10;
+    c->obj.pad_dx = 1.0f;
+    loop_forward(0.11f, 0.11f);
+    CHECK(c->obj.thdg == 0);
+    crash_at(50, &retail);
+    c->slide = 10;
+    c->obj.pad_dx = 1.0f;
+    loop_forward(0.11f, 0.11f);
+    CHECK(c->obj.thdg == 0);
+}
+
 static void spin_move(void)
 {
     struct creature_s *c = &Character[0];
@@ -3405,6 +3448,7 @@ int main(void)
     grip();
     long_spin();
     slide();
+    slide_steer();
     slide_spin();
     edge_grip();
     line_2d();

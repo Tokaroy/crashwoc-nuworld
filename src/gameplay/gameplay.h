@@ -30,6 +30,7 @@
     FLAG(slide_cancel, "Let go to stand up", false, "releasing crouch ends the slide") \
     VAL(slide_min_ms, "Shortest slide ms", 300, 0, 400, "minimum length when crouch is released") \
     VAL(slide_jump, "Slide jump speed kept %", 0, 0, 100, "share of slide speed kept when jumping out of it") \
+    VAL(slide_steer, "Slide steering deg/s", 180, 0, 720, "turn speed toward the stick while sliding; PS2: 0") \
     SW(slide_spin, "Crash slide spin", true, "a spin out of a slide keeps its speed and leans forward") \
     VAL(slide_spin_kept, "Spin speed %", 110, 50, 150, "% of the slide's speed, held while the spin lasts") \
     VAL(slide_spin_late_ms, "Late spin ms", 10, 0, 300, "how long after the slide a spin still counts") \

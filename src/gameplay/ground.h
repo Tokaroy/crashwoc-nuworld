@@ -1,12 +1,16 @@
 #ifndef NUWORLD_GAMEPLAY_GROUND_H
 #define NUWORLD_GAMEPLAY_GROUND_H
 
+#include "game/gametypes.h"
+
 struct creature_s;
 struct nupad_s;
 
 void nw_ground_apply(void);
-/* LoadCharacterModels, after retail: it sets the slide's length from Crash's animation. */
+/* LoadCharacterModels after*/
 void nw_ground_loaded(void);
+/* MoveLoopXZ, before retail: turns the slide's heading toward the stick. */
+void nw_ground_steer(const struct creature_s *plr, u16 *hdg);
 /* MoveLoopXZ, before retail; forward is his speed along the stick. */
 void nw_ground_loop(const struct creature_s *plr, float forward);
 /* MoveCRASH, around retail. */

@@ -7,12 +7,15 @@
 #include "gameplay/crash.h"
 #include "gameplay/gameplay.h"
 #include "nu_port.h"
+#include "numath/nutrig.h"
+#include "numath/nuvec.h"
 #include "nups2/ps2ctl.h"
 
 /* Declared by no header. */
 extern struct MoveInfo CrashMoveInfo;
 extern struct MoveInfo CocoMoveInfo;
 extern struct tersurface_s TerSurface[];
+extern struct cammtx_s GameCam[];
 extern f32 in_speed;
 extern f32 in_f_friction;
 extern f32 in_s_friction;
@@ -147,6 +150,20 @@ void nw_ground_after(struct creature_s *plr)
         plr->obj.mom.x = nw_ground_mom.x;
         plr->obj.mom.z = nw_ground_mom.z;
     }
+}
+
+void nw_ground_steer(const struct creature_s *plr, u16 *hdg)
+{
+    const NwCrashMovement *c = &nw_profile.movement.crash;
+    if (!c->slide || c->slide_steer <= 0 || !hdg || !plr->slide || plr->obj.pad_speed <= 0.0f) {
+        return;
+    }
+    NW_DEVIATION(movement.crash.slide);
+    struct nuvec_s in = { plr->obj.pad_dx, 0.0f, plr->obj.pad_dz };
+    NuVecRotateY(&in, &in, GameCam[0].yrot);
+    short off = (short)(u16)(NuAtan2D(in.x, in.z) - *hdg);
+    int step = (int)(c->slide_steer * (65536.0f / 360.0f) / NW_HZ(50, 60) + 0.5f);
+    *hdg = (u16)(*hdg + (off > step ? step : off < -step ? -step : off));
 }
 
 void nw_ground_loop(const struct creature_s *plr, float forward)
