@@ -46,7 +46,8 @@
 ^func:game/camera/MoveGameCamera@\w+\+0x[0-9a-f]+ imm (19|2[0-9]|30) -> (2[0-9]|3[0-2])$  # menu ids (Cursor.menu/new_menu of the hub menus that select the hub menu camera): the late revision's two new menus shift them; NuWorld keeps PAL v1.03's
 ^func:game/game_obj/CrateCollisions@usa101\+0x[0-9a-f]+ off (340 -> 344|344 -> 348|348 -> 340)$  # register allocation: USA v1.01 orders the stack spill slots (loop count, next group, &obj->pos) differently
 ^func:game/camera/MoveGameCamera@pal201 structure$  # the late hub-camera menu list also holds the new menu 25, which neither late build ever opens; US v1.01 only, taken as canonical: anim, cam_angle and iSPL start set and the Level 0x23 intro camera tests anim
-^func:game/game/GameTiming@pal201 structure$  # US v1.01 only, taken as canonical: the time trial timer clamped at 179997 and the jingle without + Game.language; PAL v2.01 keeps v1.03's code
+^func:game/game/GameTiming@pal201 structure$  # US v1.01 only, taken as canonical: the time trial timer clamped at 179997; PAL v2.01 keeps v1.03's code
+^func:game/game/GameTiming@usa101 structure$  # the level intro voice keeps PAL's sfx + Game.language (PAL v2.01 too): US v1.01 dropped it with its languages, NuWorld keeps the PAL ones
 ^func:game/game/AddKaboom@pal201 structure$  # US v1.01 only, taken as canonical: rate defaults to 3.0f before the switch; PAL v2.01 keeps v1.03's code
 ^func:game/game/UpdateMask@\w+\+0x[0-9a-f]+ imm 33 -> 35$  # menu ids: the late revision's two new menus shift them; NuWorld keeps PAL v1.03's
 ^func:game/game/UpdateMask@pal201 structure$  # register allocation: the camera-relative mask position sums use swapped float registers; US v1.01 only, taken as canonical: target starts at the mask's yrot in the mask panel menu (never read before it is set)

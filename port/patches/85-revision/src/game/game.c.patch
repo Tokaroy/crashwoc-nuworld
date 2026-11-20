@@ -346,15 +346,6 @@
              }
              timetrial_frame++;
          }
-@@ -4936,7 +5063,7 @@ void GameTiming(void) {
-             }
-             if (sfx != -1) {
-                 gamesfx_channel = 4;
--                GameSfx(sfx + Game.language, NULL);
-+                GameSfx(NW_REV(sfx + Game.language, sfx), NULL);
-             }
-         }
-         flash = 0;
 @@ -4944,6 +5071,11 @@ void GameTiming(void) {
              flash = (finish_frame % 50 > 36) ? 0 : player->obj.finished;
          }
