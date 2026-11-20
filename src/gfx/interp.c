@@ -1,6 +1,7 @@
 #include "gfx/interp.h"
 
 #include <math.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include <SDL3/SDL.h>
@@ -13,137 +14,22 @@ static uint64_t nw_mix(uint64_t h, uint64_t v)
     return h ^ (h >> 29);
 }
 
-/* Game thread. */
-static struct {
-    const void *tag;
-    const void *owner;
-    uint64_t place;
-    uint64_t obj;
-    uint32_t at, n;
-    uint32_t views;
-    uint32_t frame;
-    bool snap;
-    uint64_t *seen; /* the frame's object bases, open addressing; 0 free */
-    uint32_t *count;
-    uint32_t cap, used;
-} nw_ik;
-
-static uint32_t nw_interp_ordinal(uint64_t base)
+static bool nw_grow(void **items, uint32_t *cap, uint32_t n, size_t size)
 {
-    if (nw_ik.used * 2 >= nw_ik.cap) {
-        uint32_t cap = nw_ik.cap ? nw_ik.cap * 2 : 1024;
-        uint64_t *seen = SDL_calloc(cap, sizeof(*seen));
-        uint32_t *count = SDL_calloc(cap, sizeof(*count));
-        if (!seen || !count) {
-            SDL_free(seen);
-            SDL_free(count);
-            return 0;
-        }
-        for (uint32_t i = 0; i < nw_ik.cap; i++) {
-            if (nw_ik.seen[i]) {
-                uint32_t h = (uint32_t)nw_ik.seen[i] & (cap - 1);
-                while (seen[h]) {
-                    h = (h + 1) & (cap - 1);
-                }
-                seen[h] = nw_ik.seen[i];
-                count[h] = nw_ik.count[i];
-            }
-        }
-        SDL_free(nw_ik.seen);
-        SDL_free(nw_ik.count);
-        nw_ik.seen = seen;
-        nw_ik.count = count;
-        nw_ik.cap = cap;
+    if (n <= *cap) {
+        return true;
     }
-    uint32_t h = (uint32_t)base & (nw_ik.cap - 1);
-    while (nw_ik.seen[h] && nw_ik.seen[h] != base) {
-        h = (h + 1) & (nw_ik.cap - 1);
+    uint32_t c = *cap ? *cap : 256;
+    while (c < n) {
+        c *= 2;
     }
-    if (!nw_ik.seen[h]) {
-        nw_ik.seen[h] = base;
-        nw_ik.used++;
+    void *grown = SDL_realloc(*items, (size_t)c * size);
+    if (!grown) {
+        return false;
     }
-    return nw_ik.count[h]++;
-}
-
-NwInterpScope nw_interp_begin(const void *src, const void *obj)
-{
-    NwInterpScope was = { nw_ik.obj, nw_ik.at, nw_ik.n };
-    uint64_t key;
-    if (nw_ik.obj) {
-        key = nw_mix(nw_mix(nw_ik.obj, nw_ik.at), (uintptr_t)obj);
-    } else {
-        uint64_t base = nw_ik.owner ? nw_mix(nw_mix(2, (uintptr_t)nw_ik.owner), nw_ik.place)
-                                    : nw_mix(nw_mix(nw_mix(1, (uintptr_t)nw_ik.tag), (uintptr_t)src), (uintptr_t)obj);
-        base += !base;
-        key = nw_mix(base, nw_interp_ordinal(base));
-    }
-    nw_ik.obj = key + !key;
-    nw_ik.at = 0;
-    nw_ik.n = 0;
-    return was;
-}
-
-void nw_interp_end(NwInterpScope was)
-{
-    nw_ik.obj = was.obj;
-    nw_ik.at = was.at;
-    nw_ik.n = was.n;
-}
-
-void nw_interp_at(uint32_t a, uint32_t b, uint32_t c)
-{
-    nw_ik.at = (uint32_t)nw_mix(nw_mix(a, b), c);
-    nw_ik.n = 0;
-}
-
-uint64_t nw_interp_cmd(NwCmdOp op)
-{
-    if (!nw_ik.obj || op == NW_CMD_CLEAR || op == NW_CMD_RECT || op == NW_CMD_TARGET || op == NW_CMD_VOLUMES ||
-        op == NW_CMD_WAVES) {
-        return 0;
-    }
-    uint64_t key = nw_mix(nw_mix(nw_mix(nw_ik.obj, nw_ik.at), nw_ik.n++), op);
-    return key + !key;
-}
-
-uint32_t nw_interp_view(void)
-{
-    return ++nw_ik.views;
-}
-
-void nw_interp_publish(NwPacket *p)
-{
-    p->snap = nw_ik.snap;
-    nw_ik.snap = false;
-    nw_ik.views = 0;
-    nw_ik.frame++;
-    if (nw_ik.used) {
-        memset(nw_ik.seen, 0, nw_ik.cap * sizeof(*nw_ik.seen));
-        memset(nw_ik.count, 0, nw_ik.cap * sizeof(*nw_ik.count));
-        nw_ik.used = 0;
-    }
-}
-
-void nw_interp_key(const void *key)
-{
-    nw_ik.tag = key;
-}
-
-void nw_interp_slot(const void *owner, unsigned long long place)
-{
-    nw_ik.owner = owner;
-    nw_ik.place = place;
-}
-
-uint32_t nw_interp_frame(void)
-{
-    return nw_ik.frame;
-}
-
-void nw_interp_snap(void)
-{
-    nw_ik.snap = true;
+    *items = grown;
+    *cap = c;
+    return true;
 }
 
 /* An affine matrix as rotation, axis lengths and position. */
@@ -256,6 +142,13 @@ static void nw_slerp(float out[4], const float a[4], const float b[4], float t)
     }
 }
 
+static float nw_quat_near(const float a[4], const float b[4])
+{
+    return fabsf(a[0] * b[0] + a[1] * b[1] + a[2] * b[2] + a[3] * b[3]);
+}
+
+#define NW_QUARTER_TURN 0.70710678f /* nw_quat_near at 90 degrees */
+
 void nw_interp_mtx(float out[16], const float a[16], const float b[16], float t)
 {
     NwPose pa, pb, o;
@@ -283,12 +176,565 @@ bool nw_interp_jump(const float a[16], const float b[16])
     if (!nw_pose(&pa, a) || !nw_pose(&pb, b)) {
         return false;
     }
-    float d = pa.q[0] * pb.q[0] + pa.q[1] * pb.q[1] + pa.q[2] * pb.q[2] + pa.q[3] * pb.q[3];
-    return fabsf(d) < 0.70710678f;
+    return nw_quat_near(pa.q, pb.q) < NW_QUARTER_TURN;
+}
+
+/* Game thread. */
+#define NW_ROOT 0x243F6A8885A308D3ull
+#define NW_MATCH_MAX 16384u
+#define NW_CAMS 16
+
+typedef struct NwObj {
+    uint64_t base;
+    uint64_t id;
+    uint32_t next; /* 1 + the next of its base */
+    uint32_t body; /* 1 + its packet body; UINT32_MAX: none could be made */
+    uint32_t bones, nbones;
+    float wm[16];
+    float q[4];
+    float vel[3];
+    float radius; /* 0 unknown */
+    float turn;   /* radians; below 0 unknown */
+    bool posed;
+    bool fresh;   /* no step before it: vel is unknown */
+} NwObj;
+
+typedef struct NwGroup {
+    uint64_t base;
+    uint32_t first, last; /* 1 + object */
+    uint32_t count;
+} NwGroup;
+
+typedef struct NwFrame {
+    NwObj *objs;
+    uint32_t n, cap;
+    NwGroup *groups; /* open addressing by base; 0 free */
+    uint32_t gcap, gused;
+} NwFrame;
+
+typedef struct NwCam {
+    float m[16];
+    uint32_t key;
+} NwCam;
+
+typedef struct NwCand {
+    double cost;
+    uint32_t b, a;
+} NwCand;
+
+static struct {
+    const void *tag;
+    const void *owner;
+    uint64_t place;
+    uint64_t obj;   /* 0 outside any scope */
+    uint32_t at, n;
+    uint32_t scope; /* 1 + object */
+    uint16_t joint;
+    uint32_t frame;
+    bool snap;
+    uint64_t serial;
+    NwFrame now, was;
+    float (*bones)[16];
+    int8_t *parents;
+    uint32_t nbones, bonecap, parentcap;
+    NwCam cams[2][NW_CAMS];
+    uint32_t ncams, camkey;
+    uint32_t *ai, *bi;
+    uint32_t aicap, bicap;
+    uint8_t *ta, *tb;
+    uint32_t tacap, tbcap;
+    NwCand *cands;
+    uint32_t candcap;
+} nw_ik;
+
+static const NwGroup *nw_group_find(const NwFrame *f, uint64_t base)
+{
+    if (!f->gused) {
+        return NULL;
+    }
+    uint32_t h = (uint32_t)base & (f->gcap - 1);
+    while (f->groups[h].base && f->groups[h].base != base) {
+        h = (h + 1) & (f->gcap - 1);
+    }
+    return f->groups[h].base ? &f->groups[h] : NULL;
+}
+
+static NwGroup *nw_group_add(NwFrame *f, uint64_t base)
+{
+    if (f->gused * 2 >= f->gcap) {
+        uint32_t cap = f->gcap ? f->gcap * 2 : 1024;
+        NwGroup *groups = SDL_calloc(cap, sizeof(*groups));
+        if (!groups) {
+            return NULL;
+        }
+        for (uint32_t i = 0; i < f->gcap; i++) {
+            if (f->groups[i].base) {
+                uint32_t h = (uint32_t)f->groups[i].base & (cap - 1);
+                while (groups[h].base) {
+                    h = (h + 1) & (cap - 1);
+                }
+                groups[h] = f->groups[i];
+            }
+        }
+        SDL_free(f->groups);
+        f->groups = groups;
+        f->gcap = cap;
+    }
+    uint32_t h = (uint32_t)base & (f->gcap - 1);
+    while (f->groups[h].base && f->groups[h].base != base) {
+        h = (h + 1) & (f->gcap - 1);
+    }
+    if (!f->groups[h].base) {
+        f->groups[h].base = base;
+        f->gused++;
+    }
+    return &f->groups[h];
+}
+
+static uint32_t nw_interp_object(const void *src, const void *obj, const void *pose, float radius)
+{
+    NwFrame *f = &nw_ik.now;
+    if (!pose || !nw_grow((void **)&f->objs, &f->cap, f->n + 1, sizeof(*f->objs))) {
+        return 0;
+    }
+    NwObj *o = &f->objs[f->n];
+    NwPose p;
+    float scale = 1.0f;
+    memset(o, 0, sizeof(*o));
+    memcpy(o->wm, pose, sizeof(o->wm));
+    o->posed = nw_pose(&p, o->wm);
+    if (o->posed) {
+        memcpy(o->q, p.q, sizeof(o->q));
+        scale = SDL_max(fabsf(p.s[0]), SDL_max(p.s[1], p.s[2]));
+    }
+    o->radius = radius * scale;
+    o->turn = -1.0f;
+    o->fresh = true;
+    uint64_t base = nw_ik.owner ? nw_mix(nw_mix(2, (uintptr_t)nw_ik.owner), nw_ik.place)
+                                : nw_mix(nw_mix(nw_mix(1, (uintptr_t)nw_ik.tag), (uintptr_t)src), (uintptr_t)obj);
+    /* A reflection never pairs with what it mirrors. */
+    base = nw_mix(base, o->posed && p.s[0] < 0.0f);
+    base += !base;
+    NwGroup *g = nw_group_add(f, base);
+    if (!g) {
+        return 0;
+    }
+    o->base = base;
+    uint32_t at = ++f->n;
+    if (g->count++) {
+        f->objs[g->last - 1].next = at;
+    } else {
+        g->first = at;
+    }
+    g->last = at;
+    return at;
+}
+
+NwInterpScope nw_interp_begin(const void *src, const void *obj, const void *pose, float radius)
+{
+    NwInterpScope was = { nw_ik.obj, nw_ik.at, nw_ik.n, nw_ik.joint };
+    if (nw_ik.obj) {
+        uint64_t key = nw_mix(nw_mix(nw_ik.obj, nw_ik.at), (uintptr_t)obj);
+        nw_ik.obj = key + !key;
+    } else {
+        nw_ik.scope = nw_interp_object(src, obj, pose, radius);
+        nw_ik.obj = NW_ROOT;
+        nw_ik.joint = NW_JOINT_NONE;
+    }
+    nw_ik.at = 0;
+    nw_ik.n = 0;
+    return was;
+}
+
+void nw_interp_end(NwInterpScope was)
+{
+    nw_ik.obj = was.obj;
+    nw_ik.at = was.at;
+    nw_ik.n = was.n;
+    nw_ik.joint = was.joint;
+    if (!nw_ik.obj) {
+        nw_ik.scope = 0;
+    }
+}
+
+void nw_interp_at(uint32_t a, uint32_t b, uint32_t c)
+{
+    nw_ik.at = (uint32_t)nw_mix(nw_mix(a, b), c);
+    nw_ik.n = 0;
+}
+
+void nw_interp_joints(const void *joints, const void *parents, size_t stride, uint32_t n)
+{
+    if (nw_ik.obj != NW_ROOT || !nw_ik.scope || !n || n >= NW_JOINT_NONE) {
+        return;
+    }
+    NwObj *o = &nw_ik.now.objs[nw_ik.scope - 1];
+    if (o->nbones || !nw_grow((void **)&nw_ik.bones, &nw_ik.bonecap, nw_ik.nbones + n, sizeof(*nw_ik.bones)) ||
+        !nw_grow((void **)&nw_ik.parents, &nw_ik.parentcap, nw_ik.nbones + n, sizeof(*nw_ik.parents))) {
+        return;
+    }
+    memcpy(nw_ik.bones[nw_ik.nbones], joints, (size_t)n * sizeof(*nw_ik.bones));
+    for (uint32_t i = 0; i < n; i++) {
+        nw_ik.parents[nw_ik.nbones + i] = ((const int8_t *)parents)[i * stride];
+    }
+    o->bones = nw_ik.nbones;
+    o->nbones = n;
+    nw_ik.nbones += n;
+}
+
+void nw_interp_joint(uint32_t joint)
+{
+    nw_ik.joint = joint < NW_JOINT_NONE ? (uint16_t)joint : NW_JOINT_NONE;
+}
+
+void nw_interp_cmd(NwCmd *c)
+{
+    NwCmdOp op = (NwCmdOp)c->op;
+    c->key = 0;
+    c->scope = 0;
+    if (!nw_ik.obj || !nw_ik.scope || op == NW_CMD_CLEAR || op == NW_CMD_RECT || op == NW_CMD_TARGET ||
+        op == NW_CMD_VOLUMES || op == NW_CMD_WAVES) {
+        return;
+    }
+    uint64_t key = nw_mix(nw_mix(nw_mix(nw_ik.obj, nw_ik.at), nw_ik.n++), op);
+    c->key = key + !key;
+    c->scope = nw_ik.scope;
+    c->epoch = (uint16_t)nw_ik.frame;
+    c->body = 0;
+    c->joint = nw_ik.joint;
+}
+
+static uint64_t nw_interp_new(uint64_t base)
+{
+    uint64_t id = nw_mix(base, ++nw_ik.serial);
+    return id + !id;
+}
+
+static void nw_interp_fresh(NwObj *b)
+{
+    b->id = nw_interp_new(b->base);
+    b->fresh = true;
+    b->turn = -1.0f;
+    b->vel[0] = b->vel[1] = b->vel[2] = 0.0f;
+}
+
+static bool nw_interp_reach(const NwObj *a, const NwObj *b)
+{
+    float dx = b->wm[12] - a->wm[12], dy = b->wm[13] - a->wm[13], dz = b->wm[14] - a->wm[14];
+    float d2 = dx * dx + dy * dy + dz * dz;
+    if (d2 > NW_INTERP_JUMP * NW_INTERP_JUMP) {
+        return false;
+    }
+    if (a->fresh) {
+        return true;
+    }
+    float r = SDL_max(a->radius, b->radius);
+    float room = r > 0.0f ? 2.0f * r : NW_INTERP_STEP;
+    float v2 = a->vel[0] * a->vel[0] + a->vel[1] * a->vel[1] + a->vel[2] * a->vel[2];
+    return d2 <= room * room || d2 <= 16.0f * v2;
+}
+
+static void nw_interp_follow(NwObj *b, const NwObj *a)
+{
+    bool sudden = false;
+    for (int k = 0; k < 3; k++) {
+        b->vel[k] = b->wm[12 + k] - a->wm[12 + k];
+    }
+    b->fresh = false;
+    b->turn = -1.0f;
+    if (a->posed && b->posed) {
+        float same = nw_quat_near(a->q, b->q);
+        b->turn = 2.0f * acosf(SDL_min(same, 1.0f));
+        sudden = same < NW_QUARTER_TURN && !(a->turn >= 0.0f && a->turn * 2.0f > b->turn);
+    }
+    b->id = sudden ? nw_interp_new(b->base) : a->id;
+}
+
+static int nw_cand_cmp(const void *x, const void *y)
+{
+    const NwCand *a = x, *b = y;
+    if (a->cost != b->cost) {
+        return a->cost < b->cost ? -1 : 1;
+    }
+    return a->b != b->b ? (a->b < b->b ? -1 : 1) : (a->a > b->a) - (a->a < b->a);
+}
+
+/* Each takes the one nearest to where its last step leads, one-to-one. */
+static void nw_interp_match(const NwGroup *gb, const NwGroup *ga)
+{
+    NwObj *now = nw_ik.now.objs;
+    const NwObj *was = nw_ik.was.objs;
+    uint32_t nb = gb->count, na = ga->count;
+    if (nb == 1 && na == 1) {
+        NwObj *b = &now[gb->first - 1];
+        const NwObj *a = &was[ga->first - 1];
+        if (nw_interp_reach(a, b)) {
+            nw_interp_follow(b, a);
+        } else {
+            nw_interp_fresh(b);
+        }
+        return;
+    }
+    uint64_t pairs = (uint64_t)na * nb;
+    if (pairs > NW_MATCH_MAX || !nw_grow((void **)&nw_ik.ai, &nw_ik.aicap, na, sizeof(*nw_ik.ai)) ||
+        !nw_grow((void **)&nw_ik.bi, &nw_ik.bicap, nb, sizeof(*nw_ik.bi)) ||
+        !nw_grow((void **)&nw_ik.ta, &nw_ik.tacap, na, 1) || !nw_grow((void **)&nw_ik.tb, &nw_ik.tbcap, nb, 1) ||
+        !nw_grow((void **)&nw_ik.cands, &nw_ik.candcap, (uint32_t)pairs, sizeof(*nw_ik.cands))) {
+        /* Too many to weigh: by draw order. */
+        uint32_t ia = ga->first;
+        for (uint32_t ib = gb->first; ib; ib = now[ib - 1].next) {
+            if (ia && nw_interp_reach(&was[ia - 1], &now[ib - 1])) {
+                nw_interp_follow(&now[ib - 1], &was[ia - 1]);
+            } else {
+                nw_interp_fresh(&now[ib - 1]);
+            }
+            ia = ia ? was[ia - 1].next : 0;
+        }
+        return;
+    }
+    uint32_t n = 0;
+    for (uint32_t i = ga->first; i; i = was[i - 1].next) {
+        nw_ik.ai[n++] = i - 1;
+    }
+    n = 0;
+    for (uint32_t i = gb->first; i; i = now[i - 1].next) {
+        nw_ik.bi[n++] = i - 1;
+    }
+    uint32_t ncands = 0;
+    for (uint32_t ib = 0; ib < nb; ib++) {
+        const NwObj *b = &now[nw_ik.bi[ib]];
+        for (uint32_t ia = 0; ia < na; ia++) {
+            const NwObj *a = &was[nw_ik.ai[ia]];
+            if (!nw_interp_reach(a, b)) {
+                continue;
+            }
+            double cost = 0.0;
+            for (int k = 0; k < 3; k++) {
+                double d = (double)b->wm[12 + k] - ((double)a->wm[12 + k] + (double)a->vel[k]);
+                cost += d * d;
+            }
+            /* Ties: the nearer rotation, then draw order. */
+            double r = SDL_max(a->radius, b->radius);
+            double r2 = r > 0.0 ? r * r : (double)NW_INTERP_STEP * NW_INTERP_STEP;
+            double turn = a->posed && b->posed ? 1.0 - (double)nw_quat_near(a->q, b->q) : 0.0;
+            double order = ib > ia ? ib - ia : ia - ib;
+            nw_ik.cands[ncands++] = (NwCand){ cost + r2 * (1e-4 * turn + 1e-8 * order), ib, ia };
+        }
+    }
+    qsort(nw_ik.cands, ncands, sizeof(*nw_ik.cands), nw_cand_cmp);
+    memset(nw_ik.ta, 0, na);
+    memset(nw_ik.tb, 0, nb);
+    for (uint32_t i = 0; i < ncands; i++) {
+        const NwCand *c = &nw_ik.cands[i];
+        if (!nw_ik.tb[c->b] && !nw_ik.ta[c->a]) {
+            nw_interp_follow(&now[nw_ik.bi[c->b]], &was[nw_ik.ai[c->a]]);
+            nw_ik.tb[c->b] = nw_ik.ta[c->a] = 1;
+        }
+    }
+    for (uint32_t ib = 0; ib < nb; ib++) {
+        if (!nw_ik.tb[ib]) {
+            nw_interp_fresh(&now[nw_ik.bi[ib]]);
+        }
+    }
+}
+
+static void nw_interp_identify(void)
+{
+    NwFrame *now = &nw_ik.now;
+    for (uint32_t h = 0; now->gused && h < now->gcap; h++) {
+        const NwGroup *g = &now->groups[h];
+        if (!g->base) {
+            continue;
+        }
+        const NwGroup *was = nw_group_find(&nw_ik.was, g->base);
+        if (was) {
+            nw_interp_match(g, was);
+            continue;
+        }
+        for (uint32_t i = g->first; i; i = now->objs[i - 1].next) {
+            nw_interp_fresh(&now->objs[i - 1]);
+        }
+    }
+}
+
+static uint32_t nw_interp_body(NwPacket *p, const NwObj *o)
+{
+    uint32_t index;
+    int8_t *parents;
+    NwBody *body = nw_packet_body(p, o->nbones, &index, &parents);
+    if (!body) {
+        return UINT32_MAX;
+    }
+    memcpy(body->wm, o->wm, sizeof(body->wm));
+    if (o->nbones) {
+        memcpy(p->bones[body->first], nw_ik.bones[o->bones], (size_t)o->nbones * sizeof(*p->bones));
+        memcpy(parents, nw_ik.parents + o->bones, o->nbones);
+    }
+    return index + 1;
+}
+
+static void nw_interp_cameras(NwPacket *p)
+{
+    NwCam *now = nw_ik.cams[nw_ik.frame & 1], *was = nw_ik.cams[~nw_ik.frame & 1];
+    uint32_t n = 0;
+    bool taken[NW_CAMS] = { false };
+    for (uint32_t i = 0; i < p->nviews; i++) {
+        NwView *v = &p->views[i];
+        uint32_t k = 0;
+        while (k < n && memcmp(now[k].m, v->cam, sizeof(v->cam)) != 0) {
+            k++;
+        }
+        if (k == NW_CAMS) {
+            v->key = 0;
+            continue;
+        }
+        if (k == n) {
+            memcpy(now[n].m, v->cam, sizeof(v->cam));
+            now[n++].key = 0;
+        }
+        v->key = k + 1;
+    }
+    for (;;) {
+        float best = 0.0f;
+        uint32_t bk = NW_CAMS, bj = 0;
+        for (uint32_t k = 0; k < n; k++) {
+            for (uint32_t j = 0; !now[k].key && j < nw_ik.ncams; j++) {
+                if (taken[j] || nw_interp_jump(was[j].m, now[k].m)) {
+                    continue;
+                }
+                NwPose a, b;
+                float dx = now[k].m[12] - was[j].m[12], dy = now[k].m[13] - was[j].m[13],
+                      dz = now[k].m[14] - was[j].m[14];
+                float cost = dx * dx + dy * dy + dz * dz;
+                if (nw_pose(&a, was[j].m) && nw_pose(&b, now[k].m)) {
+                    cost += 100.0f * (1.0f - nw_quat_near(a.q, b.q));
+                }
+                if (bk == NW_CAMS || cost < best) {
+                    best = cost;
+                    bk = k;
+                    bj = j;
+                }
+            }
+        }
+        if (bk == NW_CAMS) {
+            break;
+        }
+        now[bk].key = was[bj].key;
+        taken[bj] = true;
+    }
+    for (uint32_t k = 0; k < n; k++) {
+        if (!now[k].key) {
+            if (!++nw_ik.camkey) {
+                nw_ik.camkey = 1;
+            }
+            now[k].key = nw_ik.camkey;
+        }
+    }
+    for (uint32_t i = 0; i < p->nviews; i++) {
+        if (p->views[i].key) {
+            p->views[i].key = now[p->views[i].key - 1].key;
+        }
+    }
+    nw_ik.ncams = n;
+}
+
+void nw_interp_publish(NwPacket *p)
+{
+    NwFrame *now = &nw_ik.now;
+    p->snap = nw_ik.snap;
+    nw_ik.snap = false;
+    nw_interp_identify();
+    for (uint32_t i = 0; i < p->ncmds; i++) {
+        NwCmd *c = &p->cmds[i];
+        if (!c->key) {
+            continue;
+        }
+        /* A record an unflushed stream kept from the frame before. */
+        if (c->epoch != (uint16_t)nw_ik.frame || !c->scope || c->scope > now->n) {
+            c->key = 0;
+            continue;
+        }
+        NwObj *o = &now->objs[c->scope - 1];
+        if (!o->body) {
+            o->body = nw_interp_body(p, o);
+        }
+        c->body = o->body == UINT32_MAX ? 0 : o->body;
+        if (!c->body || c->joint >= o->nbones) {
+            c->joint = NW_JOINT_NONE;
+        }
+        uint64_t key = nw_mix(o->id, c->key);
+        c->key = key + !key;
+    }
+    nw_interp_cameras(p);
+    NwFrame t = nw_ik.was;
+    nw_ik.was = *now;
+    *now = t;
+    now->n = 0;
+    if (now->gused) {
+        memset(now->groups, 0, now->gcap * sizeof(*now->groups));
+        now->gused = 0;
+    }
+    nw_ik.nbones = 0;
+    nw_ik.frame++;
+}
+
+void nw_interp_key(const void *key)
+{
+    nw_ik.tag = key;
+}
+
+void nw_interp_slot(const void *owner, unsigned long long place)
+{
+    nw_ik.owner = owner;
+    nw_ik.place = place;
+}
+
+uint32_t nw_interp_frame(void)
+{
+    return nw_ik.frame;
+}
+
+void nw_interp_snap(void)
+{
+    nw_ik.snap = true;
 }
 
 /* Render thread. */
 #define NW_NONE UINT32_MAX
+#define NW_FAIL (UINT32_MAX - 1)
+
+enum {
+    NW_LOCAL_KEPT,
+    NW_LOCAL_MTX,    /* no body: blended by itself */
+    NW_LOCAL_ROOT,   /* its body's matrix, or its joint's times it */
+    NW_LOCAL_OFFSET, /* nw_ir.rel times that */
+};
+
+enum {
+    NW_BONE_KEPT,
+    NW_BONE_BLEND,
+    NW_BONE_TURN, /* b's rotation and size at once; its position still blends */
+};
+
+typedef struct NwBone {
+    NwPose a, b;
+    float kept[16];
+    float bind[16]; /* the inverse bind: b's palette over b's joint */
+    uint8_t mode;
+    bool root;      /* no parent, or one with no inverse */
+    bool bound;
+} NwBone;
+
+typedef struct NwBodyPair {
+    uint32_t a; /* NW_NONE not looked at yet, NW_FAIL another skeleton */
+    bool still;
+    bool bound;
+    float wm[16];
+} NwBodyPair;
+
+typedef struct NwPalette {
+    uint32_t body, first;
+} NwPalette;
 
 static struct {
     uint64_t a, b; /* the pair below is of these seqs */
@@ -297,6 +743,20 @@ static struct {
     uint64_t *keys;            /* a's cmd keys, open addressing */
     uint32_t keycap;
     uint32_t *at, atcap;
+    uint8_t *how;
+    uint32_t howcap;
+    float (*rel)[16];          /* b's cmd over its root */
+    uint32_t relcap;
+    NwBodyPair *bodies;
+    uint32_t bodycap;
+    NwBone *bones;
+    uint32_t bonecap;
+    float (*jm)[16], (*jw)[16]; /* the blended bones: in the model, in the world */
+    uint32_t jmcap, jwcap;
+    NwPalette *pals;
+    uint32_t npals, palcap;
+    uint8_t *palseen;
+    uint32_t palseencap;
     NwInterpStats stats;
     NwPacket out;
     NwCmd *cmds;
@@ -313,24 +773,6 @@ static struct {
     NwMtlSnap *mtls;
     uint32_t mtlcap;
 } nw_ir;
-
-static bool nw_grow(void **items, uint32_t *cap, uint32_t n, size_t size)
-{
-    if (n <= *cap) {
-        return true;
-    }
-    uint32_t c = *cap ? *cap : 256;
-    while (c < n) {
-        c *= 2;
-    }
-    void *grown = SDL_realloc(*items, (size_t)c * size);
-    if (!grown) {
-        return false;
-    }
-    *items = grown;
-    *cap = c;
-    return true;
-}
 
 float nw_interp_t(const NwPacket *a, const NwPacket *b, double now)
 {
@@ -361,6 +803,188 @@ bool nw_interp_redraws(const NwPacket *p)
     return false;
 }
 
+static void nw_mul(double out[16], const double a[16], const double b[16])
+{
+    for (int i = 0; i < 4; i++) {
+        for (int j = 0; j < 4; j++) {
+            out[i * 4 + j] = a[i * 4] * b[j] + a[i * 4 + 1] * b[4 + j] + a[i * 4 + 2] * b[8 + j] +
+                             a[i * 4 + 3] * b[12 + j];
+        }
+    }
+}
+
+static void nw_mulf(float out[16], const float a[16], const float b[16])
+{
+    for (int i = 0; i < 4; i++) {
+        for (int j = 0; j < 4; j++) {
+            out[i * 4 + j] = a[i * 4] * b[j] + a[i * 4 + 1] * b[4 + j] + a[i * 4 + 2] * b[8 + j] +
+                             a[i * 4 + 3] * b[12 + j];
+        }
+    }
+}
+
+static bool nw_affine_inv(double out[16], const double m[16])
+{
+    double c00 = m[5] * m[10] - m[6] * m[9], c01 = m[6] * m[8] - m[4] * m[10], c02 = m[4] * m[9] - m[5] * m[8];
+    double det = m[0] * c00 + m[1] * c01 + m[2] * c02;
+    if (fabs(det) < 1e-20) {
+        return false;
+    }
+    double r = 1.0 / det;
+    out[0] = c00 * r;
+    out[1] = (m[2] * m[9] - m[1] * m[10]) * r;
+    out[2] = (m[1] * m[6] - m[2] * m[5]) * r;
+    out[4] = c01 * r;
+    out[5] = (m[0] * m[10] - m[2] * m[8]) * r;
+    out[6] = (m[2] * m[4] - m[0] * m[6]) * r;
+    out[8] = c02 * r;
+    out[9] = (m[1] * m[8] - m[0] * m[9]) * r;
+    out[10] = (m[0] * m[5] - m[1] * m[4]) * r;
+    for (int j = 0; j < 3; j++) {
+        out[12 + j] = -(m[12] * out[j] + m[13] * out[4 + j] + m[14] * out[8 + j]);
+        out[j * 4 + 3] = 0.0;
+    }
+    out[15] = 1.0;
+    return true;
+}
+
+/* m times the inverse of over. */
+static bool nw_within(float out[16], const float m[16], const double over[16])
+{
+    double inv[16], md[16], rel[16];
+    if (!nw_affine_inv(inv, over)) {
+        return false;
+    }
+    for (int i = 0; i < 16; i++) {
+        md[i] = m[i];
+    }
+    nw_mul(rel, md, inv);
+    for (int i = 0; i < 16; i++) {
+        out[i] = (float)rel[i];
+    }
+    return true;
+}
+
+static bool nw_withinf(float out[16], const float m[16], const float over[16])
+{
+    double od[16];
+    for (int i = 0; i < 16; i++) {
+        od[i] = over[i];
+    }
+    return nw_within(out, m, od);
+}
+
+static void nw_interp_bone(NwBone *bone, const float (*ja)[16], const float (*jb)[16], uint32_t j, int up)
+{
+    float la[16], lb[16];
+    bone->root = !(up >= 0 && (uint32_t)up < j && nw_withinf(la, ja[j], ja[up]) && nw_withinf(lb, jb[j], jb[up]));
+    if (bone->root) {
+        memcpy(la, ja[j], sizeof(la));
+        memcpy(lb, jb[j], sizeof(lb));
+    }
+    bone->bound = false;
+    bone->mode = NW_BONE_KEPT;
+    memcpy(bone->kept, lb, sizeof(bone->kept));
+    if (memcmp(la, lb, sizeof(la)) == 0 || !nw_pose(&bone->a, la) || !nw_pose(&bone->b, lb) ||
+        (bone->a.s[0] < 0.0f) != (bone->b.s[0] < 0.0f)) {
+        return;
+    }
+    bone->mode = nw_quat_near(bone->a.q, bone->b.q) < NW_QUARTER_TURN ? NW_BONE_TURN : NW_BONE_BLEND;
+    for (int k = 0; k < 3; k++) {
+        float grown = bone->b.s[k] / bone->a.s[k];
+        if (grown > 2.0f || grown < 0.5f) {
+            bone->mode = NW_BONE_TURN; /* a part shown or hidden by its size */
+        }
+    }
+}
+
+static void nw_interp_body_pair(const NwPacket *a, const NwPacket *b, NwBodyPair *bp, uint32_t ia, uint32_t ib)
+{
+    const NwBody *ba = &a->bodies[ia], *bb = &b->bodies[ib];
+    bp->a = NW_FAIL;
+    bp->bound = false;
+    if (ba->count != bb->count || (uint64_t)ba->first + ba->count > a->nbones ||
+        (uint64_t)bb->first + bb->count > b->nbones ||
+        (bb->count && memcmp(a->parents + ba->first, b->parents + bb->first, bb->count) != 0)) {
+        return;
+    }
+    bp->a = ia;
+    bp->still = memcmp(ba->wm, bb->wm, sizeof(bb->wm)) == 0 &&
+                (!bb->count ||
+                 memcmp(a->bones[ba->first], b->bones[bb->first], (size_t)bb->count * sizeof(*b->bones)) == 0);
+    for (uint32_t j = 0; !bp->still && j < bb->count; j++) {
+        nw_interp_bone(&nw_ir.bones[bb->first + j], &a->bones[ba->first], &b->bones[bb->first], j,
+                       b->parents[bb->first + j]);
+    }
+}
+
+static void nw_interp_bodies(const NwPacket *a, const NwPacket *b)
+{
+    nw_ir.npals = 0;
+    for (uint32_t i = 0; i < b->nbodies; i++) {
+        nw_ir.bodies[i].a = NW_NONE;
+    }
+    if (b->njoints) {
+        memset(nw_ir.palseen, 0, b->njoints);
+    }
+    for (uint32_t i = 0; i < b->ncmds; i++) {
+        nw_ir.how[i] = NW_LOCAL_MTX;
+        if (nw_ir.pair[i] == NW_NONE) {
+            continue;
+        }
+        const NwCmd *c = &b->cmds[i], *ca = &a->cmds[nw_ir.pair[i]];
+        if (!c->body || c->body > b->nbodies || !ca->body || ca->body > a->nbodies) {
+            continue;
+        }
+        NwBodyPair *bp = &nw_ir.bodies[c->body - 1];
+        const NwBody *bb = &b->bodies[c->body - 1];
+        if (bp->a == NW_NONE) {
+            nw_interp_body_pair(a, b, bp, ca->body - 1, c->body - 1);
+        }
+        if (bp->a != ca->body - 1) {
+            continue;
+        }
+        nw_ir.how[i] = NW_LOCAL_KEPT;
+        if (bp->still) {
+            continue;
+        }
+        double root[16];
+        for (int k = 0; k < 16; k++) {
+            root[k] = bb->wm[k];
+        }
+        if (c->joint < bb->count) {
+            double jm[16], wm[16];
+            for (int k = 0; k < 16; k++) {
+                jm[k] = b->bones[bb->first + c->joint][k];
+                wm[k] = bb->wm[k];
+            }
+            nw_mul(root, jm, wm);
+        }
+        float *rel = nw_ir.rel[i];
+        if (!nw_within(rel, c->local, root)) {
+            continue;
+        }
+        nw_ir.how[i] = NW_LOCAL_ROOT;
+        for (int k = 0; k < 16; k++) {
+            if (fabsf(rel[k] - (k % 5 == 0 ? 1.0f : 0.0f)) > 1e-5f) {
+                nw_ir.how[i] = NW_LOCAL_OFFSET;
+            }
+        }
+        if (c->op != NW_CMD_SKIN || !bb->count || c->count != bb->count ||
+            (uint64_t)c->first + c->count > b->njoints || nw_ir.palseen[c->first] ||
+            !nw_grow((void **)&nw_ir.pals, &nw_ir.palcap, nw_ir.npals + 1, sizeof(*nw_ir.pals))) {
+            continue;
+        }
+        nw_ir.palseen[c->first] = 1;
+        nw_ir.pals[nw_ir.npals++] = (NwPalette){ c->body - 1, c->first };
+        for (uint32_t j = 0; !bp->bound && j < bb->count; j++) {
+            NwBone *bone = &nw_ir.bones[bb->first + j];
+            bone->bound = nw_withinf(bone->bind, b->joints[c->first + j], b->bones[bb->first + j]);
+        }
+        bp->bound = true;
+    }
+}
+
 static bool nw_interp_pair(const NwPacket *a, const NwPacket *b)
 {
     if (nw_ir.a == a->seq && nw_ir.b == b->seq) {
@@ -374,7 +998,14 @@ static bool nw_interp_pair(const NwPacket *a, const NwPacket *b)
         !nw_grow((void **)&nw_ir.vpair, &nw_ir.vpaircap, b->nviews, sizeof(*nw_ir.vpair)) ||
         !nw_grow((void **)&nw_ir.mpair, &nw_ir.mpaircap, b->nmtls, sizeof(*nw_ir.mpair)) ||
         !nw_grow((void **)&nw_ir.at, &nw_ir.atcap, cap, sizeof(*nw_ir.at)) ||
-        !nw_grow((void **)&nw_ir.keys, &nw_ir.keycap, cap, sizeof(*nw_ir.keys))) {
+        !nw_grow((void **)&nw_ir.keys, &nw_ir.keycap, cap, sizeof(*nw_ir.keys)) ||
+        !nw_grow((void **)&nw_ir.how, &nw_ir.howcap, b->ncmds, sizeof(*nw_ir.how)) ||
+        !nw_grow((void **)&nw_ir.rel, &nw_ir.relcap, b->ncmds, sizeof(*nw_ir.rel)) ||
+        !nw_grow((void **)&nw_ir.bodies, &nw_ir.bodycap, b->nbodies, sizeof(*nw_ir.bodies)) ||
+        !nw_grow((void **)&nw_ir.bones, &nw_ir.bonecap, b->nbones, sizeof(*nw_ir.bones)) ||
+        !nw_grow((void **)&nw_ir.jm, &nw_ir.jmcap, b->nbones, sizeof(*nw_ir.jm)) ||
+        !nw_grow((void **)&nw_ir.jw, &nw_ir.jwcap, b->nbones, sizeof(*nw_ir.jw)) ||
+        !nw_grow((void **)&nw_ir.palseen, &nw_ir.palseencap, b->njoints, sizeof(*nw_ir.palseen))) {
         return false;
     }
     memset(nw_ir.keys, 0, cap * sizeof(*nw_ir.keys));
@@ -404,15 +1035,17 @@ static bool nw_interp_pair(const NwPacket *a, const NwPacket *b)
             h = (h + 1) & (cap - 1);
         }
         const NwCmd *ca = nw_ir.keys[h] ? &a->cmds[nw_ir.at[h]] : NULL;
-        if (!ca || ca->op != c->op) {
+        /* An effect whose time ran back began again. */
+        if (!ca || ca->op != c->op ||
+            (c->op == NW_CMD_PARTICLES && c->ptllist < b->nptllists && ca->ptllist < a->nptllists &&
+             b->ptllists[c->ptllist].head[3] < a->ptllists[ca->ptllist].head[3])) {
             nw_ir.stats.unpaired++;
-        } else if (nw_interp_jump(ca->local, c->local)) {
-            nw_ir.stats.snapped++;
         } else {
             nw_ir.pair[i] = nw_ir.at[h];
             nw_ir.stats.paired++;
         }
     }
+    nw_interp_bodies(a, b);
     for (uint32_t i = 0; i < b->nviews; i++) {
         nw_ir.vpair[i] = NW_NONE;
         for (uint32_t j = 0; b->views[i].key && j < a->nviews; j++) {
@@ -448,41 +1081,6 @@ static bool nw_interp_pair(const NwPacket *a, const NwPacket *b)
     }
     nw_ir.a = a->seq;
     nw_ir.b = b->seq;
-    return true;
-}
-
-static void nw_mul(double out[16], const double a[16], const double b[16])
-{
-    for (int i = 0; i < 4; i++) {
-        for (int j = 0; j < 4; j++) {
-            out[i * 4 + j] = a[i * 4] * b[j] + a[i * 4 + 1] * b[4 + j] + a[i * 4 + 2] * b[8 + j] +
-                             a[i * 4 + 3] * b[12 + j];
-        }
-    }
-}
-
-static bool nw_affine_inv(double out[16], const double m[16])
-{
-    double c00 = m[5] * m[10] - m[6] * m[9], c01 = m[6] * m[8] - m[4] * m[10], c02 = m[4] * m[9] - m[5] * m[8];
-    double det = m[0] * c00 + m[1] * c01 + m[2] * c02;
-    if (fabs(det) < 1e-20) {
-        return false;
-    }
-    double r = 1.0 / det;
-    out[0] = c00 * r;
-    out[1] = (m[2] * m[9] - m[1] * m[10]) * r;
-    out[2] = (m[1] * m[6] - m[2] * m[5]) * r;
-    out[4] = c01 * r;
-    out[5] = (m[0] * m[10] - m[2] * m[8]) * r;
-    out[6] = (m[2] * m[4] - m[0] * m[6]) * r;
-    out[8] = c02 * r;
-    out[9] = (m[1] * m[8] - m[0] * m[9]) * r;
-    out[10] = (m[0] * m[5] - m[1] * m[4]) * r;
-    for (int j = 0; j < 3; j++) {
-        out[12 + j] = -(m[12] * out[j] + m[13] * out[4 + j] + m[14] * out[8 + j]);
-        out[j * 4 + 3] = 0.0;
-    }
-    out[15] = 1.0;
     return true;
 }
 
@@ -548,6 +1146,37 @@ static void nw_interp_uv(NwMtlSnap *out, const NwMtlSnap *a, const NwMtlSnap *b,
     }
 }
 
+/* Each joint over its blended parent, so it turns about where it hangs. */
+static void nw_interp_skeleton(const NwPacket *b, const NwBody *bb, const NwBodyPair *bp, float t)
+{
+    for (uint32_t j = 0; j < bb->count; j++) {
+        const NwBone *bone = &nw_ir.bones[bb->first + j];
+        float local[16];
+        if (bone->mode == NW_BONE_KEPT) {
+            memcpy(local, bone->kept, sizeof(local));
+        } else {
+            NwPose o = bone->b;
+            if (bone->mode == NW_BONE_BLEND) {
+                nw_slerp(o.q, bone->a.q, bone->b.q, t);
+            }
+            for (int k = 0; k < 3; k++) {
+                if (bone->mode == NW_BONE_BLEND) {
+                    o.s[k] = bone->a.s[k] + (bone->b.s[k] - bone->a.s[k]) * t;
+                }
+                o.p[k] = bone->a.p[k] + (bone->b.p[k] - bone->a.p[k]) * t;
+            }
+            nw_pose_mtx(local, &o);
+        }
+        float *jm = nw_ir.jm[bb->first + j];
+        if (bone->root) {
+            memcpy(jm, local, sizeof(local));
+        } else {
+            nw_mulf(jm, local, nw_ir.jm[bb->first + b->parents[bb->first + j]]);
+        }
+        nw_mulf(nw_ir.jw[bb->first + j], jm, bp->wm);
+    }
+}
+
 /* memcpy that takes an empty array's NULL. */
 static void nw_copy(void *dst, const void *src, size_t size)
 {
@@ -585,32 +1214,49 @@ const NwPacket *nw_interp_blend(const NwPacket *a, const NwPacket *b, float t)
             nw_interp_uv(&nw_ir.mtls[i], &a->mtls[nw_ir.mpair[i]], &b->mtls[i], t);
         }
     }
-    uint32_t palette = NW_NONE; /* the SKIN draws of a layer share their palette */
+    for (uint32_t i = 0; i < b->nbodies; i++) {
+        NwBodyPair *bp = &nw_ir.bodies[i];
+        if (bp->a >= NW_FAIL || bp->still) {
+            continue;
+        }
+        nw_interp_mtx(bp->wm, a->bodies[bp->a].wm, b->bodies[i].wm, t);
+        nw_interp_skeleton(b, &b->bodies[i], bp, t);
+    }
     for (uint32_t i = 0; i < b->ncmds; i++) {
         if (nw_ir.pair[i] == NW_NONE) {
             continue;
         }
         const NwCmd *ca = &a->cmds[nw_ir.pair[i]];
         NwCmd *c = &nw_ir.cmds[i];
-        nw_interp_mtx(c->local, ca->local, b->cmds[i].local, t);
-        if (c->op == NW_CMD_PARTICLES && c->ptllist < b->nptllists && ca->ptllist < a->nptllists) {
-            float ta = a->ptllists[ca->ptllist].head[3], tb = b->ptllists[c->ptllist].head[3];
-            if (tb >= ta) {
-                nw_ir.ptllists[c->ptllist].head[3] = ta + (tb - ta) * t;
+        if (nw_ir.how[i] == NW_LOCAL_MTX) {
+            nw_interp_mtx(c->local, ca->local, b->cmds[i].local, t);
+        } else if (nw_ir.how[i] != NW_LOCAL_KEPT) {
+            const NwBody *bb = &b->bodies[c->body - 1];
+            const float *root = c->joint < bb->count ? nw_ir.jw[bb->first + c->joint] : nw_ir.bodies[c->body - 1].wm;
+            if (nw_ir.how[i] == NW_LOCAL_OFFSET) {
+                nw_mulf(c->local, nw_ir.rel[i], root);
+            } else {
+                memcpy(c->local, root, sizeof(c->local));
             }
         }
-        if (c->op == NW_CMD_SKIN && c->count == ca->count && c->first != palette &&
-            (uint64_t)c->first + c->count <= b->njoints && (uint64_t)ca->first + ca->count <= a->njoints) {
-            for (uint32_t j = 0; j < c->count; j++) {
-                nw_interp_mtx(nw_ir.joints[c->first + j], a->joints[ca->first + j], b->joints[c->first + j], t);
-            }
-            palette = c->first;
+        if (c->op == NW_CMD_PARTICLES && c->ptllist < b->nptllists && ca->ptllist < a->nptllists) {
+            float ta = a->ptllists[ca->ptllist].head[3], tb = b->ptllists[c->ptllist].head[3];
+            nw_ir.ptllists[c->ptllist].head[3] = ta + (tb - ta) * t;
         }
         if (c->op == NW_CMD_SKIN && c->nweights && c->nweights == ca->nweights &&
             (uint64_t)c->weights + c->nweights <= b->nweights && (uint64_t)ca->weights + ca->nweights <= a->nweights) {
             for (uint32_t w = 0; w < c->nweights; w++) {
                 float wa = a->weights[ca->weights + w], wb = b->weights[c->weights + w];
                 nw_ir.weights[c->weights + w] = wa + (wb - wa) * t;
+            }
+        }
+    }
+    for (uint32_t i = 0; i < nw_ir.npals; i++) {
+        const NwBody *bb = &b->bodies[nw_ir.pals[i].body];
+        for (uint32_t j = 0; j < bb->count; j++) {
+            const NwBone *bone = &nw_ir.bones[bb->first + j];
+            if (bone->bound) {
+                nw_mulf(nw_ir.joints[nw_ir.pals[i].first + j], bone->bind, nw_ir.jm[bb->first + j]);
             }
         }
     }

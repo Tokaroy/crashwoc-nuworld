@@ -106,8 +106,16 @@ typedef struct NwView {
     float faceon[4];     /* VU 0x16 (FaceYDirStream): cos yaw, viewport width / 10240, -sin yaw, height / 3584 */
     float cam[16];       /* the camera vs was made from (global_camera's matrix and scale), for interpolation */
     float camscale[3];
-    uint32_t key; /* which SetViewMtx of the frame it is, from 1 */
+    uint32_t key; /* its camera's (src/gfx/interp.h); 0 none */
 } NwView;
+
+/* An object's matrix and joints, for interpolation. */
+typedef struct NwBody {
+    float wm[16];
+    uint32_t first, count; /* into NwPacket.bones and .parents */
+} NwBody;
+
+#define NW_JOINT_NONE UINT16_MAX
 
 typedef struct NwMtlSnap {
     NwMtlState gs;
@@ -126,6 +134,8 @@ typedef struct NwMtlSnap {
 
 typedef struct NwCmd {
     uint8_t op;
+    uint16_t epoch;                 /* game thread only */
+    uint32_t scope;                 /* game thread only */
     uint64_t key;                   /* the same draw in the frame before has it (src/gfx/interp.h); 0 none */
     uint32_t view;
     uint32_t mtl;                   /* into NwPacket.mtls, from material when the packet is published */
@@ -151,6 +161,8 @@ typedef struct NwCmd {
             uint32_t silhouette;
             float silhouette_scale;
             uint32_t ptllist;           /* PARTICLES: the effect list in NwPacket.ptllists */
+            uint32_t body;              /* 1 + index into NwPacket.bodies, 0 none */
+            uint16_t joint;             /* the body's joint local hangs on; NW_JOINT_NONE: its matrix */
         };
         struct {
             int32_t xy[4]; /* the corners in GS 12.4 */
@@ -204,6 +216,11 @@ typedef struct NwPacket {
     uint32_t nzcluts, zclutcap;
     NwWaves *waves;
     uint32_t nwaves, wavecap;
+    NwBody *bodies;
+    uint32_t nbodies, bodycap;
+    float (*bones)[16]; /* model space */
+    int8_t *parents;    /* within the body; -1 a root */
+    uint32_t nbones, bonecap;
 } NwPacket;
 
 /* NULL on out of memory. */
@@ -219,6 +236,8 @@ NwPtlList *nw_packet_ptllist(NwPacket *p, uint32_t *index);
 NwPtl *nw_packet_ptls(NwPacket *p, uint32_t n, uint32_t *first);
 NwZClut *nw_packet_zclut(NwPacket *p, uint32_t *index);
 NwWaves *nw_packet_waves(NwPacket *p, uint32_t *index);
+/* The caller fills its n bones at .first and their parents at *parents. */
+NwBody *nw_packet_body(NwPacket *p, uint32_t n, uint32_t *index, int8_t **parents);
 /* Empties p, keeping its memory. */
 void nw_packet_reset(NwPacket *p);
 

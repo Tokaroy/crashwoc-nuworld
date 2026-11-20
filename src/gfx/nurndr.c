@@ -622,6 +622,12 @@ int NuRndrSwapScreen(int target)
     return swapped;
 }
 
+static float nw_rndr_radius(const struct nuvec_s *min, const struct nuvec_s *max)
+{
+    float x = max->x - min->x, y = max->y - min->y, z = max->z - min->z;
+    return 0.5f * sqrtf(x * x + y * y + z * z);
+}
+
 /* Returns retail's clip state: 0 out of view, 1 in view, 2 partly. */
 int NuRndrGScnObj(struct nugobj_s *gobj, struct numtx_s *wm)
 {
@@ -630,7 +636,7 @@ int NuRndrGScnObj(struct nugobj_s *gobj, struct numtx_s *wm)
     int clip = -1;
     int n = gobj->ngobjs;
     int instanced = n > 1;
-    NwInterpScope scope = nw_interp_begin(wm, gobj);
+    NwInterpScope scope = nw_interp_begin(wm, gobj, wm, nw_rndr_radius(&gobj->min, &gobj->max));
     while (n-- != 0) {
         struct numtx_s *m = wm;
         if (instanced) {
@@ -690,7 +696,7 @@ int NuRndrGobj(struct nugobj_s *gobj, struct numtx_s *wm)
     struct numtx_s offset;
     int clip = -1;
     int instanced = gobj->next_gobj != 0;
-    NwInterpScope scope = nw_interp_begin(wm, gobj);
+    NwInterpScope scope = nw_interp_begin(wm, gobj, wm, nw_rndr_radius(&gobj->min, &gobj->max));
     for (uint32_t link = 0; gobj; gobj = gobj->next_gobj, link++) {
         struct numtx_s *m = wm;
         if (instanced) {
@@ -749,7 +755,7 @@ int NuRndrGobjSkin(struct nugobj_s *gobj, struct numtx_s *wm, int njoints, struc
     }
     NuRndrSetLocalMtx(wm, vis);
     nw_rndr_blend(weights);
-    NwInterpScope scope = nw_interp_begin(wm, gobj);
+    NwInterpScope scope = nw_interp_begin(wm, gobj, wm, nw_rndr_radius(&gobj->min, &gobj->max));
     uint32_t g = 0;
     for (struct nugeom_s *geom = gobj->geom; geom; geom = geom->next, g++) {
         struct numtl_s *mtl = nurndr_forced_mtl ? nurndr_forced_mtl : geom->mtl;
@@ -772,13 +778,16 @@ int NuHGobjRndrMtxDwa(struct NUHGOBJ_s *hobj, struct numtx_s *wm, int nlayers, s
 {
     struct numtx_s mtx;
     int rv = 0;
-    NwInterpScope scope = nw_interp_begin(wm, hobj);
+    NwInterpScope scope = nw_interp_begin(wm, hobj, wm, nw_rndr_radius(&hobj->bbox_min, &hobj->bbox_max));
     nw_rndr_model_begin(wm);
     int vis = NuCameraClipTestExtents(&hobj->bbox_min, &hobj->bbox_max, wm);
     if (vis == 0) {
         nw_rndr_model_end();
         nw_interp_end(scope);
         return 0;
+    }
+    if (hobj->joints) {
+        nw_interp_joints(mtx_array, &hobj->joints[0].parent_ix, sizeof(hobj->joints[0]), hobj->num_joints);
     }
     if (hobj->shadow && (u8)hobj->pad81[0] == 0) {
         for (struct NUSHADOWDATA_s *shadow = hobj->shadow; shadow->joint != 0xFF; shadow++) {
@@ -811,11 +820,13 @@ int NuHGobjRndrMtxDwa(struct NUHGOBJ_s *hobj, struct numtx_s *wm, int nlayers, s
             for (int j = 0; gobjs && j < hobj->num_joints; j++) {
                 if (gobjs[j]) {
                     nw_interp_at((uint32_t)ix, (uint32_t)set, (uint32_t)j);
+                    nw_interp_joint((uint32_t)j);
                     NuMtxMulVU0(&mtx, &mtx_array[j], wm);
                     rv |= NuRndrGobj(gobjs[j], &mtx);
                 }
             }
         }
+        nw_interp_joint(NW_JOINT_NONE);
         if (l->skin_gobj || l->blend_skin_gobj) {
             NuMtxMulArrayVU0(nw_rndr_joints(hobj->num_joints), hobj->INV_WT, mtx_array, hobj->num_joints);
             if (l->skin_gobj) {
@@ -884,7 +895,7 @@ NwCmd *nw_rndr_strip(struct nuvtx_tc1_s *verts, int count, struct numtx_s *mtx, 
         n += batch >= 3 ? (uint32_t)(batch - 2) * 3 : 0;
     }
     NuRndrSetLocalMtx(mtx ? mtx : &numtx_identity, 2);
-    NwInterpScope scope = mtx ? nw_interp_begin(mtx, stream->mtl) : (NwInterpScope){ 0 };
+    NwInterpScope scope = mtx ? nw_interp_begin(mtx, stream->mtl, mtx, 0.0f) : (NwInterpScope){ 0 };
     NwCmd *c = nw_rndr_verts(stream, NW_VERTS_TRIS, n, &v);
     if (mtx) {
         nw_interp_end(scope);
@@ -1108,7 +1119,7 @@ void NuRndrParticleGroup(struct debchunk_s *chunk, struct debdma_s *list, struct
     }
     NuRndrSetLocalMtx(mtx, 1);
     NuRndrStreamAddMtl(rndrstream_ptl, mtl);
-    NwInterpScope scope = nw_interp_begin(chunk, list);
+    NwInterpScope scope = nw_interp_begin(chunk, list, mtx, 0.0f);
     nw_rndr_particles(rndrstream_ptl, n * 32, &l, &ptls);
     nw_interp_end(scope);
     memset(l, 0, sizeof(*l));
