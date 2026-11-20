@@ -33,6 +33,7 @@ void MoveLoopXZ(struct obj_s *obj, u16 *hdg)
         return;
     }
     if (crash) {
+        nw_ground_steer(&Character[0], hdg);
         nw_slide_spin_loop(&Character[0], hdg);
     }
     struct nuvec_s v;
